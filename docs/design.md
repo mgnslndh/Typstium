@@ -4,6 +4,21 @@ Oct 7, 2026 · Magnus Lindhe
 
 > Living version: https://claude.ai/code/artifact/c418a282-4a89-42af-b444-3c8ac8d336e6
 
+This is the family overview. Each major feature has its own living spec in `docs/specs/`. Where a spec
+and this overview disagree, the spec wins.
+
+| Spec | Covers | Status |
+| --- | --- | --- |
+| [Foundation](specs/foundation.md) | Repo scaffolding, core API, CLI backend, diagnostics, template providers, tests | Draft |
+| Runtime packages (`runtime-packages.md`) | `Typstium.Runtime.<rid>`, packaging CI | Planned |
+| Build (`build.md`) | `Typstium.Build` for `dotnet build` and `msbuild.exe` | Planned |
+| Cake (`cake.md`) | `Cake.Typstium` | Planned |
+| ASP.NET Core (`aspnetcore.md`) | `Typstium.AspNetCore`, template lifecycle | Planned |
+| Markdown (`markdown.md`) | Markdown and Scriban content on `.typ` layouts via cmarker | Planned |
+| Source generators (`source-generators.md`) | Typed templates | Planned |
+
+Spikes: [Spike 0: CLI latency, Markdown, offline packages, diagnostics](spikes/2026-10-07-cli-and-markdown.md).
+
 ## Summary and goals
 
 The project brings Typst to every .NET environment through a C# API over the Typst CLI. That covers modern .NET, .NET Framework, MSBuild, Cake and ASP.NET Core. It doesn't use P/Invoke. Typst does the heavy lifting, and the project says so openly. It's a distribution and integration layer, not a separate PDF engine.
@@ -109,6 +124,7 @@ Integrations sit on the core API only. Swapping the CLI backend for the server b
 | `Typstium.Tool` | `dnx` / global tool shim over the bundled binary | v1.x |
 | `Typstium.Server.<rid>` | Rust sidecar binaries plus `ServerTypstCompiler` | v2 |
 | `Typstium.Verify` | Snapshot testing of rendered output | Deferred |
+| `Typstium.Extensions.FileProviders` | `ITemplateProvider` adapter over `Microsoft.Extensions.FileProviders.IFileProvider` | Later |
 
 ## Binary distribution
 
@@ -294,14 +310,19 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 2. **v1:** core API, runtime packages, `Typstium.Build`, `Cake.Typstium`, `Typstium.AspNetCore`, template store and sandboxing.
 3. **v1.x:** source generators for typed templates, `Typstium.Tool`.
 4. **v2:** Rust sidecar and `ServerTypstCompiler`, if the spike's measurements call for it.
-5. **Later:** `Typstium.Verify`, an in-process native or WASM backend.
+5. **Later:** `Typstium.Verify`, an in-process native or WASM backend, `Typstium.Extensions.FileProviders`.
+6. **Later, build infrastructure:** orchestrate CI with Cake (Frosting or the Cake SDK), using
+   `Cake.Download.Module` to fetch and checksum-verify Typst release assets for the runtime packages and to
+   vendor Typst packages such as cmarker.
 
 **Open questions**
 
 - Final name: Typstium or TypstSharpie?
 - Does NuGet search find a single-token name like `Typstium` when searching "typst"?
-- Does the current Typst CLI have a true offline switch for package downloads?
-- Which RIDs does each Typst release ship, and does the musl binary run on glibc distros without problems?
+- ~~Does the current Typst CLI have a true offline switch for package downloads?~~ No; see spike 0
+  (vendored `--package-path` plus a dead proxy).
+- ~~Which RIDs does each Typst release ship, and does the musl binary run on glibc distros without
+  problems?~~ Seven RIDs for 0.15.1; the static musl build runs on glibc (Ubuntu 24.04). See spike 0.
 - How should a template declare its input schema for the source generator: a JSON schema file or a Typst convention?
 - Wire format for the sidecar: JSON plus binary frames, or MessagePack?
 

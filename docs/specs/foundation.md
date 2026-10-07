@@ -1,0 +1,975 @@
+# Foundation: core API and CLI backend
+
+**Status:** Draft · Oct 8, 2026 · Magnus Lindhe
+**Part of:** [Typstium design overview](../design.md)
+**Based on:** [Spike 0: CLI latency, Markdown, offline packages, diagnostics](../spikes/2026-10-07-cli-and-markdown.md)
+
+## 1. Purpose and scope
+
+The foundation is the core `Typstium` package and the repository it lives in. Every other package
+(`Typstium.Build`, `Cake.Typstium`, `Typstium.AspNetCore`, the source generator) builds on it and on
+nothing else.
+
+**In scope**
+
+- Repository scaffolding: SDK pinning, build properties, Central Package Management, solution, test
+  projects, CI.
+- The `Typstium` package (`netstandard2.0` + `net8.0`):
+  - the request/result API, builders and convenience extensions
+  - the CLI backend (`CliTypstCompiler`)
+  - locating the Typst executable
+  - capability detection
+  - sandboxed workspaces
+  - process execution with limits
+  - diagnostics
+  - the template provider abstraction, with directory and embedded-resource implementations
+- Unit and integration tests against a locally installed Typst.
+
+**Out of scope (separate specs)**
+
+- Runtime NuGet packages and packaging CI (`runtime-packages.md`)
+- `Typstium.Build` (`build.md`)
+- `Cake.Typstium` (`cake.md`)
+- `Typstium.AspNetCore` (`aspnetcore.md`)
+- Markdown and Scriban input (`markdown.md`)
+- Source generators (`source-generators.md`)
+- The server backend (second generation)
+
+The foundation must not need API changes to accommodate any of these. The bundled-runtime locator
+already exists, so the runtime packages plug in later.
+
+## 2. Design principles
+
+Ordered by priority. SOLID sits below these, not above them.
+
+1. **Make change local.** A change in one part should touch as little unrelated code as possible.
+2. **Explicit dependencies.** Use constructor injection. No service locators, statics or ambient state.
+   A class is understood from its constructor and public API.
+3. **Infrastructure behind seams.** Processes, the file system and the environment sit behind internal
+   seams where a seam pays for itself (testing, platform variation).
+4. **Cohesive components, not class confetti.** Group by capability. Add an abstraction only for a real
+   seam.
+5. **Invalid states are hard to represent.** Use closed hierarchies, value objects, immutable records and
+   nullable reference types.
+6. **Immutability by default.** Mutable state is local (builders, the process runner).
+7. **Orchestration is separate from implementation.** The compiler orchestrates a pipeline of small
+   components.
+8. **Misuse-resistant APIs.** No ambiguous `string` overloads, no Boolean parameter soup, no nullable
+   parameters with unclear meaning.
+9. **Deliberate async.** Use async for real I/O and pass `CancellationToken` everywhere. Never block on
+   `.Result` or `.Wait()`.
+10. **Errors are part of the design.** Expected outcomes are results. Exceptional failures are
+    meaningful exception types that keep their context.
+11. **Optimize for change, not abstraction.** Duplication is cheaper than the wrong abstraction.
+
+Library-specific additions:
+
+12. **The public API is forever.** Keep it small and `internal` by default. Track it with
+    `PublicApiAnalyzers`.
+13. **Honest wrapper.** Use Typst's names for Typst concepts. A documented escape hatch for CLI arguments
+    means users never wait on us for a new Typst flag.
+14. **Safe and reproducible by default.** Unsafe or non-reproducible behavior must be opted into.
+15. **Minimal core dependencies.** No `Microsoft.Extensions.*` in the core.
+16. **Explicit dependencies, convenient defaults.** Constructor injection, plus one obvious default
+    setup (`TypstCompiler.CreateDefault()`) for scripts.
+
+**Naming rule:** every public type carries the `Typst` prefix. Only namespaces and package IDs carry the
+brand, so renaming the project (Typstium vs TypstSharpie is still open) doesn't change the API. Helper
+folders are named `Utilities`, never `Helpers` or `Misc`.
+
+## 3. Repository layout
+
+```
+Typstium/
+├─ global.json                  .NET 10 SDK pin; "test": { "runner": "Microsoft.Testing.Platform" }
+├─ Directory.Build.props        LangVersion=latest, Nullable=enable, TreatWarningsAsErrors=true,
+│                               Deterministic, ContinuousIntegrationBuild (CI), SourceLink,
+│                               ImplicitUsings=disable in src, analyzers
+├─ Directory.Packages.props     Central Package Management
+├─ .editorconfig
+├─ .gitattributes               text=auto; *.sh eol=lf; binary fonts/images
+├─ Typstium.slnx
+├─ src/
+│  └─ Typstium/
+├─ tests/
+│  ├─ Typstium.Testing/         shared test infrastructure (class library, not a test project)
+│  ├─ Typstium.UnitTests/
+│  └─ Typstium.IntegrationTests/
+├─ samples/                     sample templates (also test fixtures)
+├─ spike/                       throwaway spike code (not built)
+├─ docs/
+│  ├─ design.md                 family overview
+│  ├─ specs/                    one living spec per major feature
+│  ├─ plans/                    implementation plans
+│  └─ spikes/
+└─ .github/workflows/ci.yml
+```
+
+### Source layout of `src/Typstium`
+
+The public API is in one namespace, `Typstium`. Internals are grouped by capability.
+
+| Folder | Namespace | Contents |
+| --- | --- | --- |
+| `/` (root) | `Typstium` | `ITypstCompiler`, `TypstCompiler`, requests, results, options, exceptions |
+| `Compilation/` | `Typstium.Compilation` | `CliTypstCompiler` pipeline orchestration, outcome mapping (internal) |
+| `Sources/` | `Typstium` | `TypstSource`, `TypstVirtualFile`, `TypstPath` (public) |
+| `Output/` | `Typstium` | `TypstOutput`, `TypstDocument`, `PdfStandard`, `TypstPageSelection` (public) |
+| `Templates/` | `Typstium` | `ITemplateProvider`, `TypstTemplate`, directory and embedded providers (public) |
+| `Executable/` | `Typstium.Executable` + public types in `Typstium` | Resolver and locators |
+| `Capabilities/` | `Typstium.Capabilities` | `typst info` probe and cache (internal) |
+| `Workspace/` | `Typstium.Workspace` | In-place and sandbox workspaces (internal) |
+| `CommandLine/` | `Typstium.CommandLine` | `TypstArguments` (public, root namespace), argument builder, Windows escaper (internal) |
+| `Processes/` | `Typstium.Processes` | Process runner, outcomes, containment (internal) |
+| `Diagnostics/` | `Typstium.Diagnostics` + public types in `Typstium` | Human-format parser, classifier, path mapping |
+| `Interop/Windows/` | `Typstium.Interop.Windows` | `Kernel32.cs`, `SafeJobObjectHandle.cs` (internal) |
+| `Utilities/` | `Typstium.Utilities` | Small shared internals, only when genuinely shared |
+
+### Dependencies of the `Typstium` package
+
+| Dependency | Targets | Why |
+| --- | --- | --- |
+| System.Text.Json | `netstandard2.0` (in-box on `net8.0`) | JSON virtual files and inputs |
+| System.Collections.Immutable | `netstandard2.0` | Immutable request types |
+| System.Diagnostics.DiagnosticSource | `netstandard2.0` | `ActivitySource` tracing |
+| Polyfill | all (private, source-only) | Compiler-support types and newer BCL APIs on `netstandard2.0` |
+
+No `Microsoft.Extensions.*` and no `ILogger`. `Typstium.AspNetCore` adds logging on top.
+
+**Polyfill over PolySharp:** PolySharp generates compiler-support types only. Polyfill does that and
+also adds newer BCL APIs as extension methods, which the core needs on `netstandard2.0`. Never reference
+both.
+
+**Why `net8.0` in addition to `netstandard2.0`:**
+- real `Process.WaitForExitAsync` and `Kill(entireProcessTree: true)`
+- `ProcessStartInfo.ArgumentList` (no hand-written escaping)
+- span APIs
+- trimming and AOT annotations: the `net8.0` build sets `IsAotCompatible=true`
+
+.NET Framework consumers use the `netstandard2.0` build.
+
+## 4. Public API
+
+### 4.1 Compiler
+
+```csharp
+public interface ITypstCompiler
+{
+    Task<TypstCompileResult> CompileAsync(TypstCompileRequest request, CancellationToken cancellationToken);
+}
+
+public static class TypstCompiler
+{
+    public static ITypstCompiler CreateDefault();                                   // default resolver + settings
+    public static ITypstCompiler CreateDefault(CliTypstCompilerSettings settings);
+}
+
+public sealed class CliTypstCompiler : ITypstCompiler
+{
+    public CliTypstCompiler(ITypstExecutableResolver resolver, CliTypstCompilerSettings settings);
+}
+
+public sealed record CliTypstCompilerSettings
+{
+    public int MaxConcurrency { get; init; } = Environment.ProcessorCount;     // concurrent typst processes
+    public string TempRoot { get; init; } = Path.Combine(Path.GetTempPath(), "typstium");
+    public TimeSpan OrphanedWorkspaceAge { get; init; } = TimeSpan.FromHours(1);
+}
+```
+
+`ITypstCompiler` has exactly one method. Everything else is an extension method that builds a request
+(4.6). That keeps every backend (CLI now, server later, test fakes) trivial to implement. The precedents
+are `HttpClient.SendAsync` and `ILogger.Log`.
+
+### 4.2 Request
+
+```csharp
+public sealed record TypstCompileRequest(TypstSource Source)
+{
+    public ImmutableDictionary<string, string> Inputs { get; init; } = ImmutableDictionary<string, string>.Empty;
+    public TypstOutput Output { get; init; } = TypstOutput.Pdf();
+    public TypstCompileOptions Options { get; init; } = TypstCompileOptions.Default;
+
+    public static TypstCompileRequestBuilder ForTemplate(ITemplateProvider provider, string templateName);
+    public static TypstCompileRequestBuilder ForTemplate(ITemplateProvider provider, TypstTemplateName templateName);
+    public static TypstCompileRequestBuilder ForMarkup(string markup);
+    public static TypstFileCompileRequestBuilder ForFile(string path);
+}
+```
+
+**Split by lifetime:**
+- The **request** says *what* to compile, per call: source, inputs and output.
+- The **options** say *how* and *under which policy*. They're configured once and shared.
+
+Output format is on the request, because one app may produce PDFs from one endpoint and PNG previews from
+another.
+
+The request is plain immutable data. It can be built directly, through the builder, or loaded from
+storage, and it's the only thing backends receive.
+
+### 4.3 Sources
+
+```csharp
+public abstract record TypstSource                       // closed hierarchy: private constructor
+{
+    public static TypstSource File(string path);                                     // root = file's folder
+    public static TypstSource File(string path, string root);
+    public static TypstSource Template(ITemplateProvider provider, TypstTemplateName name);
+    public static TypstSource Template(ITemplateProvider provider, TypstTemplateName name,
+                                       ImmutableArray<TypstVirtualFile> files);
+    public static TypstSource Markup(string markup);
+    public static TypstSource Markup(string markup, ImmutableArray<TypstVirtualFile> files);
+
+    public sealed record FileSource ...;       // Path, Root
+    public sealed record TemplateSource ...;   // Provider, Name, Files
+    public sealed record MarkupSource ...;     // Markup, Files
+}
+```
+
+**The source kind decides where `--root` points:**
+
+| Source | Root | Virtual files | Typical user |
+| --- | --- | --- | --- |
+| `File` | The given root, or the file's folder (Typst's own default). Compiled **in place**, nothing copied | **Not representable**: `FileSource` has no files | MSBuild, Cake, scripts |
+| `Template` | A fresh **sandbox** folder holding the template bundle and the virtual files | Yes | Web apps (use case B) |
+| `Markup` | A fresh **sandbox** folder holding the virtual files; markup sent over stdin | Yes | Quick or one-off use |
+
+File sources get data through `Inputs`, including JSON (`TypstCompileRequestBuilder.WithJsonInput`,
+read in Typst with `json(bytes(sys.inputs.data))`). Windows limits command lines to about 32,000
+characters, so the command-line builder checks the total length and throws `ArgumentException` that
+recommends a template or markup source with a virtual file when it's too long.
+
+### 4.4 Virtual files and value objects
+
+```csharp
+public sealed record TypstVirtualFile
+{
+    public TypstPath Path { get; }
+    public ReadOnlyMemory<byte> Content { get; }
+
+    public static TypstVirtualFile FromBytes(TypstPath path, ReadOnlyMemory<byte> content);
+    public static TypstVirtualFile FromText(TypstPath path, string text);                 // UTF-8, no BOM
+    public static TypstVirtualFile FromJson<T>(TypstPath path, T value);
+    public static TypstVirtualFile FromJson<T>(TypstPath path, T value, JsonSerializerOptions options);
+    public static TypstVirtualFile FromJson<T>(TypstPath path, T value, JsonTypeInfo<T> typeInfo); // AOT
+    public static Task<TypstVirtualFile> FromStreamAsync(TypstPath path, Stream stream, CancellationToken ct);
+}
+```
+
+- **Content is held in memory, so requests can be replayed.** The server backend's "retry on a fresh
+  worker" relies on this, and requests can be stored. `FromStreamAsync` reads the stream once, up front.
+- **JSON is serialized when the file is created**, so the request stays immutable. The reflection-based
+  overloads carry `RequiresUnreferencedCode` / `RequiresDynamicCode` on `net8.0`.
+
+**Value objects**
+
+| Type | Kind | Rules |
+| --- | --- | --- |
+| `TypstPath` | sealed class | Root-relative and normalized to `/`. A leading `/` is optional and stripped. Rejects absolute paths, drive letters, `..` segments, empty segments and invalid characters. `Parse`, `TryParse`, `ToString()` gives `/logo.png` (Typst's root-relative form) |
+| `TypstTemplateName` | sealed class | `[A-Za-z0-9._-]` plus `/` for nesting; no `..`. `Parse`, `TryParse` |
+| `TypstDiagnosticId` | sealed class | `TYPST` + four digits |
+| `TypstPosition` | readonly record struct | 1-based `Line`, `Column`; `default` is never produced by the parser |
+| `TypstVersion` | readonly record struct | `Major.Minor.Patch`, comparable |
+| `TypstTemplateVersion` | sealed class | Opaque non-empty string (content hash or provider ETag); compared by ordinal value |
+
+Plain enums: `TypstCompileStatus`, `TypstOutputFormat` (`Pdf`, `Png`, `Svg`, `Html`),
+`TypstDiagnosticSeverity`, `TypstNetworkAccess`.
+
+The rule: a value type that needs validation is a sealed class, because a struct's `default` would
+bypass validation. Plain coordinates and versions are structs.
+
+Builders and extension methods accept `string` and parse it, so callers rarely see these types.
+
+### 4.5 Output and result
+
+```csharp
+public abstract record TypstOutput                   // closed hierarchy
+{
+    public static TypstOutput Pdf();
+    public static TypstOutput Pdf(params PdfStandard[] standards);
+    public static TypstOutput Pdf(TypstPdfOptions options);              // standards, Tagged (default true), Pages
+    public static TypstOutput Png();                                     // 144 ppi, all pages
+    public static TypstOutput Png(int ppi);
+    public static TypstOutput Png(int ppi, TypstPageSelection pages);
+    public static TypstOutput Svg();
+    public static TypstOutput Svg(TypstPageSelection pages);
+    public static TypstOutput Html();                                    // experimental; needs the html feature
+}
+
+public sealed class PdfStandard          // known values as static instances; the CLI value is the identity
+{
+    public static PdfStandard Pdf17 { get; } ... A2b, A2u, A3b, A4, UA1 ...
+    public static PdfStandard FromCliValue(string value);              // escape hatch for new standards
+}
+
+public sealed record TypstPageSelection  // All, or ranges: Pages(1), Range(2, 5), From(8)
+
+public sealed class TypstCompileResult
+{
+    public TypstCompileStatus Status { get; }                 // Succeeded | Failed | TimedOut | OutputLimitExceeded
+    public bool IsSuccess { get; }                            // Status == Succeeded
+    public TypstDocument? Document { get; }                   // non-null exactly when IsSuccess
+    public ImmutableArray<TypstDiagnostic> Diagnostics { get; }
+    public TypstInvocation Invocation { get; }
+    public TypstCompileResult EnsureSuccess();                // throws TypstCompileException
+}
+
+public abstract record TypstDocument                          // closed hierarchy; the format decides the shape
+{
+    public sealed record SingleFile(TypstOutputFormat Format, ReadOnlyMemory<byte> Content);   // PDF, HTML
+    public sealed record Paged(TypstOutputFormat Format, ImmutableArray<ReadOnlyMemory<byte>> Pages); // PNG, SVG
+    // SingleFile: WriteToAsync(Stream, ct), SaveAsync(string path, ct)
+    // Paged:      SaveAsync(string pathPattern, ct)  with {p}, {0p}, {t} as in Typst
+}
+
+public sealed record TypstInvocation
+{
+    public string ExecutablePath { get; }
+    public string ExecutableFoundBy { get; }                  // locator name, e.g. "WinGet"
+    public TypstVersion TypstVersion { get; }
+    public string CommandLine { get; }                        // redacted rendering
+    public TimeSpan ProcessDuration { get; }                  // the typst process only
+    public TimeSpan TotalDuration { get; }                    // the whole CompileAsync call
+}
+```
+
+PNG and SVG are always `Paged`, even for a single page, so the result's shape depends only on the format.
+`Status`, `IsSuccess` and `Document` are set together by one internal factory per status, so they can't
+disagree.
+
+### 4.6 Builders and convenience extensions
+
+There are two sealed, mutable builders. `ForFile` returns a builder that **has no file methods**, so the
+"file source + virtual files" combination can't be written:
+
+```csharp
+public sealed class TypstCompileRequestBuilder              // template and markup sources
+{
+    public TypstCompileRequestBuilder WithFile(string path, ReadOnlyMemory<byte> content);
+    public TypstCompileRequestBuilder WithFile(TypstVirtualFile file);
+    public TypstCompileRequestBuilder WithText(string path, string text);
+    public TypstCompileRequestBuilder WithJson<T>(string path, T value);            // + options / JsonTypeInfo overloads
+    public TypstCompileRequestBuilder WithInput(string key, string value);
+    public TypstCompileRequestBuilder WithJsonInput<T>(string key, T value);         // + overloads
+    public TypstCompileRequestBuilder WithOutput(TypstOutput output);
+    public TypstCompileRequestBuilder ToPdf(params PdfStandard[] standards);
+    public TypstCompileRequestBuilder ToPng(int ppi = 144);
+    public TypstCompileRequestBuilder ToSvg();
+    public TypstCompileRequestBuilder WithOptions(TypstCompileOptions options);
+    public TypstCompileRequestBuilder ConfigureOptions(Func<TypstCompileOptions, TypstCompileOptions> configure);
+    public TypstCompileRequest Build();
+}
+
+public sealed class TypstFileCompileRequestBuilder          // file source: the same, minus WithFile/WithText/WithJson
+```
+
+Both builders forward to one internal core, so the duplication is a few one-line methods. That's cheaper
+than a self-referencing generic base in the public API.
+
+**Convenience extensions on `ITypstCompiler`** (static class `TypstCompilerExtensions`). Each one builds a
+request and calls `CompileAsync`. Strings are never ambiguous, because the method name says what the
+string is:
+
+```csharp
+CompileAsync(this ITypstCompiler, TypstCompileRequestBuilder builder, CancellationToken ct = default)
+CompileAsync(this ITypstCompiler, TypstFileCompileRequestBuilder builder, CancellationToken ct = default)
+CompileAsync(this ITypstCompiler, TypstSource source, CancellationToken ct = default)
+CompileAsync(this ITypstCompiler, TypstSource source, TypstOutput output, CancellationToken ct = default)
+CompileAsync(this ITypstCompiler, TypstSource source, TypstOutput output, TypstCompileOptions options, CancellationToken ct = default)
+CompileFileAsync(this ITypstCompiler, string path, CancellationToken ct = default)
+CompileFileAsync(this ITypstCompiler, string path, TypstOutput output, CancellationToken ct = default)
+CompileFileAsync(this ITypstCompiler, string path, TypstOutput output, TypstCompileOptions options, CancellationToken ct = default)
+CompileMarkupAsync(this ITypstCompiler, string markup, ...same overload pattern...)
+CompileTemplateAsync(this ITypstCompiler, ITemplateProvider provider, string name, ...same overload pattern...)
+```
+
+Example:
+
+```csharp
+var compiler = TypstCompiler.CreateDefault();
+
+// One line for scripts
+var pdf = (await compiler.CompileFileAsync("docs/spec.typ", ct)).EnsureSuccess();
+
+// Builder for richer requests
+var result = await compiler.CompileAsync(
+    TypstCompileRequest.ForTemplate(templates, "license")
+        .WithJson("data.json", licenseViewModel)
+        .WithFile("logo.png", logoBytes)
+        .ToPdf(PdfStandard.A2b)
+        .WithOptions(TypstCompileOptions.Untrusted),
+    ct);
+```
+
+### 4.7 Options
+
+```csharp
+public sealed record TypstCompileOptions
+{
+    public static TypstCompileOptions Default { get; }
+    public static TypstCompileOptions Untrusted { get; }
+
+    public TypstFontOptions Fonts { get; init; }
+    public TypstPackageOptions Packages { get; init; }
+    public TimeSpan Timeout { get; init; }                               // Timeout.InfiniteTimeSpan to disable
+    public long MaxOutputBytes { get; init; }
+    public long? MemoryLimitBytes { get; init; }                         // Windows job object only
+    public TypstCreationTimestamp CreationTimestamp { get; init; }       // Inherit | Now | Fixed(DateTimeOffset)
+    public int? Jobs { get; init; }                                      // --jobs; null = Typst default
+    public TypstArguments ExtraGlobalArguments { get; init; }            // before the subcommand
+    public TypstArguments ExtraArguments { get; init; }                  // after the generated arguments
+    public Func<TypstArguments, TypstArguments>? ArgumentCustomization { get; init; } // full escape hatch
+}
+
+public sealed record TypstFontOptions
+{
+    public ImmutableArray<string> FontPaths { get; init; }
+    public bool IncludeSystemFonts { get; init; }                        // default false
+    public bool IncludeEmbeddedFonts { get; init; }                      // default true
+}
+
+public sealed record TypstPackageOptions
+{
+    public string? PackagePath { get; init; }                            // null = Typst's default location
+    public string? PackageCachePath { get; init; }                       // null = Typst's default location
+    public TypstNetworkAccess NetworkAccess { get; init; }               // Blocked (default) | Allowed
+}
+```
+
+| Setting | `Default` | `Untrusted` |
+| --- | --- | --- |
+| `Timeout` | 60 s | 10 s |
+| `MaxOutputBytes` | 100 MB | 20 MB |
+| `MemoryLimitBytes` | null (off) | 1 GB |
+| `Fonts.IncludeSystemFonts` | false | false |
+| `Fonts.IncludeEmbeddedFonts` | true | true |
+| `Packages.NetworkAccess` | Blocked | Blocked |
+| `CreationTimestamp` | Inherit | Inherit |
+| `ArgumentCustomization` | null | null |
+
+`CreationTimestamp.Inherit` passes the host's `SOURCE_DATE_EPOCH` through when it's set (the CI
+convention for reproducible builds). Otherwise Typst uses the current time.
+
+### 4.8 Command-line customization
+
+```csharp
+public sealed class TypstArguments : IReadOnlyList<TypstArgument>     // immutable
+{
+    public static TypstArguments Empty { get; }
+    public TypstArguments Add(string value);
+    public TypstArguments AddSecret(string value);
+    public TypstArguments AddSwitch(string name, string value);             // "--name" "value" as two items
+    public TypstArguments AddSwitchSecret(string name, string value);
+    public TypstArguments Insert(int index, TypstArgument argument);
+    public TypstArguments RemoveAt(int index);
+    public string Render();                                                  // for diagnostics only
+    public string RenderSafe();                                              // secrets → [REDACTED]
+}
+
+public sealed record TypstArgument(string Value, bool IsSecret);
+```
+
+This is inspired by Cake's `ProcessArgumentBuilder` (typed arguments, `Render`/`RenderSafe`, the
+`ArgumentCustomization` hook). It's much smaller, because arguments are a **list** rather than a string:
+on `net8.0` they map to `ProcessStartInfo.ArgumentList`, and on `netstandard2.0` an internal Windows-rules
+escaper (adapted from CliWrap, MIT, with attribution) renders them. So no "quoted" variants are needed.
+
+The generated `--input` values are always marked secret, because they usually carry customer data.
+
+`ArgumentCustomization` receives the complete generated list (global arguments, subcommand, arguments)
+and can change anything, including `--root` and the font flags. That undoes guarantees by design, and
+the documentation says so.
+
+### 4.9 Template providers
+
+```csharp
+public interface ITemplateProvider
+{
+    ValueTask<TypstTemplate?> GetTemplateAsync(TypstTemplateName name, CancellationToken cancellationToken);
+}
+
+public sealed class TypstTemplate
+{
+    public TypstTemplate(TypstTemplateName name, TypstPath mainFile, TypstTemplateVersion version,
+                         IReadOnlyList<TypstTemplateFile> files);   // validates: mainFile ∈ files, unique paths
+    public TypstTemplateName Name { get; }
+    public TypstPath MainFile { get; }
+    public TypstTemplateVersion Version { get; }                    // content hash or provider ETag
+    public IReadOnlyList<TypstTemplateFile> Files { get; }
+}
+
+public abstract class TypstTemplateFile
+{
+    public TypstPath Path { get; }
+    public abstract ValueTask<Stream> OpenReadAsync(CancellationToken cancellationToken);
+}
+```
+
+- A template is a **bundle**: a main file plus every file it may reference.
+- `Version` costs almost nothing now. It's what sandbox caching and the later draft/published lifecycle
+  need.
+- `GetTemplateAsync` returns `null` for an unknown name. The compiler turns that into
+  `ArgumentException`, since asking for a template that doesn't exist is a caller error.
+
+**`DirectoryTemplateProvider(string rootDirectory)`**
+- Each subfolder of the root is a template, and the name is the folder path relative to the root.
+- The main file is `<last-name-segment>.typ` if it exists, otherwise `main.typ`. If neither exists, the
+  template is reported as invalid with an `InvalidOperationException` naming both candidates.
+- All files under the template folder belong to the bundle.
+- `Version` is a SHA-256 over the sorted (path, content) pairs.
+
+**`EmbeddedResourceTemplateProvider(Assembly assembly, string resourcePrefix)`**
+- Manifest resource names turn folders into dots, which makes `logo.svg` in a folder ambiguous. So the
+  provider requires resources embedded with a `LogicalName` that keeps the `/` separators, documented as:
+
+  ```xml
+  <EmbeddedResource Include="Templates\**" LogicalName="Templates/%(RecursiveDir)%(Filename)%(Extension)" />
+  ```
+
+- The provider normalizes `\` to `/` and groups resources by template folder under the prefix. Same
+  main-file rule and versioning as the directory provider.
+- A later `Typstium.Build` can add the item automatically.
+
+Adapters for `Microsoft.Extensions.FileProviders` belong in a future `Typstium.Extensions.FileProviders`
+package, not in the core.
+
+### 4.10 Locating the Typst executable
+
+```csharp
+public interface ITypstExecutableResolver
+{
+    ValueTask<TypstExecutable> ResolveAsync(CancellationToken cancellationToken);   // throws TypstExecutableNotFoundException
+}
+
+public interface ITypstExecutableLocator
+{
+    string Name { get; }                                                              // "TYPST_PATH", "WinGet", …
+    ValueTask<TypstLocatorResult> LocateAsync(CancellationToken cancellationToken);  // Found(path) | NotFound(searched[])
+}
+
+public sealed class TypstExecutableResolver : ITypstExecutableResolver
+{
+    public TypstExecutableResolver(IEnumerable<ITypstExecutableLocator> locators);   // ordered; caches the first hit
+    public static TypstExecutableResolver CreateDefault();
+    public static TypstExecutableResolver CreateDefault(string explicitPath);
+}
+
+public static class TypstExecutableLocators                     // factories; implementations are internal
+{
+    public static ITypstExecutableLocator ExplicitPath(string path);
+    public static ITypstExecutableLocator EnvironmentVariable();                 // TYPST_PATH
+    public static ITypstExecutableLocator EnvironmentVariable(string name);
+    public static ITypstExecutableLocator BundledRuntime();
+    public static ITypstExecutableLocator WinGet();
+    public static ITypstExecutableLocator WellKnownLocations();
+    public static ITypstExecutableLocator SearchPath();                          // PATH
+}
+
+public sealed record TypstExecutable(string Path, string FoundBy);
+```
+
+**Default order:** explicit path (when given) → `TYPST_PATH` → bundled runtime → WinGet → well-known
+locations → `PATH`.
+
+| Locator | Looks in |
+| --- | --- |
+| Bundled runtime | `AppContext.BaseDirectory/typst/<rid>/typst[.exe]` and, for classic ASP.NET on IIS, `AppContext.BaseDirectory/bin/typst/<rid>/`. The RID is computed from `RuntimeInformation` OS and architecture. On Unix it makes sure the execute bit is set |
+| WinGet | `%LOCALAPPDATA%\Microsoft\WinGet\Links\typst.exe`, `%ProgramFiles%\WinGet\Links\typst.exe`, then `%LOCALAPPDATA%\Microsoft\WinGet\Packages\Typst.Typst_*\typst-*\typst.exe` (newest first). Windows only |
+| Well-known locations | `~/.cargo/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, `%USERPROFILE%\scoop\shims` |
+| `PATH` | Each `PATH` entry, plus `PATHEXT` on Windows. Never the current directory |
+
+- The resolver always returns a **fully qualified path**, so Windows' "current directory first" search
+  rule is never involved.
+- `TypstExecutableNotFoundException` lists, per locator, every place it searched.
+- Locators get the environment and file existence through internal seams, so they're unit-testable.
+
+### 4.11 Exceptions
+
+```
+TypstException                                   base, never thrown directly
+├─ TypstExecutableNotFoundException              SearchedLocations (per locator)
+├─ TypstFeatureNotSupportedException             RequiredVersion / Feature, InstalledVersion
+├─ TypstInvocationException                      exit code 2: Arguments (redacted), ExitCode, Stderr
+├─ TypstCompileException                         only from EnsureSuccess(): Result
+└─ TypstProcessException (abstract)
+   ├─ TypstProcessStartException                 Executable, InnerException (e.g. Win32Exception)
+   ├─ TypstProcessCrashedException               ExitCode, Stderr
+   └─ TypstProcessOutputException                Description of what was unreadable
+```
+
+**Who is at fault decides the mechanism:**
+
+| At fault | Mechanism |
+| --- | --- |
+| The template | `TypstCompileResult` with a status and diagnostics |
+| The environment or Typstium | `TypstException` subtype |
+| The caller | `ArgumentException` (and subclasses) |
+| Caller cancellation | `OperationCanceledException` (never wrapped) |
+
+The process failures are separate subtypes because they carry different data and call for different
+reactions:
+- **Start failure:** never retry; fix the configuration.
+- **Crash:** may retry (e.g. an out-of-memory kill).
+- **Unreadable output:** a version mismatch bug.
+
+### 4.12 Diagnostics
+
+```csharp
+public sealed record TypstDiagnostic
+{
+    public TypstDiagnosticId Id { get; }
+    public TypstDiagnosticSeverity Severity { get; }            // Error | Warning
+    public string Message { get; }
+    public TypstLocation? Location { get; }                     // null when Typst reports no position
+    public ImmutableArray<string> Hints { get; }
+    public ImmutableArray<TypstTraceFrame> Trace { get; }       // innermost first
+    public override string ToString();                          // "path(line,col): error TYPST1001: message"
+}
+
+public sealed record TypstLocation(TypstSourceFile File, TypstPosition Start, TypstPosition? End);
+public sealed record TypstTraceFrame(string Message, TypstLocation? Location);
+
+public abstract record TypstSourceFile                         // closed hierarchy
+{
+    public sealed record Project(TypstPath Path, string? FullPath);   // file-source root or template bundle
+    public sealed record Virtual(TypstPath Path);                      // a TypstVirtualFile
+    public sealed record Package(string Spec, TypstPath Path);         // "@preview/cmarker:0.1.10", "lib.typ"
+    public sealed record Markup;                                       // inline source
+}
+```
+
+`FullPath` is set only for files that exist on disk outside a sandbox (file sources). That's what
+`Typstium.Build` needs for clickable MSBuild errors. **Sandbox paths never appear in a diagnostic.**
+
+**Diagnostic IDs**
+
+| Range | Meaning |
+| --- | --- |
+| `TYPST0001` / `TYPST0002` | Generic error / warning: the fallback for anything not classified |
+| `TYPST1xxx` | Classified errors |
+| `TYPST2xxx` | Classified warnings |
+| `TYPST9xxx` | Typstium's own diagnostics, added to results |
+
+The initial classification table, matched on message prefixes and pinned by tests:
+
+| ID | Message starts with |
+| --- | --- |
+| `TYPST1001` | `unknown variable:` |
+| `TYPST1002` | `file not found` |
+| `TYPST1003` | `path ` … `would escape the project root` |
+| `TYPST1004` | `package not found` |
+| `TYPST1005` | `failed to download package` |
+| `TYPST1006` | `failed to decode image` |
+| `TYPST1007` | `unclosed delimiter` / `expected ` (syntax) |
+| `TYPST1008` | `maximum function call depth exceeded`, `loop seems to be infinite` |
+| `TYPST2001` | `unknown font family:` |
+| `TYPST9001` | Output limit exceeded (added by Typstium) |
+| `TYPST9002` | Compilation timed out (added by Typstium) |
+
+If Typst rewords a message, the diagnostic falls back to the generic ID. IDs are never reused.
+
+**Hints added by Typstium** (appended to the matching diagnostic's `Hints`):
+- `TYPST2001` when system fonts are disabled: *"system fonts are disabled by default; add a font folder
+  to Fonts.FontPaths or set Fonts.IncludeSystemFonts."*
+- `TYPST1005` when the network is blocked: *"network access is blocked; vendor the package into
+  Packages.PackagePath or set Packages.NetworkAccess to Allowed."*
+
+**Parser.** Typstium always runs Typst with `--diagnostic-format human` and `--color never`, and parses:
+
+```
+<severity>: <message>
+  ┌─ <path>:<line>:<col>
+  │
+N │ <source line>
+  │   ^^^^                         caret count → end column (single-line spans)
+  │
+  = hint: <text>                   zero or more
+                                   blank line
+  while calling `<fn>` at <path>:<line>:<col>     zero or more trace frames
+    <snippet>
+```
+
+- **Paths:** strip `\\?\`, handle the drive-letter colon, and map paths to `TypstSourceFile`:
+  - sandbox → `Project` or `Virtual`
+  - `@ns/name:ver/…` → `Package`
+  - `<stdin>` → `Markup`
+- **Multi-line spans** (different box drawing) give `End = null`.
+- **Ignored:** package download progress lines.
+- **Robustness rule:** a block the parser doesn't recognize becomes a generic diagnostic whose message is
+  the block's full raw text. A Typst format change degrades quality but never loses an error.
+
+## 5. CLI backend
+
+### 5.1 Pipeline
+
+`CliTypstCompiler.CompileAsync` orchestrates ten steps. Each step is an internal component with one job:
+
+| # | Step | Component | Notes |
+| --- | --- | --- | --- |
+| 1 | Validate | request validation | Caller errors → `ArgumentException`, before any I/O |
+| 2 | Resolve executable | `ITypstExecutableResolver` | Cached for the compiler's lifetime |
+| 3 | Check capabilities | `TypstCapabilityProbe` | `typst info --format json`, cached per (path, size, last-write time). Needs ≥ 0.15.0 and any features the request uses (e.g. `html`), otherwise `TypstFeatureNotSupportedException` |
+| 4 | Prepare workspace | `InPlaceWorkspace` / `SandboxWorkspace` | Sandbox: `TempRoot/<random>/` with `root/` (template + virtual files) and `out/` (paged output); `IAsyncDisposable` deletes it |
+| 5 | Build command line | `CompileArgumentsBuilder` | See 5.2 |
+| 6 | Build environment | `ProcessEnvironmentBuilder` | See 5.3 |
+| 7 | Run process | `ITypstProcessRunner` | Inside the `MaxConcurrency` semaphore; see 5.4 |
+| 8 | Parse diagnostics | `HumanDiagnosticParser` + `DiagnosticClassifier` + `SourcePathMapper` | Section 4.12 |
+| 9 | Map outcome | `OutcomeMapper` | See 5.5 |
+| 10 | Collect document | `DocumentCollector` | Stdout bytes, or `out/` pages in page order |
+
+The template bundle is copied file by file into the sandbox on every compile. Caching prepared bundles by
+`TypstTemplateVersion` is a later optimization, gated on measurements.
+
+On startup (the first compile), the compiler deletes sandbox folders in `TempRoot` older than
+`OrphanedWorkspaceAge`. These are left behind when a host is killed hard.
+
+### 5.2 Command line
+
+The arguments are generated in this order:
+
+```
+--color never                          global (always)
+<ExtraGlobalArguments>
+compile
+--root <root>
+--diagnostic-format human
+--font-path <p>…   [--ignore-system-fonts]   [--ignore-embedded-fonts]
+[--package-path <p>]   [--package-cache-path <p>]
+[--jobs <n>]   [--creation-timestamp <unix>]
+[--pdf-standard <a,b>]   [--no-pdf-tags]   [--pages <sel>]   [--ppi <n>]   [--features html]
+--input <k=v>…                         (secret)
+<input>                                main file path, or - (stdin) for markup sources
+<output>                               - (stdout) for PDF and HTML; out/{0p}.png|svg for PNG and SVG
+<ExtraArguments>
+```
+
+Then `ArgumentCustomization` (if set) receives the whole list.
+
+Output targets:
+- **PDF and HTML** go to stdout (`-`).
+- **PNG and SVG** always go to `out/{0p}.png|svg`, even for one page. That keeps one code path and
+  matches the `Paged` document shape.
+- **File sources** have no sandbox, so their paged output goes to a temporary `out/` folder under
+  `TempRoot`, which is deleted afterwards.
+
+### 5.3 Environment
+
+- Start from the current process environment.
+- Remove every variable whose name starts with `TYPST_`. The host's `TYPST_FONT_PATHS`, `TYPST_ROOT`
+  and so on must not silently change results; every setting is passed explicitly.
+- `CreationTimestamp`:
+  - `Inherit`: leave `SOURCE_DATE_EPOCH` as is
+  - `Now`: remove it
+  - `Fixed`: pass `--creation-timestamp`
+- `NetworkAccess.Blocked`:
+  - set `HTTPS_PROXY`, `HTTP_PROXY` and `ALL_PROXY` to `http://127.0.0.1:9` (a closed port)
+  - remove `NO_PROXY`
+  - so any package not found locally fails fast instead of downloading (verified in the spike)
+
+### 5.4 Process runner and containment
+
+```csharp
+internal interface ITypstProcessRunner
+{
+    Task<ProcessOutcome> RunAsync(ProcessSpec spec, CancellationToken cancellationToken);
+}
+
+internal sealed record ProcessSpec(string Executable, TypstArguments Arguments,
+    IReadOnlyDictionary<string, string> Environment, string WorkingDirectory,
+    ReadOnlyMemory<byte> Stdin, TimeSpan Timeout, long MaxStdoutBytes, long MaxStderrBytes,
+    long? MemoryLimitBytes);
+
+internal abstract record ProcessOutcome(TimeSpan Duration, string Stderr)   // closed hierarchy
+{
+    internal sealed record Exited(int ExitCode, ReadOnlyMemory<byte> Stdout, ...);
+    internal sealed record TimedOut(...);                     // killed by our timeout
+    internal sealed record OutputLimitExceeded(long LimitBytes, ...);  // killed by our stdout cap
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `Stdin` (input) | Bytes written to standard input: the main file for markup sources, otherwise empty |
+| `ExitCode` | Typst's exit code, only for `Exited`: 0 success, 1 compile error, 2 bad arguments, other = crash (101 Rust panic, 137 SIGKILL on Linux) |
+| `Stdout` | Bytes Typst wrote to standard output: the document for PDF and HTML. Reading stops and the process is killed once `MaxStdoutBytes` is exceeded |
+| `Stderr` | Diagnostics text, decoded as UTF-8 and capped at `MaxStderrBytes` (1 MB) |
+| `Duration` | Wall-clock time from process start to exit or kill |
+
+Runner behavior:
+- **Process start:** `UseShellExecute = false`, the fully resolved executable path, the working directory
+  set to the workspace root, and stdin, stdout and stderr all redirected.
+- **Pipes:** stdout and stderr are read concurrently. Stdin is written and closed right after start.
+- **Timeout:** a linked `CancellationTokenSource`. On timeout, the output cap or caller cancellation, the
+  runner kills the process tree (`Kill(true)` on `net8.0`; on `netstandard2.0`, the job object on
+  Windows or `Process.Kill()` elsewhere).
+- **Caller cancellation** throws `OperationCanceledException` after the kill. It's never returned as an
+  outcome.
+- **Paged output limit:** for paged output, the total size of `out/` is checked after exit. If it's over
+  the limit, the outcome becomes `OutputLimitExceeded`.
+
+**Containment**
+
+```
+Processes/IProcessContainment.cs       internal: Attach(Process), IDisposable
+Processes/WindowsJobObject.cs         kill-on-close; optional JOB_OBJECT_LIMIT_PROCESS_MEMORY
+Processes/NoProcessContainment.cs    non-Windows
+Interop/Windows/Kernel32.cs           CreateJobObjectW, SetInformationJobObject,
+                                      AssignProcessToJobObject, CloseHandle, structs, constants
+Interop/Windows/SafeJobObjectHandle.cs  SafeHandleZeroOrMinusOneIsInvalid → CloseHandle
+```
+
+- P/Invoke is grouped per native library in `Typstium.Interop.Windows`, all `internal`.
+- Signatures are blittable (no string marshalling), so a single `DllImport` declaration works on
+  `netstandard2.0` and stays AOT-compatible on `net8.0`.
+- Handles live in `SafeHandle`s, so a job object is closed even when `Dispose` isn't called. Closing it
+  kills the process, which covers IIS app pool recycles.
+
+### 5.5 Outcome mapping
+
+| Process outcome | Result |
+| --- | --- |
+| `Exited(0)` | `Succeeded`, document collected, warnings in diagnostics |
+| `Exited(1)` | `Failed`, diagnostics parsed |
+| `Exited(2)` | throw `TypstInvocationException` |
+| `Exited(other)` | throw `TypstProcessCrashedException` |
+| `TimedOut` | `TimedOut`, plus diagnostic `TYPST9002` and any partial diagnostics |
+| `OutputLimitExceeded` | `OutputLimitExceeded`, plus diagnostic `TYPST9001` |
+| Start failure | throw `TypstProcessStartException` |
+| `Exited(0)` but output missing or unreadable | throw `TypstProcessOutputException` |
+
+### 5.6 Observability
+
+- `ActivitySource` named `Typstium`, with a `typst.compile` activity per compile.
+- Tags: source kind, template name, output format, Typst version, status, process duration,
+  diagnostic counts.
+- No logging in the core. `TypstInvocation` and the diagnostics carry everything a host wants to log.
+
+## 6. Security summary
+
+| Threat | Measure |
+| --- | --- |
+| Template reads host files | Sandbox root per compile for template and markup sources; `TypstPath` validation; Typst confines reads to `--root` |
+| Package downloads, or network use by templates | `NetworkAccess.Blocked` by default (dead proxy); packages come only from `PackagePath` or the cache |
+| Denial of service | Timeout, stdout cap, stderr cap, paged-output cap, Windows memory cap via job object |
+| Orphaned processes | Job object with kill-on-close on Windows; kill on timeout or cancel everywhere |
+| Binary planting | Fully qualified executable path; `UseShellExecute = false`; no search of the current directory |
+| Host settings leaking in | `TYPST_*` variables removed from the child environment |
+| Customer data in logs | `--input` values and `AddSecret` arguments redacted in `Invocation.CommandLine` |
+| Escape hatch misuse | `ArgumentCustomization` is opt-in and documented as able to undo guarantees |
+
+**Known limitations**
+- On Linux and macOS, if the host dies hard, an orphaned `typst` can keep running until it finishes.
+  Mitigation: container cgroup limits.
+- The memory cap is Windows-only.
+- `ArgumentCustomization` can undo any guarantee.
+- The rule that untrusted Markdown needs `raw-typst: false` belongs to the Markdown spec.
+
+## 7. Testing
+
+### 7.1 Projects
+
+| Project | Kind | Targets | Sees internals | Needs Typst |
+| --- | --- | --- | --- | --- |
+| `tests/Typstium.Testing` | Class library (shared infrastructure) | `net10.0;net472` | No | No |
+| `tests/Typstium.UnitTests` | TUnit test project | `net10.0` (+ `net472` on Windows) | Yes (`InternalsVisibleTo`) | No |
+| `tests/Typstium.IntegrationTests` | TUnit test project | `net10.0` (+ `net472` on Windows) | **No**, public API only | Yes |
+
+Test namespaces mirror the source namespaces (`Typstium.UnitTests.Diagnostics`, …). Shared test
+infrastructure lives in `Typstium.Testing`, organized by kind:
+
+```
+Typstium.Testing/
+├─ Fixtures/        SampleTemplates (paths to samples/), DiagnosticFixtures (spike stderr captures),
+│                   TemporaryDirectory
+├─ Fakes/           FakeTemplateProvider (public abstractions only)
+├─ Assertions/      PDF assertions (starts with %PDF, page count via typst eval), diagnostic assertions
+└─ Typst/           Locating Typst for integration tests; skip-or-fail policy
+```
+
+`Typstium.Testing` uses the **public API only** and never gets `InternalsVisibleTo`. Fakes for internal
+seams (`FakeProcessRunner`, `FakeLocatorEnvironment`) live in `Typstium.UnitTests/Testing/` (namespace
+`Typstium.UnitTests.Testing`), the only project that can see internals. `Typstium.Testing/Fakes/` holds
+fakes of public abstractions only, such as `FakeTemplateProvider`.
+
+`dotnet test` works with no extra configuration, through `global.json`'s Microsoft.Testing.Platform
+runner setting.
+
+### 7.2 Unit tests (no Typst, fast, every platform)
+
+| Area | Covers |
+| --- | --- |
+| Value objects | `TypstPath` rejects `..`, absolute paths, drive letters and empty segments; normalization; `TypstTemplateName`; `TypstDiagnosticId` |
+| Request and builders | Immutability; `ForFile` has no file methods; `Build()` output |
+| Command line | Argument order (`--color` before `compile`), output targets per format, `--input` redaction, extra arguments, customization hook, the 32K check |
+| Environment | `TYPST_*` removed; dead proxy when blocked; `SOURCE_DATE_EPOCH` per `CreationTimestamp` |
+| Diagnostics parser | One test per spike capture (`spike/diagnostics/output/*.human.stderr`); unknown block becomes a generic diagnostic with the raw text; `\\?\` stripping; sandbox path mapping |
+| Classifier | Each table row; fallback to the generic ID; added hints |
+| Outcome mapping | Every `ProcessOutcome` → status or exception, via `FakeProcessRunner` |
+| Locators | Default order; each locator's search places; the not-found message lists everything searched |
+| Template providers | Main-file rule; `LogicalName` resources; version hash stability |
+
+### 7.3 Integration tests (real Typst)
+
+| Scenario | Checks |
+| --- | --- |
+| Compile the license and release-notes samples | `%PDF` header, expected page count, no warnings |
+| Every spike diagnostic case end to end | Status, ID, location mapped to template paths, no sandbox path in any diagnostic |
+| Nested loops with a 2 s timeout | `TimedOut`, process gone, sandbox deleted |
+| 20,000 pages with a 1 MB cap | `OutputLimitExceeded` |
+| Missing package, network blocked | `Failed`, `TYPST1005` with the added hint |
+| Caller cancellation | `OperationCanceledException`, process gone, sandbox deleted |
+| 50 parallel compiles | All succeed, no sandbox collisions, `MaxConcurrency` respected |
+| Reproducibility | Same request twice with `CreationTimestamp.Fixed` → byte-identical PDFs |
+| PNG multi-page | `Paged` document with the right page count and order |
+| Markup source over stdin | Succeeds; diagnostics point at `Markup` |
+| Windows: job-object memory cap | Memory-heavy template is killed and mapped to a crash or limit outcome |
+
+Integration tests **skip with a clear reason** when Typst can't be found. In CI,
+`TYPSTIUM_REQUIRE_TYPST=1` makes a missing Typst fail the run instead.
+
+### 7.4 CI
+
+GitHub Actions on `windows-latest` and `ubuntu-latest`:
+- restore, build (warnings as errors), unit tests, integration tests
+- Typst installed with a pinned version (**0.15.1**, the declared minimum)
+- a second job with the latest Typst release, allowed to fail, as an early warning for format changes
+
+## 8. Decisions
+
+| # | Decision | Alternatives considered | Why |
+| --- | --- | --- | --- |
+| D1 | Foundation = scaffolding + core + template providers; runtime packages are a separate spec | Smaller (no providers); larger (with runtime packages) | Develop against an installed Typst first; the bundled-runtime locator keeps the door open |
+| D2 | Immutable `TypstCompileRequest` as the backend contract, with a builder and extensions on top | Builder only; request only | Backends interchangeable and testable; requests can be stored and replayed |
+| D3 | Names `TypstCompileRequest` / `TypstCompileResult` | `TypstCompilationRequest`, `TypstCompilerRequest` | One-to-one with `typst compile` and `CompileAsync`; extends to `TypstEvalRequest` |
+| D4 | `Typst` prefix on all public types; brand only in namespaces and package IDs | `Typstium` prefix | Renaming the project doesn't touch the API |
+| D5 | Template failures, timeouts and output limits are result statuses | Exceptions for timeouts and limits | "Who is at fault" rule; web endpoints handle all template failures in one place |
+| D6 | Shallow exception hierarchy under `TypstException`; process failures as three subtypes | No base; one process exception with a `Kind` enum | One catch for library failures; the subtypes carry different data and need different reactions |
+| D7 | Request (per call) vs options (shared) split by lifetime; output format on the request | One flat request; output in options | Options map to ASP.NET Core defaults, Cake settings and MSBuild metadata; one app may produce several formats |
+| D8 | Template as a bundle with a version | Provider as a file system; `IFileProvider` in the core | The template boundary is a type, not a convention; versioning enables caching and the lifecycle; no `Microsoft.Extensions` in the core |
+| D9 | The source kind decides the root: file sources in place, template and markup sources sandboxed; virtual files only on sandboxed sources | Always sandbox; caller chooses per request | Fast in-place builds; untrusted content always sandboxed; invalid combinations unrepresentable |
+| D10 | Separate `TypstCompileRequestBuilder` and `TypstFileCompileRequestBuilder` | `With*` on the request; CRTP generic builder | Static safety without generics in the public API |
+| D11 | Own internal process runner, inspired by CliWrap and Cake; no dependency on either | Depend on CliWrap | Needs job objects, a bounded stdout and Typst exit-code mapping; zero transitive dependencies |
+| D12 | `TypstArguments` as a list, with `Render`/`RenderSafe`, extra arguments and an `ArgumentCustomization` hook | String arguments; Cake's full builder surface | `ArgumentList` removes the need for quoting variants; same escape-hatch model as Cake's `ToolSettings` |
+| D13 | Parse the `human` diagnostic format, with a raw-text fallback | `short` format | Only `human` has hints, traces and spans (spike) |
+| D14 | Own diagnostic IDs: generic plus a curated classified table | Generic only | `NoWarn` and `WarningsAsErrors` by code in MSBuild |
+| D15 | Defaults: system fonts off, network blocked, 60 s timeout, 100 MB cap; `Untrusted` preset | Typst's own defaults | Safe and reproducible by default; the spike measured 3× faster without system fonts |
+| D16 | No `ILogger` in the core; `TypstInvocation` + `ActivitySource` | `Microsoft.Extensions.Logging.Abstractions` | Minimal dependencies; hosts log the result |
+| D17 | Polyfill, not PolySharp | PolySharp; both | Needs BCL API polyfills, not only compiler types |
+| D18 | Tests in `Typstium.UnitTests` + `Typstium.IntegrationTests` + shared `Typstium.Testing` | `Typstium.Tests.Unit`/`.Integration`; one project with folders | Common .NET convention; different requirements; integration tests limited to the public API |
+| D19 | Minimum Typst 0.15.0 | Support 0.14 | `typst info` and the current `--deps` flags; less branching |
+| D20 | P/Invoke grouped per native library in `Typstium.Interop.Windows`, behind `SafeHandle`-owning types | Inline P/Invoke | Clear boundary; correct resource cleanup |
+
+## 9. To verify while planning
+
+These are facts the plan must confirm before relying on them:
+
+1. Polyfill provides `Process.WaitForExitAsync`, `Task.WaitAsync` and `CancellationTokenSource.CancelAsync`
+   for `netstandard2.0`, and how Polyfill behaves alongside `InternalsVisibleTo` (duplicate internal
+   types between the library and the unit test project).
+2. TUnit supports running tests on `net472`. If not, use a minimal `net472` smoke-test console project.
+3. The `.slnx` format works with the SDK and with TUnit/Microsoft.Testing.Platform in `dotnet test`.
+4. `RecursiveDir` in `LogicalName` produces `\` on Windows (normalized by the provider).
+5. `typst info --format json` field names, as used for capability detection.
+6. A setup action for installing a pinned Typst in GitHub Actions (e.g. `typst-community/setup-typst`),
+   or a direct download with SHA-256 verification against the GitHub asset digest.
+7. `--creation-timestamp` and `SOURCE_DATE_EPOCH` give byte-identical PDFs (the reproducibility test).
