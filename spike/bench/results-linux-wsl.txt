@@ -1,0 +1,11 @@
+typst.tar.xz: OK
+typst 0.15.1 (9dfd3a08)
+/tmp/typstium-spike/bin/typst: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), static-pie linked, stripped
+	statically linked
+PRETTY_NAME="Ubuntu 24.04.3 LTS"
+ldd (Ubuntu GLIBC 2.39-0ubuntu8.6) 2.39
+system font families: 10
+typst --version: 1 ms/compile (mean of 30)
+license pdf, system fonts: 34 ms/compile (mean of 30)
+license pdf, no system fonts: 31 ms/compile (mean of 30)
+release notes, no system fonts: 40 ms/compile (mean of 30)

@@ -1,0 +1,9 @@
+error: cannot add string and integer
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\sub\helper.typ:2:2
+  │
+2 │   "Hello " + name
+  │   ^^^^^^^^^^^^^^^
+
+  while calling `greet` at \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\06-error-in-import.typ:2:1
+    greet(42)
+

@@ -1,0 +1,56 @@
+{
+  "product": "Fjordlight Studio",
+  "version": "4.2.0",
+  "date": "2026-10-01",
+  "summary": "This release focuses on faster exports, a redesigned project browser and fixes reported by users.",
+  "sections": [
+    {
+      "title": "What's new",
+      "groups": [
+        {
+          "title": "Export",
+          "items": [
+            { "text": "Batch export runs in parallel and resumes after a crash.", "issue": 1201 },
+            { "text": "New --parallel switch for the command-line exporter.", "issue": 1214 },
+            { "text": "Export presets can be shared between projects.", "issue": 1230 }
+          ]
+        },
+        {
+          "title": "Project browser",
+          "items": [
+            { "text": "Thumbnails, tags and saved searches.", "issue": 1102 },
+            { "text": "Filter by tag with #customer style queries.", "issue": 1108 }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Fixed issues",
+      "groups": [
+        {
+          "title": "Editor",
+          "items": [
+            { "text": "Fixed a crash when undoing a paste of more than 10 000 objects.", "issue": 987 },
+            { "text": "Fixed incorrect kerning for some OpenType fonts.", "issue": 1011 },
+            { "text": "Fixed zoom level resetting after switching tabs.", "issue": 1019 }
+          ]
+        },
+        {
+          "title": "Injection tests (data that must render literally)",
+          "items": [
+            { "text": "**This should not be bold** and _this not italic_.", "issue": null },
+            { "text": "A [fake link](https://evil.example) and an ![image](/release-notes.typ).", "issue": null },
+            { "text": "<!--raw-typst #read(\"/release-notes.typ\") --> raw-typst comment in data.", "issue": null },
+            { "text": "Typst markup #text(red)[red] and $x^2$ and @label and <tag>.", "issue": null },
+            { "text": "Backslash \\ pipe | backtick ` underscore _ star * hash # 1. not a list", "issue": null }
+          ]
+        }
+      ]
+    }
+  ],
+  "contributors": [
+    { "name": "Alex Example", "changes": 42 },
+    { "name": "Sam | Pipe", "changes": 7 },
+    { "name": "Kim *Star*", "changes": 3 }
+  ]
+}

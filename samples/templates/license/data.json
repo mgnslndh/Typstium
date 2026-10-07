@@ -1,0 +1,23 @@
+{
+  "licenseId": "FJL-2026-00417",
+  "product": "Fjordlight Studio",
+  "edition": "Enterprise",
+  "issued": "2026-10-01",
+  "expires": "2027-09-30",
+  "licensee": {
+    "organization": "Example Maritime AB",
+    "contact": "Alex Example",
+    "email": "licensing@example.com",
+    "address": ["Harbour Street 12", "123 45 Example City", "Sweden"]
+  },
+  "seats": 25,
+  "features": [
+    { "name": "Core editor", "included": true, "limit": "Unlimited" },
+    { "name": "Batch export", "included": true, "limit": "10 000 / month" },
+    { "name": "Cloud sync", "included": true, "limit": "500 GB" },
+    { "name": "Custom branding", "included": true, "limit": null },
+    { "name": "On-premises server", "included": false, "limit": null },
+    { "name": "Priority support", "included": true, "limit": "Next business day" }
+  ],
+  "terms": "This license grants the licensee the right to install and use the product on the number of seats stated above for the duration of the license period. The license is non-transferable. Redistribution, sublicensing and reverse engineering are not permitted except where applicable law expressly allows it. Fjordlight Systems provides updates and security fixes for the duration of the license period."
+}
