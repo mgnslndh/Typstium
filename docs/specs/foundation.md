@@ -117,7 +117,7 @@ The public API is in one namespace, `Typstium`. Internals are grouped by capabil
 | `Output/` | `Typstium` | `TypstOutput`, `TypstDocument`, `PdfStandard`, `TypstPageSelection` (public) |
 | `Templates/` | `Typstium` | `ITemplateProvider`, `TypstTemplate`, directory and embedded providers (public) |
 | `Executable/` | `Typstium.Executable` + public types in `Typstium` | Resolver and locators |
-| `Capabilities/` | `Typstium.Capabilities` | `typst info` probe and cache (internal) |
+| `Capabilities/` | `Typstium.Capabilities` | `TypstCapabilities`, `TypstCliProfile`, `TypstCliProfileFactory`: the only version-aware code (internal, see 5.7) |
 | `Workspace/` | `Typstium.Workspace` | In-place and sandbox workspaces (internal) |
 | `CommandLine/` | `Typstium.CommandLine` | `TypstArguments` (public, root namespace), argument builder, Windows escaper (internal) |
 | `Processes/` | `Typstium.Processes` | Process runner, outcomes, containment (internal) |
@@ -708,12 +708,12 @@ N │ <source line>
 | --- | --- | --- | --- |
 | 1 | Validate | request validation | Caller errors → `ArgumentException`, before any I/O |
 | 2 | Resolve executable | `ITypstExecutableResolver` | Cached for the compiler's lifetime |
-| 3 | Check capabilities | `TypstCapabilityProbe` | `typst info --format json`, cached per (path, size, last-write time). Needs ≥ 0.15.0 and any features the request uses (e.g. `html`), otherwise `TypstFeatureNotSupportedException` |
+| 3 | Resolve profile | `TypstCliProfileFactory` | Runs `typst info --format json` once per executable, cached per (path, size, last-write time), and produces a `TypstCliProfile`: the `TypstCapabilities` plus the version-sensitive components for steps 5 and 8. Then validates the request against the capabilities (≥ 0.15.0, features such as `html`), otherwise `TypstFeatureNotSupportedException`. See 5.7 |
 | 4 | Prepare workspace | `InPlaceWorkspace` / `SandboxWorkspace` | Sandbox: `TempRoot/<random>/` with `root/` (template + virtual files) and `out/` (paged output); `IAsyncDisposable` deletes it |
-| 5 | Build command line | `CompileArgumentsBuilder` | See 5.2 |
+| 5 | Build command line | `profile.ArgumentsBuilder` | See 5.2 |
 | 6 | Build environment | `ProcessEnvironmentBuilder` | See 5.3 |
 | 7 | Run process | `ITypstProcessRunner` | Inside the `MaxConcurrency` semaphore; see 5.4 |
-| 8 | Parse diagnostics | `HumanDiagnosticParser` + `DiagnosticClassifier` + `SourcePathMapper` | Section 4.12 |
+| 8 | Parse diagnostics | `profile.DiagnosticParser` + `profile.DiagnosticClassifier` + `SourcePathMapper` | Section 4.12 |
 | 9 | Map outcome | `OutcomeMapper` | See 5.5 |
 | 10 | Collect document | `DocumentCollector` | Stdout bytes, or `out/` pages in page order |
 
@@ -844,6 +844,71 @@ Interop/Windows/SafeJobObjectHandle.cs  SafeHandleZeroOrMinusOneIsInvalid → Cl
   diagnostic counts.
 - No logging in the core. `TypstInvocation` and the diagnostics carry everything a host wants to log.
 
+### 5.7 Typst version handling
+
+Users can upgrade Typst independently of Typstium, so the CLI backend must handle differences between
+Typst versions **without version checks spread through the pipeline**. The spike showed where versions
+differ, and every case lands in one of three existing components:
+
+| What changes between versions | Example | Lands in |
+| --- | --- | --- |
+| CLI flags | `--make-deps` → `--deps` + `--deps-format` (0.14 → 0.15) | Arguments builder (step 5) |
+| Diagnostic text and layout | Message wording; human-format layout | Diagnostic parser and classifier (step 8) |
+| `typst info` JSON shape | New or renamed fields | Profile factory (step 3) |
+| Available features | `html` behind `--features`; new PDF standards | Capabilities → request validation (step 3) |
+
+**Design: one place knows about versions, everyone else asks about features.**
+
+```csharp
+internal sealed record TypstCapabilities          // named facts, never raw version comparisons
+{
+    public TypstVersion Version { get; }           // for TypstInvocation and telemetry only
+    public bool SupportsHtml { get; }
+    public ImmutableHashSet<PdfStandard> PdfStandards { get; }
+    // … extended with one named fact per real difference
+}
+
+internal sealed record TypstCliProfile            // chosen once per executable
+{
+    public TypstCapabilities Capabilities { get; }
+    public ICompileArgumentsBuilder ArgumentsBuilder { get; }
+    public IDiagnosticParser DiagnosticParser { get; }
+    public IDiagnosticClassifier DiagnosticClassifier { get; }
+}
+
+internal sealed class TypstCliProfileFactory      // the ONLY code that compares Typst versions
+{
+    public ValueTask<TypstCliProfile> GetProfileAsync(TypstExecutable executable, CancellationToken ct);
+}
+```
+
+**Rules**
+
+1. **Only `TypstCliProfileFactory` compares version numbers.** It turns `typst info` into
+   `TypstCapabilities` and picks the components for that version range. Pipeline components receive the
+   profile and ask named questions (`Capabilities.SupportsHtml`). They never ask "is the version ≥ x?".
+2. **A small difference becomes a capability fact** used by the one component that cares, e.g. a renamed
+   flag becomes a `DepsFlag` fact read by the arguments builder.
+3. **A component that changes as a whole gets a second implementation,** selected by the factory, e.g.
+   `HumanDiagnosticParserV015` and a later `HumanDiagnosticParserV016`. The pipeline is unchanged.
+   Supporting a new Typst version means adding a row to the factory's version table.
+4. **Version policy:**
+   - below 0.15.0 → `TypstFeatureNotSupportedException`
+   - a known range → that range's profile
+   - **newer than the newest known version → the newest profile, optimistically.** The version is
+     recorded in `TypstInvocation`, so problems are traceable, and users can upgrade Typst before we
+     release.
+5. **Users' escape hatches** for differences we haven't handled yet: `ExtraArguments` and
+   `ArgumentCustomization` for flags. For diagnostics, the parser's raw-text fallback (4.12) means quality
+   degrades but no error is lost.
+
+**Today there is exactly one profile, for 0.15.x.** The cost of the seam is the profile record, the
+factory and three small internal interfaces, all internal, so they can be reshaped freely. It also gives
+unit tests a single place to inject fake components.
+
+**Detecting drift early:** the CI job that runs against the latest Typst release (7.4) is the early
+warning, and the per-version diagnostic fixtures (7.1) pin each profile's parser behavior.
+
 ## 6. Security summary
 
 | Threat | Measure |
@@ -879,12 +944,28 @@ infrastructure lives in `Typstium.Testing`, organized by kind:
 
 ```
 Typstium.Testing/
-├─ Fixtures/        SampleTemplates (paths to samples/), DiagnosticFixtures (spike stderr captures),
+├─ Fixtures/        SampleTemplates (paths to samples/), DiagnosticFixtures (per Typst version, see below),
 │                   TemporaryDirectory
 ├─ Fakes/           FakeTemplateProvider (public abstractions only)
 ├─ Assertions/      PDF assertions (starts with %PDF, page count via typst eval), diagnostic assertions
 └─ Typst/           Locating Typst for integration tests; skip-or-fail policy
 ```
+
+**Diagnostic fixtures are kept per Typst version**, as data files rather than code:
+
+```
+tests/fixtures/
+└─ typst-0.15/
+   └─ diagnostics/
+      ├─ 01-syntax.typ               the template that produces the diagnostic
+      ├─ 01-syntax.human.stderr      captured output (from spike 0)
+      └─ …
+```
+
+`DiagnosticFixtures` enumerates every version folder, so a parser test runs once per (version, case) and
+uses that version's profile. When a new Typst version arrives, its captures go into a new
+`typst-<version>/` folder (regenerated by running the fixture templates), and both profiles stay pinned by
+tests. The spike's `spike/diagnostics/` captures move here, because `spike/` is throwaway.
 
 `Typstium.Testing` uses the **public API only** and never gets `InternalsVisibleTo`. Fakes for internal
 seams (`FakeProcessRunner`, `FakeLocatorEnvironment`) live in `Typstium.UnitTests/Testing/` (namespace
@@ -902,7 +983,8 @@ runner setting.
 | Request and builders | Immutability; `ForFile` has no file methods; `Build()` output |
 | Command line | Argument order (`--color` before `compile`), output targets per format, `--input` redaction, extra arguments, customization hook, the 32K check |
 | Environment | `TYPST_*` removed; dead proxy when blocked; `SOURCE_DATE_EPOCH` per `CreationTimestamp` |
-| Diagnostics parser | One test per spike capture (`spike/diagnostics/output/*.human.stderr`); unknown block becomes a generic diagnostic with the raw text; `\\?\` stripping; sandbox path mapping |
+| Diagnostics parser | One test per (Typst version, fixture) from `tests/fixtures/typst-*/diagnostics/`; unknown block becomes a generic diagnostic with the raw text; `\\?\` stripping; sandbox path mapping |
+| Profile factory | Version table: below minimum throws; 0.15.x → the 0.15 profile; a newer unknown version → the newest profile; `typst info` JSON → `TypstCapabilities` |
 | Classifier | Each table row; fallback to the generic ID; added hints |
 | Outcome mapping | Every `ProcessOutcome` → status or exception, via `FakeProcessRunner` |
 | Locators | Default order; each locator's search places; the not-found message lists everything searched |
@@ -958,6 +1040,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D18 | Tests in `Typstium.UnitTests` + `Typstium.IntegrationTests` + shared `Typstium.Testing` | `Typstium.Tests.Unit`/`.Integration`; one project with folders | Common .NET convention; different requirements; integration tests limited to the public API |
 | D19 | Minimum Typst 0.15.0 | Support 0.14 | `typst info` and the current `--deps` flags; less branching |
 | D20 | P/Invoke grouped per native library in `Typstium.Interop.Windows`, behind `SafeHandle`-owning types | Inline P/Invoke | Clear boundary; correct resource cleanup |
+| D21 | Version differences handled by an internal per-executable `TypstCliProfile`: named capability facts plus version-specific components, chosen by `TypstCliProfileFactory`, the only code that compares versions. Newer unknown versions get the newest profile | Version `if`s where needed; a public dialect abstraction with per-version implementations now | Differences cluster in three components; designs the place for variation without speculative variations; internal, so free to reshape |
 
 ## 9. To verify while planning
 
