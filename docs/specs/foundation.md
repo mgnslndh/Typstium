@@ -268,7 +268,7 @@ public sealed record TypstVirtualFile
 | `TypstPath` | sealed class | Root-relative and normalized to `/`. A leading `/` is optional and stripped. Rejects absolute paths, drive letters, `..` segments, empty segments and invalid characters. `Parse`, `TryParse`, `ToString()` gives `/logo.png` (Typst's root-relative form) |
 | `TypstTemplateName` | sealed class | `[A-Za-z0-9._-]` plus `/` for nesting; no `..`. `Parse`, `TryParse` |
 | `TypstDiagnosticId` | sealed class | `TYPST` + four digits |
-| `TypstPosition` | readonly record struct | 1-based `Line`, `Column`; `default` is never produced by the parser |
+| `TypstPosition` | readonly record struct | 1-based `Line`, `Column` (MSBuild convention); `default` is never produced by the parser. Typst 0.15 reports 1-based lines but **0-based character columns**; the 0.15 parser profile converts them (verified while planning) |
 | `TypstVersion` | readonly record struct | `Major.Minor.Patch`, comparable |
 | `TypstTemplateVersion` | sealed class | Opaque non-empty string (content hash or provider ETag); compared by ordinal value |
 
