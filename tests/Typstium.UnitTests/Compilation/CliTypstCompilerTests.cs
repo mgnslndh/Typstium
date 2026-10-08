@@ -25,9 +25,9 @@ public class CliTypstCompilerTests
             Runner = new FakeProcessRunner(spec => FakeProcessRunner.IsInfo(spec)
                 ? FakeProcessRunner.Exited(0, FakeProcessRunner.InfoJson("0.15.1", html))
                 : compile(spec)) { Delay = delay };
-            TempRoot = Path.Combine(Temp.Path, "tmp");
+            TempRoot = Temp.Combine("tmp");
             var settings = CliTypstCompilerSettings.Default with { TempRoot = TempRoot, MaxConcurrency = maxConcurrency, ProcessPriority = processPriority };
-            Compiler = new CliTypstCompiler(new FixedExecutableResolver(Path.Combine(Temp.Path, "typst.exe")), settings, Runner);
+            Compiler = new CliTypstCompiler(new FixedExecutableResolver(Temp.Combine("typst.exe")), settings, Runner);
         }
 
         public TemporaryDirectory Temp { get; }

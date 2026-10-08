@@ -1,4 +1,5 @@
 using System.Text;
+using Typstium.Testing.Fixtures;
 
 namespace Typstium.UnitTests.Templates;
 
@@ -40,20 +41,14 @@ public class TypstTemplateTests
     [Test]
     public async Task Files_open_their_content()
     {
-        var temp = Path.Combine(Path.GetTempPath(), "typstium-test-" + Guid.NewGuid().ToString("N") + ".typ");
-        File.WriteAllText(temp, "from disk");
-        try
-        {
-            var fromFile = TypstTemplateFile.FromFile(TypstPath.Parse("a.typ"), temp);
-            var fromBytes = TypstTemplateFile.FromBytes(TypstPath.Parse("b.typ"), Encoding.UTF8.GetBytes("from memory"));
+        using var temp = new TemporaryDirectory("template-file");
+        var path = temp.CreateFile("a.typ", "from disk");
 
-            await Assert.That(await ReadAsync(fromFile)).IsEqualTo("from disk");
-            await Assert.That(await ReadAsync(fromBytes)).IsEqualTo("from memory");
-        }
-        finally
-        {
-            File.Delete(temp);
-        }
+        var fromFile = TypstTemplateFile.FromFile(TypstPath.Parse("a.typ"), path);
+        var fromBytes = TypstTemplateFile.FromBytes(TypstPath.Parse("b.typ"), Encoding.UTF8.GetBytes("from memory"));
+
+        await Assert.That(await ReadAsync(fromFile)).IsEqualTo("from disk");
+        await Assert.That(await ReadAsync(fromBytes)).IsEqualTo("from memory");
     }
 
     private static async Task<string> ReadAsync(TypstTemplateFile file)

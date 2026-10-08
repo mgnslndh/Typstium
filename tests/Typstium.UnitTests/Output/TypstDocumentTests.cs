@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Typstium.Testing.Fixtures;
 using TUnit.Assertions.Enums;
 
 namespace Typstium.UnitTests.Output;
@@ -19,18 +20,12 @@ public class TypstDocumentTests
     {
         var pages = ImmutableArray.Create<ReadOnlyMemory<byte>>(new byte[] { 1 }, new byte[] { 2 });
         var document = (TypstDocument.Paged)TypstDocument.CreatePaged(TypstOutputFormat.Png, pages);
-        var directory = Path.Combine(Path.GetTempPath(), "typstium-test-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(directory);
-        try
-        {
-            var written = await document.SaveAsync(Path.Combine(directory, "page-{0p}-of-{t}.png"), CancellationToken.None);
-            await Assert.That(written.Select(w => Path.GetFileName(w)!)).IsEquivalentTo(new[] { "page-1-of-2.png", "page-2-of-2.png" }, CollectionOrdering.Matching);
-            await Assert.That(File.ReadAllBytes(written[1])).IsEquivalentTo(new byte[] { 2 }, CollectionOrdering.Matching);
-        }
-        finally
-        {
-            Directory.Delete(directory, recursive: true);
-        }
+        using var temp = new TemporaryDirectory("document");
+
+        var written = await document.SaveAsync(temp.Combine("page-{0p}-of-{t}.png"), CancellationToken.None);
+
+        await Assert.That(written.Select(w => Path.GetFileName(w)!)).IsEquivalentTo(new[] { "page-1-of-2.png", "page-2-of-2.png" }, CollectionOrdering.Matching);
+        await Assert.That(File.ReadAllBytes(written[1])).IsEquivalentTo(new byte[] { 2 }, CollectionOrdering.Matching);
     }
 
     [Test]

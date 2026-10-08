@@ -33,26 +33,26 @@ public class WorkspaceFactoryTests
     public async Task Cleaner_deletes_only_old_workspace_folders()
     {
         using var temp = new TemporaryDirectory("cleaner");
-        var old = Directory.CreateDirectory(Path.Combine(temp.Path, "ws-old"));
-        var fresh = Directory.CreateDirectory(Path.Combine(temp.Path, "ws-fresh"));
-        var unrelated = Directory.CreateDirectory(Path.Combine(temp.Path, "keep-me"));
-        old.LastWriteTimeUtc = DateTime.UtcNow.AddHours(-2);
-        unrelated.LastWriteTimeUtc = DateTime.UtcNow.AddHours(-2);
+        var old = temp.CreateDirectory("ws-old");
+        var fresh = temp.CreateDirectory("ws-fresh");
+        var unrelated = temp.CreateDirectory("keep-me");
+        Directory.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddHours(-2));
+        Directory.SetLastWriteTimeUtc(unrelated, DateTime.UtcNow.AddHours(-2));
 
         var deleted = OrphanedWorkspaceCleaner.Clean(temp.Path, TimeSpan.FromHours(1), DateTime.UtcNow);
 
         await Assert.That(deleted).IsEqualTo(1);
-        await Assert.That(Directory.Exists(old.FullName)).IsFalse();
-        await Assert.That(Directory.Exists(fresh.FullName)).IsTrue();
-        await Assert.That(Directory.Exists(unrelated.FullName)).IsTrue();
+        await Assert.That(Directory.Exists(old)).IsFalse();
+        await Assert.That(Directory.Exists(fresh)).IsTrue();
+        await Assert.That(Directory.Exists(unrelated)).IsTrue();
     }
 
     [Test]
     public async Task Parallel_cold_start_cleans_up_once_and_keeps_every_fresh_sandbox()
     {
         using var temp = new TemporaryDirectory("factory");
-        var stale = Directory.CreateDirectory(Path.Combine(temp.Path, "ws-stale"));
-        stale.LastWriteTimeUtc = DateTime.UtcNow.AddHours(-2);
+        var stale = temp.CreateDirectory("ws-stale");
+        Directory.SetLastWriteTimeUtc(stale, DateTime.UtcNow.AddHours(-2));
         var factory = new WorkspaceFactory(temp.Path, TimeSpan.FromHours(1));
         var request = new TypstCompileRequest(TypstSource.Markup("= Hi"));
 
@@ -60,7 +60,7 @@ public class WorkspaceFactoryTests
         try
         {
             await Assert.That(factory.CleanupRuns).IsEqualTo(1);
-            await Assert.That(Directory.Exists(stale.FullName)).IsFalse();
+            await Assert.That(Directory.Exists(stale)).IsFalse();
             await Assert.That(workspaces.Select(w => w.Layout.RootDirectory).Distinct().Count()).IsEqualTo(20);
             await Assert.That(workspaces.All(w => Directory.Exists(w.Layout.RootDirectory))).IsTrue();
         }

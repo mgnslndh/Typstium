@@ -56,7 +56,7 @@ public class DiagnosticsTests
         var compiler = await TypstAvailability.CreateCompilerAsync(CliTypstCompilerSettings.Default with { TempRoot = temp.Path });
         var options = TypstCompileOptions.Default with
         {
-            Packages = TypstPackageOptions.Default with { PackagePath = Path.Combine(temp.Path, "empty-path"), PackageCachePath = Path.Combine(temp.Path, "empty-cache") },
+            Packages = TypstPackageOptions.Default with { PackagePath = temp.Combine("empty-path"), PackageCachePath = temp.Combine("empty-cache") },
         };
 
         var result = await compiler.CompileMarkupAsync("#import \"@preview/definitely-not-a-real-package:9.9.9\": *", TypstOutput.Pdf(), options);

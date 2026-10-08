@@ -10,7 +10,7 @@ public class PathsTests
     public async Task Temp_root_with_spaces_and_non_ascii_characters_works_and_maps_diagnostics()
     {
         using var temp = new TemporaryDirectory("it-paths");
-        var tempRoot = Path.Combine(temp.Path, "Åsa Ström", "typstium");
+        var tempRoot = temp.Combine("Åsa Ström", "typstium");
         var compiler = await TypstAvailability.CreateCompilerAsync(CliTypstCompilerSettings.Default with { TempRoot = tempRoot });
         var templates = new InMemoryTemplateProvider()
             .Add("ok", "ok.typ", ("ok.typ", "= Fine"))

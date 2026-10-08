@@ -23,8 +23,8 @@ public class InPlaceWorkspaceTests
     {
         using var temp = new TemporaryDirectory("inplace");
         var file = temp.CreateFile("a/spec.typ", "= Spec");
-        Directory.CreateDirectory(Path.Combine(temp.Path, "b"));
-        var source = (TypstSource.FileSource)TypstSource.File(file, Path.Combine(temp.Path, "b"));
+        var root = temp.CreateDirectory("b");
+        var source = (TypstSource.FileSource)TypstSource.File(file, root);
 
         var exception = Assert.Throws<ArgumentException>(() => InPlaceWorkspace.Create(source, false, temp.Path));
         await Assert.That(exception!.Message).Contains("outside the project root");
@@ -34,7 +34,7 @@ public class InPlaceWorkspaceTests
     public async Task Missing_files_are_rejected()
     {
         using var temp = new TemporaryDirectory("inplace");
-        var source = (TypstSource.FileSource)TypstSource.File(Path.Combine(temp.Path, "missing.typ"));
+        var source = (TypstSource.FileSource)TypstSource.File(temp.Combine("missing.typ"));
         var exception = Assert.Throws<ArgumentException>(() => InPlaceWorkspace.Create(source, false, temp.Path));
         await Assert.That(exception!.Message).Contains("does not exist");
     }
