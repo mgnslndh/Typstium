@@ -8,6 +8,7 @@ namespace Typstium.Diagnostics;
 internal sealed class SourcePathMapper
 {
     private const string VerbatimPrefix = @"\\?\";
+    private const string VerbatimUncPrefix = @"\\?\UNC\";
     private static readonly Regex PackagePath = new("^(?<spec>@[^/]+/[^/:]+:[^/]+)/(?<path>.+)\\z", RegexOptions.CultureInvariant);
 
     private readonly SourceMappingContext _context;
@@ -17,14 +18,14 @@ internal sealed class SourcePathMapper
     public SourcePathMapper(SourceMappingContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        var root = StripVerbatimPrefix(context.RootDirectory);
+        var root = ToOrdinaryPath(context.RootDirectory);
         _root = Normalize(root).TrimEnd('/');
         _comparison = PathComparison.For(root);
     }
 
     public TypstSourceFile? MapFile(string printedPath)
     {
-        var path = StripVerbatimPrefix(printedPath);
+        var path = ToOrdinaryPath(printedPath);
         if (path.StartsWith("@", StringComparison.Ordinal))
         {
             var package = PackagePath.Match(Normalize(path));
@@ -122,25 +123,35 @@ internal sealed class SourcePathMapper
     }
 
     // The index just past the sandbox root starting at index (including an optional verbatim prefix), or -1.
+    // A UNC root (//server/share/...) is printed as \\?\UNC\server\share\..., without its leading separators.
     private int RootEndAt(string text, int index)
     {
+        if (_root.StartsWith("//", StringComparison.Ordinal) && HasVerbatimUncPrefixAt(text, index))
+        {
+            var afterUncPrefix = MatchRootAt(text, index + VerbatimUncPrefix.Length, rootStart: 2);
+            if (afterUncPrefix >= 0)
+            {
+                return afterUncPrefix;
+            }
+        }
+
         if (HasVerbatimPrefixAt(text, index))
         {
-            var afterPrefix = MatchRootAt(text, index + VerbatimPrefix.Length);
+            var afterPrefix = MatchRootAt(text, index + VerbatimPrefix.Length, rootStart: 0);
             if (afterPrefix >= 0)
             {
                 return afterPrefix;
             }
         }
 
-        return MatchRootAt(text, index);
+        return MatchRootAt(text, index, rootStart: 0);
     }
 
-    // Matches _root at start, treating both separators as equal. The root must not run into a longer name.
-    private int MatchRootAt(string text, int start)
+    // Matches _root (from rootStart) at start, treating both separators as equal. The root must not run into a longer name.
+    private int MatchRootAt(string text, int start, int rootStart)
     {
         var index = start;
-        for (var r = 0; r < _root.Length; r++, index++)
+        for (var r = rootStart; r < _root.Length; r++, index++)
         {
             if (index >= text.Length || !SameChar(_root[r], text[index]))
             {
@@ -171,8 +182,26 @@ internal sealed class SourcePathMapper
 
     private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.';
 
-    private static string StripVerbatimPrefix(string path) =>
-        path.StartsWith(VerbatimPrefix, StringComparison.Ordinal) ? path.Substring(VerbatimPrefix.Length) : path;
+    // "UNC" is matched case-insensitively, as Windows does.
+    private static bool HasVerbatimUncPrefixAt(string text, int index) =>
+        HasVerbatimPrefixAt(text, index)
+        && index + VerbatimUncPrefix.Length <= text.Length
+        && string.Compare(text, index + VerbatimPrefix.Length, "UNC", 0, 3, StringComparison.OrdinalIgnoreCase) == 0
+        && text[index + VerbatimUncPrefix.Length - 1] == '\\';
+
+    /// <summary>
+    /// Windows' verbatim forms back to ordinary ones: <c>\\?\UNC\server\share\x</c> to <c>\\server\share\x</c>,
+    /// <c>\\?\C:\x</c> to <c>C:\x</c>. Anything else is returned unchanged.
+    /// </summary>
+    private static string ToOrdinaryPath(string path)
+    {
+        if (HasVerbatimUncPrefixAt(path, 0))
+        {
+            return @"\\" + path.Substring(VerbatimUncPrefix.Length);
+        }
+
+        return HasVerbatimPrefixAt(path, 0) ? path.Substring(VerbatimPrefix.Length) : path;
+    }
 
     private static string Normalize(string path) => path.Replace('\\', '/');
 

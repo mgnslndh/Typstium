@@ -723,7 +723,9 @@ N │ <source line>
   from the end (`:<line>:<col>`), so paths may contain colons; a trace frame's message ends at the first
   ` at ` that leaves a valid location. Stderr is attacker-influenced (an `assert` message is printed
   verbatim), and the whole parse is linear in its size, which the runner caps at 1 MB.
-- **Paths:** strip `\\?\`, handle the drive-letter colon, and map paths to `TypstSourceFile`:
+- **Paths:** turn Windows' verbatim forms back into ordinary ones (`\\?\C:\x` → `C:\x`, and for a root on a
+  network share `\\?\UNC\server\share\x` → `\\server\share\x`), handle the drive-letter colon, and map paths
+  to `TypstSourceFile`. Scrubbing recognizes the sandbox root in all three forms:
   - sandbox → `Project` or `Virtual`
   - `@ns/name:ver/…` → `Package`
   - `<stdin>` → `Markup`

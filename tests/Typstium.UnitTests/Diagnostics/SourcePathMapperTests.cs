@@ -125,4 +125,49 @@ public class SourcePathMapperTests
         var mapper = new SourcePathMapper(new SourceMappingContext(@"C:\repo\docs", IsSandbox: false, ImmutableHashSet<TypstPath>.Empty));
         await Assert.That(mapper.Scrub(@"\\?\C:\repo\docs\spec.typ")).IsEqualTo(@"\\?\C:\repo\docs\spec.typ");
     }
+
+    // A temp root on a network share: Typst prints its paths in the extended UNC form \\?\UNC\server\share\...
+    private const string UncRoot = @"\\server\share\typstium\ws-1\root";
+
+    [Test]
+    [Arguments(@"\\?\UNC\server\share\typstium\ws-1\root\sub\helper.typ")]
+    [Arguments(@"\\?\unc\SERVER\Share\TYPSTIUM\ws-1\root\sub\helper.typ")]
+    [Arguments(@"\\server\share\typstium\ws-1\root\sub\helper.typ")]
+    public async Task Unc_sandbox_paths_map_to_project_files(string printed)
+    {
+        var file = Sandbox(UncRoot).MapFile(printed);
+
+        await Assert.That(file).IsEqualTo((TypstSourceFile)new TypstSourceFile.Project(TypstPath.Parse("sub/helper.typ"), FullPath: null));
+    }
+
+    [Test]
+    public async Task Unc_virtual_files_map_and_paths_outside_the_root_do_not()
+    {
+        var mapper = Sandbox(UncRoot, "data.json");
+
+        await Assert.That(mapper.MapFile(@"\\?\UNC\server\share\typstium\ws-1\root\data.json")).IsEqualTo((TypstSourceFile)new TypstSourceFile.Virtual(TypstPath.Parse("data.json")));
+        await Assert.That(mapper.MapFile(@"\\?\UNC\server\share\other\secret.typ")).IsNull();
+        await Assert.That(mapper.MapFile(@"\\?\UNC\elsewhere\share\typstium\ws-1\root\a.typ")).IsNull();
+    }
+
+    [Test]
+    public async Task In_place_files_on_a_share_get_an_ordinary_unc_full_path()
+    {
+        var mapper = new SourcePathMapper(new SourceMappingContext(@"\\server\share\repo\docs", IsSandbox: false, ImmutableHashSet<TypstPath>.Empty));
+
+        var file = mapper.MapFile(@"\\?\UNC\server\share\repo\docs\spec.typ");
+
+        await Assert.That(file).IsEqualTo((TypstSourceFile)new TypstSourceFile.Project(TypstPath.Parse("spec.typ"), @"\\server\share\repo\docs\spec.typ"));
+    }
+
+    [Test]
+    public async Task Unc_sandbox_roots_are_scrubbed_from_text_in_both_forms()
+    {
+        var mapper = Sandbox(UncRoot);
+
+        await Assert.That(mapper.Scrub(@"see \\?\UNC\server\share\typstium\ws-1\root\x.typ here")).IsEqualTo("see /x.typ here");
+        await Assert.That(mapper.Scrub(@"see \\?\unc\SERVER\share\typstium\WS-1\root\x.typ")).IsEqualTo("see /x.typ");
+        await Assert.That(mapper.Scrub(@"see \\server\share\typstium\ws-1\root\x.typ")).IsEqualTo("see /x.typ");
+        await Assert.That(mapper.Scrub(@"see \\?\UNC\other\share\typstium\ws-1\root\x.typ")).IsEqualTo(@"see \\?\UNC\other\share\typstium\ws-1\root\x.typ");
+    }
 }
