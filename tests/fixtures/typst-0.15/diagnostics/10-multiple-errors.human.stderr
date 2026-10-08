@@ -1,0 +1,6 @@
+error: expected color, gradient, or tiling, found integer
+  ┌─ {ROOT}\10-multiple-errors.typ:1:12
+  │
+1 │ #text(fill: 5)[x]
+  │             ^
+

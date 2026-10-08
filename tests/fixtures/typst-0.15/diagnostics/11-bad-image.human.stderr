@@ -1,0 +1,6 @@
+error: failed to decode image (Format error decoding Png: Invalid PNG signature.)
+  ┌─ {ROOT}\11-bad-image.typ:1:12
+  │
+1 │ Bad image: #image("bad.png")
+  │             ^^^^^^^^^^^^^^^^
+

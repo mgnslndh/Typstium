@@ -1,0 +1,6 @@
+error: package not found (searched for @preview/definitely-not-a-real-package:9.9.9)
+  ┌─ {ROOT}\09-missing-package.typ:1:8
+  │
+1 │ #import "@preview/definitely-not-a-real-package:9.9.9": *
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+

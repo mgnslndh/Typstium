@@ -1,0 +1,6 @@
+warning: unknown font family: no such font family
+  ┌─ {ROOT}\05-warning-font.typ:1:16
+  │
+1 │ #set text(font: "No Such Font Family")
+  │                 ^^^^^^^^^^^^^^^^^^^^^
+
