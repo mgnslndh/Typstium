@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using TUnit.Assertions.Enums;
 using Typstium.CommandLine;
 
 namespace Typstium.UnitTests.CommandLine;
@@ -36,7 +37,7 @@ public class WindowsArgumentEscaperTests
 
         var commandLine = "typst.exe " + WindowsArgumentEscaper.Join(arguments);
         var parsed = ParseWithWindows(commandLine).Skip(1).ToArray();
-        await Assert.That(parsed).IsEquivalentTo(arguments);
+        await Assert.That(parsed).IsEquivalentTo(arguments, CollectionOrdering.Matching);
     }
 
     private static string[] ParseWithWindows(string commandLine)

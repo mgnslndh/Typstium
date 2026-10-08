@@ -1,3 +1,5 @@
+using TUnit.Assertions.Enums;
+
 namespace Typstium.UnitTests.CommandLine;
 
 public class TypstArgumentsTests
@@ -19,7 +21,7 @@ public class TypstArgumentsTests
             .AddSwitchSecret("--input", "license={\"id\":1}")
             .AddSecret("token");
 
-        await Assert.That(args.ToValues()).IsEquivalentTo(new[] { "--root", "C:\\work dir", "--input", "license={\"id\":1}", "token" });
+        await Assert.That(args.ToValues()).IsEquivalentTo(new[] { "--root", "C:\\work dir", "--input", "license={\"id\":1}", "token" }, CollectionOrdering.Matching);
         await Assert.That(args.RenderSafe()).IsEqualTo("--root \"C:\\work dir\" --input [REDACTED] [REDACTED]");
         await Assert.That(args.Render()).Contains("license=");
     }
@@ -31,7 +33,7 @@ public class TypstArgumentsTests
         var index = args.IndexOf("--root");
         var changed = args.SetItem(index + 1, TypstArgument.Plain("b")).RemoveAt(0).Insert(0, TypstArgument.Plain("c"));
         await Assert.That(index).IsEqualTo(1);
-        await Assert.That(changed.ToValues()).IsEquivalentTo(new[] { "c", "--root", "b", "main.typ" });
+        await Assert.That(changed.ToValues()).IsEquivalentTo(new[] { "c", "--root", "b", "main.typ" }, CollectionOrdering.Matching);
     }
 
     [Test]
