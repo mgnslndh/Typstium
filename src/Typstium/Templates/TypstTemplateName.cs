@@ -3,7 +3,10 @@ using System.Text.RegularExpressions;
 
 namespace Typstium;
 
-/// <summary>A template name: segments of <c>[A-Za-z0-9._-]</c> separated by <c>/</c>, where no segment consists only of dots.</summary>
+/// <summary>
+/// A template name: segments of <c>[A-Za-z0-9._-]</c> separated by <c>/</c>. No segment consists only of dots, ends
+/// with a dot or is a Windows device name such as <c>con</c>: names become folder paths, which Windows would alias.
+/// </summary>
 public sealed class TypstTemplateName : IEquatable<TypstTemplateName>
 {
     private static readonly Regex Segment = new("^[A-Za-z0-9._-]+\\z", RegexOptions.CultureInvariant);
@@ -34,8 +37,8 @@ public sealed class TypstTemplateName : IEquatable<TypstTemplateName>
 
         foreach (var segment in value!.Split('/'))
         {
-            // All-dot segments ("..", "...") are rejected: Windows normalizes them away.
-            if (!Segment.IsMatch(segment) || segment.Trim('.').Length == 0)
+            // All-dot segments ("..", "...") are rejected too: Windows normalizes them away.
+            if (!Segment.IsMatch(segment) || segment.Trim('.').Length == 0 || PortableFileName.Problem(segment) is not null)
             {
                 return false;
             }

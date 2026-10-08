@@ -43,6 +43,35 @@ public class SandboxWorkspaceTests
         await Assert.That(Directory.GetDirectories(temp.Path).Length).IsEqualTo(0);
     }
 
+    // An alias no name rule lists: NTFS 8.3 short names, generated on many system volumes (where %TEMP% lives).
+    [Test]
+    public async Task A_second_name_for_an_already_written_file_fails_instead_of_overwriting_it()
+    {
+        using var temp = new TemporaryDirectory("sandbox");
+        File.WriteAllText(temp.Combine("datafile.json"), "probe");
+        if (!File.Exists(temp.Combine("DATAFI~1.JSO")))
+        {
+            Skip.Test("This volume doesn't generate 8.3 short names.");
+        }
+
+        var template = new TypstTemplate(
+            TypstTemplateName.Parse("t"),
+            TypstPath.Parse("main.typ"),
+            new TypstTemplateVersion("v1"),
+            new[]
+            {
+                TypstTemplateFile.FromBytes(TypstPath.Parse("main.typ"), Encoding.UTF8.GetBytes("= Hi")),
+                TypstTemplateFile.FromBytes(TypstPath.Parse("datafile.json"), Encoding.UTF8.GetBytes("{\"original\":true}")),
+            });
+        var alias = TypstVirtualFile.FromText(TypstPath.Parse("DATAFI~1.JSO"), "{\"replaced\":true}");
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            SandboxWorkspace.CreateForTemplateAsync(template, ImmutableArray.Create(alias), needsPagedOutput: false, temp.Path, CancellationToken.None));
+
+        await Assert.That(exception!.Message).Contains("DATAFI~1.JSO");
+        await Assert.That(Directory.GetDirectories(temp.Path).Length).IsEqualTo(0);
+    }
+
     [Test]
     public async Task Markup_sandbox_sends_the_markup_over_stdin_and_creates_an_output_folder_for_paged_output()
     {

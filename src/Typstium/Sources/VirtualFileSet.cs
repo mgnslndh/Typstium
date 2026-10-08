@@ -4,7 +4,7 @@ namespace Typstium;
 
 internal static class VirtualFileSet
 {
-    /// <summary>Normalizes a default array to empty and rejects nulls and case-insensitive duplicates.</summary>
+    /// <summary>Normalizes a default array to empty and rejects nulls, non-portable names (<see cref="PortableFileName"/>) and case-insensitive duplicates.</summary>
     public static ImmutableArray<TypstVirtualFile> Validate(ImmutableArray<TypstVirtualFile> files, string parameterName)
     {
         if (files.IsDefault)
@@ -18,6 +18,11 @@ internal static class VirtualFileSet
             if (file is null)
             {
                 throw new ArgumentException("Virtual files must not be null.", parameterName);
+            }
+
+            if (PortableFileName.Problem(file.Path) is { } problem)
+            {
+                throw new ArgumentException($"The virtual file {problem}.", parameterName);
             }
 
             if (seen.TryGetValue(file.Path.Value, out var existing))

@@ -27,6 +27,11 @@ public sealed class TypstTemplate
                 throw new ArgumentException("Template files must not be null.", nameof(files));
             }
 
+            if (PortableFileName.Problem(file.Path) is { } problem)
+            {
+                throw new ArgumentException($"Template '{name}' has a file {problem}.", nameof(files));
+            }
+
             if (seen.TryGetValue(file.Path.Value, out var existing))
             {
                 throw new ArgumentException(

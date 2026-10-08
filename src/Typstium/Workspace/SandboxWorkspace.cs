@@ -34,7 +34,7 @@ internal sealed class SandboxWorkspace : IWorkspace
                 var source = await file.OpenReadAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
-                    using var target = OpenForWrite(Resolve(root, file.Path));
+                    using var target = OpenForWrite(root, file.Path, replace: false);
                     await source.CopyToAsync(target, 81920, cancellationToken).ConfigureAwait(false);
                 }
                 finally
@@ -43,7 +43,8 @@ internal sealed class SandboxWorkspace : IWorkspace
                 }
             }
 
-            await WriteVirtualFilesAsync(root, files, cancellationToken).ConfigureAwait(false);
+            var templatePaths = new HashSet<string>(template.Files.Select(file => file.Path.Value), StringComparer.OrdinalIgnoreCase);
+            await WriteVirtualFilesAsync(root, files, templatePaths, cancellationToken).ConfigureAwait(false);
             var layout = new WorkspaceLayout(root, Resolve(root, template.MainFile), ReadOnlyMemory<byte>.Empty, output, Mapping(root, files));
             return new SandboxWorkspace(scratch, layout);
         }
@@ -60,7 +61,7 @@ internal sealed class SandboxWorkspace : IWorkspace
         var (scratch, root, output) = CreateScratch(tempRoot, needsPagedOutput);
         try
         {
-            await WriteVirtualFilesAsync(root, files, cancellationToken).ConfigureAwait(false);
+            await WriteVirtualFilesAsync(root, files, templatePaths: null, cancellationToken).ConfigureAwait(false);
             var layout = new WorkspaceLayout(root, WorkspaceLayout.StdinInput, Utf8NoBom.GetBytes(markup), output, Mapping(root, files));
             return new SandboxWorkspace(scratch, layout);
         }
@@ -82,20 +83,40 @@ internal sealed class SandboxWorkspace : IWorkspace
         return (scratch, scratch.CreateSubdirectory("root"), needsPagedOutput ? scratch.CreateSubdirectory("out") : null);
     }
 
-    private static async Task WriteVirtualFilesAsync(string root, ImmutableArray<TypstVirtualFile> files, CancellationToken cancellationToken)
+    /// <summary>Writes the virtual files; one may replace a template file at the same path (<c>templatePaths</c>, null for markup).</summary>
+    private static async Task WriteVirtualFilesAsync(
+        string root, ImmutableArray<TypstVirtualFile> files, HashSet<string>? templatePaths, CancellationToken cancellationToken)
     {
         foreach (var file in files)
         {
             var segment = ByteMemory.AsSegment(file.Content);
-            using var target = OpenForWrite(Resolve(root, file.Path));
+            var replace = templatePaths?.Contains(file.Path.Value) == true;
+            using var target = OpenForWrite(root, file.Path, replace);
             await target.WriteAsync(segment.Array!, segment.Offset, segment.Count, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static FileStream OpenForWrite(string path)
+    /// <summary>
+    /// Opens a new file for writing. Every file of a fresh sandbox must be new, so an existing file means two paths
+    /// resolved to the same file: an alias the name rules don't list, such as an NTFS 8.3 short name
+    /// (<c>DATAFI~1.JSO</c> for <c>datafile.json</c>). That fails instead of silently overwriting; only a virtual
+    /// file replacing a template file at the same path (<paramref name="replace"/>) overwrites.
+    /// </summary>
+    private static FileStream OpenForWrite(string root, TypstPath path, bool replace)
     {
-        System.IO.Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        var fullPath = Resolve(root, path);
+        System.IO.Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+        try
+        {
+            return new FileStream(fullPath, replace ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        }
+        catch (IOException exception) when (!replace && File.Exists(fullPath))
+        {
+            throw new ArgumentException(
+                $"'{path}' refers to a file already written to the sandbox; on this file system it is another name for an earlier file.",
+                "request",
+                exception);
+        }
     }
 
     private static SourceMappingContext Mapping(string root, ImmutableArray<TypstVirtualFile> files) =>

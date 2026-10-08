@@ -271,7 +271,7 @@ public sealed record TypstVirtualFile
 | Type | Kind | Rules |
 | --- | --- | --- |
 | `TypstPath` | sealed class | Root-relative and normalized to `/`. A leading `/` is optional and stripped. Rejects absolute paths, drive letters, `..` segments, empty segments and invalid characters. `Parse`, `TryParse`, `ToString()` gives `/logo.png` (Typst's root-relative form) |
-| `TypstTemplateName` | sealed class | `[A-Za-z0-9._-]` plus `/` for nesting; no `..`. `Parse`, `TryParse` |
+| `TypstTemplateName` | sealed class | `[A-Za-z0-9._-]` plus `/` for nesting; no all-dot segments, and portable segments (below). `Parse`, `TryParse` |
 | `TypstDiagnosticId` | sealed class | `TYPST` + four digits |
 | `TypstPosition` | readonly record struct | 1-based `Line`, `Column` (MSBuild convention); `default` is never produced by the parser. Typst 0.15 reports 1-based lines but **0-based character columns**; the 0.15 parser profile converts them (verified while planning) |
 | `TypstVersion` | readonly record struct | `Major.Minor.Patch`, comparable |
@@ -284,6 +284,18 @@ The rule: a value type that needs validation is a sealed class, because a struct
 bypass validation. Plain coordinates and versions are structs.
 
 Builders and extension methods accept `string` and parse it, so callers rarely see these types.
+
+**Portable file names (D43).** Files Typstium writes into the sandbox, and template names (which become folder
+paths), must have names Windows stores as written, on every platform, so nothing that works on Linux can fail
+or alias on Windows. A segment may not end with `.` or a space (Windows strips them, so `data.json.` is
+`data.json`), be a device name (`CON`, `PRN`, `AUX`, `NUL`, `COM0`–`COM9`, `LPT0`–`LPT9`, also before the first
+dot: `nul.json`), or contain control characters. Virtual files are checked with the duplicates (at `Build()` or
+`TypstSource.Template`/`Markup`), template bundles in the `TypstTemplate` constructor. `TypstPath` itself stays
+permissive, because it also maps paths Typst prints back to the caller's files, which on Linux may legitimately
+be named `aux.typ`. As a safety net for aliases no rule lists (NTFS 8.3 short names such as `DATAFI~1.JSO`), the
+sandbox writes every file with `FileMode.CreateNew`: an existing file means two paths reached the same file,
+which fails with `ArgumentException` instead of overwriting. Only a virtual file replacing a template file at the
+same path overwrites, by design.
 
 ### 4.5 Output and result
 
@@ -1114,6 +1126,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D40 | Pipe I/O runs on dedicated threads; the kill callback terminates the job object, and the tree walk (which kills the parent too) runs on a dedicated thread | `ReadAsync` on pool threads; `Kill(entireProcessTree: true)` on the callback; job only, no tree walk | With every concurrency slot busy, blocked pool threads delayed the timeout's kill by up to 36 s, and the tree walk (a snapshot of every process) took seconds under load. Typstium never changes `ThreadPool` settings; they belong to the host (found in PR #1 review) |
 | D41 | Timing tests in their own project, `Typstium.TimingTests`, run alone after the others; CI runs `build.ps1`, the same script as a local run | TUnit categories with filters; `[NotInParallel]` in the integration project with every test module serialized; CI steps in YAML only | A project makes the boundary visible and needs no filter expressions; everything else stays parallel. One script for CI and local runs can't drift apart, and a Cake build can replace its body later (decided in PR #1 review) |
 | D42 | The human-format diagnostic parser matches lines by hand, without regular expressions, in time linear in stderr size | Regexes with match timeouts; `RegexOptions.NonBacktracking` | A template controls what stderr contains, and the old trace-frame pattern backtracked quadratically: seconds for one 20,000-character line, hours at the 1 MB cap, on the host after Typst had exited. `NonBacktracking` needs .NET 7+, and timeouts throw mid-parse and need a fallback per pattern. The library's remaining regexes are linear (anchored single quantifiers or non-overlapping classes); only `SourcePathMapper.PackagePath` sees stderr (found in the 2026-10-08 review) |
+| D43 | Portable names for files Typstium writes and for template names, on every platform; `TypstPath` stays permissive; the sandbox writes with `CreateNew` | Validate only on Windows; validate in `TypstPath`; trust the name rules alone | Windows aliases trailing dots and spaces and reserves device names, so two accepted virtual files could become one (found in the 2026-10-08 review). Checking everywhere keeps requests portable, as rejecting case-only duplicates already does. `TypstPath` also reads back paths Typst prints, which on Linux may use those names. `CreateNew` turns any alias the rules miss (8.3 short names) into an error instead of a silent overwrite |
 
 ## 9. To verify while planning
 

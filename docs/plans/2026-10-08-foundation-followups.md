@@ -21,7 +21,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 - (Superseded in PR #1 review: suppression removed; overload families now use explicit no-token / required-token pairs, spec D36.) Ruling: RS0026/RS0027 suppressed in Typstium.csproj — spec 4.6 deliberately uses CancellationToken = default overload families (HttpClient pattern) — if wrong, API redesign of extension overloads before 1.0.
 - Final: parked — root-containment test skips on CI (needs a non-writing variant) — Ruling: production fix is a one-liner covered by canonicalizer tests; add the always-running test as a follow-up — cost if wrong: a regression in drive-root file sources goes unnoticed.
 - Final: parked — quoted TYPST_PATH gives a misleading "(relative paths are not allowed)" message; char.IsLetter accepts non-ASCII drive letters — Ruling: safe-side behavior, follow-up — cost if wrong: confusing error text.
-- Final: parked — spec body text still says WinGet "newest first" and PATH "PATHEXT" (contradicts D24); TypstTemplateName accepts trailing-dot segments (alias, not traversal) — Ruling: follow-up — cost if wrong: doc inconsistency / name aliasing on Windows.
+- Final: parked — spec body text still says WinGet "newest first" and PATH "PATHEXT" (contradicts D24); ~~TypstTemplateName accepts trailing-dot segments~~ (fixed with review #3, D43) — Ruling: follow-up — cost if wrong: doc inconsistency / name aliasing on Windows.
 
 ## Deferred minor findings (per task)
 
@@ -55,14 +55,14 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 
 - Final: parked — root-containment test skips on CI (needs a non-writing variant) — Ruling: production fix is a one-liner covered by canonicalizer tests; add the always-running test as a follow-up — cost if wrong: a regression in drive-root file sources goes unnoticed.
 - Final: parked — quoted TYPST_PATH gives a misleading "(relative paths are not allowed)" message; char.IsLetter accepts non-ASCII drive letters — Ruling: safe-side behavior, follow-up — cost if wrong: confusing error text.
-- Final: parked — spec body text still says WinGet "newest first" and PATH "PATHEXT" (contradicts D24); TypstTemplateName accepts trailing-dot segments (alias, not traversal) — Ruling: follow-up — cost if wrong: doc inconsistency / name aliasing on Windows.
+- Final: parked — spec body text still says WinGet "newest first" and PATH "PATHEXT" (contradicts D24); ~~TypstTemplateName accepts trailing-dot segments~~ (fixed with review #3, D43) — Ruling: follow-up — cost if wrong: doc inconsistency / name aliasing on Windows.
 
 ## Open gates
 
 - External review (2026-10-08, `docs/Typstium-review.md`, to be deleted once its findings are fixed):
   - ~~#1 [P1] quadratic trace-frame regex in the diagnostic parser~~ Fixed: hand-written linear parser (D42), with a 1 MB unit test and an end-to-end timing test that timed out on the old parser.
   - #2 [P2] orphan cleanup can delete live workspaces of another compiler sharing `TempRoot`: lock-file lease plus creating the workspace after admission.
-  - #3 [P2] Windows path aliases (trailing dots and spaces) and reserved device names accepted by `TypstPath`.
+  - ~~#3 [P2] Windows path aliases (trailing dots and spaces) and reserved device names~~ Fixed: portable-name rules for virtual files, template bundles and template names, plus `CreateNew` in the sandbox (D43).
   - #4 [P3] extended UNC (`\\?\UNC\`) diagnostic paths are neither mapped nor scrubbed.
   - #5 [P3] the template version hash framing is ambiguous when file contents contain NUL bytes.
 
@@ -73,6 +73,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 - Later: a queueing decorator over `ITypstCompiler` (in the style of `DelegatingHandler`), if hosts need policy the `MaxConcurrency` semaphore lacks: a bounded queue that rejects work when full (backpressure), ordering (interactive before batch, fairness between tenants), and queue metrics (wait time, length). Not a background thread: compiles wait on a process, so no thread needs to be held. Use "priority" for queue ordering there; the OS setting is `ProcessPriority` (D39).
 - Later: computed input values, `WithInput(key, Func<string>)` on the builders, resolved at `Build()` (D38). Add when a concrete use case appears; an async variant would need `BuildAsync`.
 - Later: a per-input way to mark a value safe to log (keys stay visible; values are redacted today), if diagnosing compiles needs it (D38).
+- Later (only if it shows up): Unicode normalization in duplicate detection. macOS can treat composed and decomposed forms of a name (`é`) as the same file; `CreateNew` in the sandbox already turns such a collision into an error rather than an overwrite.
 - Later: a Cake build that replaces the body of `build.ps1` (same step order as CI; D41).
 - Later: publish API reference and guides to GitHub Pages, generated from the XML docs (for example with docfx), and build it in CI so broken doc references fail the build.
 - ~~Investigate slow timeouts on windows-latest~~ Found and fixed in PR #1. Pipe reads used `ReadAsync` on the process's synchronous pipe streams (on every target framework, not only netstandard2.0), so each running compile blocked two thread-pool threads. With every concurrency slot busy, the pool starved, and the timer callback that kills Typst on timeout fired late: CI showed `process 8510 ms` for a 2 s timeout, and locally (32 cores) a second wave of compiles ran for 36 s. Pipe I/O now runs on dedicated threads (`DedicatedThread`), and `Timeouts_fire_on_time_when_every_concurrency_slot_is_busy` guards it. A second cause showed up on a 2-core run: `Process.Kill(entireProcessTree: true)` snapshots every process on the machine and took seconds under load, holding up other compiles' timeout callbacks. On Windows the job object is now terminated first (one system call) and the tree walk is skipped. The remaining delay was CPU oversubscription in the test run itself, so `LimitsTests` runs `[NotInParallel]` and CI runs test modules one at a time. Typstium doesn't touch `ThreadPool.SetMinThreads`: that's the host's setting.
