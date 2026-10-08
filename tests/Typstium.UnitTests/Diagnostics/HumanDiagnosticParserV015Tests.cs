@@ -123,4 +123,87 @@ public class HumanDiagnosticParserV015Tests
         await Assert.That(diagnostics[1].IsRecognized).IsFalse();
         await Assert.That(diagnostics[1].Message).IsEqualTo("an unexpected line");
     }
+
+    [Test]
+    [Arguments("  while calling `f` at /tmp/a.typ:2:1", "while calling `f`", "/tmp/a.typ", 2, 2)]
+    [Arguments("  while calling `f` at C:\\docs\\a.typ:12:4", "while calling `f`", "C:\\docs\\a.typ", 12, 5)]
+    [Arguments("  look at this at /tmp/a.typ:3:0", "look", "this at /tmp/a.typ", 3, 1)]
+    [Arguments("\twhile calling `g` at /tmp/x:1:2:3", "while calling `g`", "/tmp/x:1", 2, 4)]
+    public async Task Trace_frames_split_at_the_first_separator_that_leaves_a_location(string line, string message, string path, int lineNumber, int column)
+    {
+        var parsed = HumanDiagnosticParserV015.TryParseTraceFrame(line, out var frameMessage, out var location);
+
+        await Assert.That(parsed).IsTrue();
+        await Assert.That(frameMessage).IsEqualTo(message);
+        await Assert.That(location!.Path).IsEqualTo(path);
+        await Assert.That(location.Line).IsEqualTo(lineNumber);
+        await Assert.That(location.Column).IsEqualTo(column);
+    }
+
+    [Test]
+    [Arguments("while calling `f` at /tmp/a.typ:2:1")]
+    [Arguments("  while calling `f` at /tmp/a.typ")]
+    [Arguments("  while calling `f` at :2:1")]
+    [Arguments("  no separator /tmp/a.typ:2:1")]
+    [Arguments("  ")]
+    [Arguments("  at /tmp/a.typ:2:1")]
+    public async Task Lines_that_are_not_trace_frames_are_rejected(string line)
+    {
+        await Assert.That(HumanDiagnosticParserV015.TryParseTraceFrame(line, out _, out _)).IsFalse();
+    }
+
+    [Test]
+    [Arguments("/tmp/a.typ:1:0", "/tmp/a.typ", 1, 1)]
+    [Arguments("C:\\a b\\c.typ:7:9", "C:\\a b\\c.typ", 7, 10)]
+    [Arguments("a:1:2:3", "a:1", 2, 4)]
+    public async Task Locations_parse_from_the_end(string text, string path, int line, int column)
+    {
+        var location = HumanDiagnosticParserV015.ParseLocation(text);
+
+        await Assert.That(location!.Path).IsEqualTo(path);
+        await Assert.That(location.Line).IsEqualTo(line);
+        await Assert.That(location.Column).IsEqualTo(column);
+    }
+
+    [Test]
+    [Arguments(":1:2")]
+    [Arguments("a.typ:1")]
+    [Arguments("a.typ:x:2")]
+    [Arguments("a.typ:1:")]
+    [Arguments("a.typ:99999999999:1")]
+    public async Task Malformed_locations_are_null(string text)
+    {
+        await Assert.That(HumanDiagnosticParserV015.ParseLocation(text)).IsNull();
+    }
+
+    // Worst cases for the backtracking patterns this parser used to have, at the 1 MB stderr cap. Linear parsing takes
+    // milliseconds; the old trace-frame regex took hours. [Timeout] is only a hang guard, not a measured bound.
+    [Test]
+    [Timeout(30_000)]
+    [Arguments("spaces")]
+    [Arguments("separators")]
+    [Arguments("digits")]
+    public async Task Huge_continuation_lines_parse_in_linear_time(string shape, CancellationToken cancellationToken)
+    {
+        var line = shape switch
+        {
+            "spaces" => new string(' ', 1_000_000) + "x",
+            "separators" => " " + string.Concat(Enumerable.Repeat("a at ", 200_000)) + "b:1",
+            _ => " x at " + string.Concat(Enumerable.Repeat("1:", 300_000)) + "x",
+        };
+
+        var diagnostics = _parser.Parse("error: assertion failed: first line\n" + line + "\n");
+
+        await Assert.That(diagnostics[0].Message).IsEqualTo("assertion failed: first line");
+        await Assert.That(diagnostics[0].Trace.Length).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Hints_notes_and_help_keep_their_kind_except_hints()
+    {
+        await Assert.That(HumanDiagnosticParserV015.TryParseHint("  = hint: try this", out var hint) ? hint : null).IsEqualTo("try this");
+        await Assert.That(HumanDiagnosticParserV015.TryParseHint("= note: see that", out var note) ? note : null).IsEqualTo("note: see that");
+        await Assert.That(HumanDiagnosticParserV015.TryParseHint("  = help: ask", out var help) ? help : null).IsEqualTo("help: ask");
+        await Assert.That(HumanDiagnosticParserV015.TryParseHint("  = tip: no", out _)).IsFalse();
+    }
 }

@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Typstium.Diagnostics;
 
@@ -8,14 +7,15 @@ namespace Typstium.Diagnostics;
 /// Parses Typst 0.15's <c>--diagnostic-format human</c> output (with <c>--color never</c>).
 /// Typst 0.15 prints 1-based lines and 0-based columns; columns are converted to 1-based here.
 /// </summary>
+/// <remarks>
+/// Stderr is attacker-influenced (an <c>assert</c> message can print anything), so every line is matched by hand in a
+/// single pass, without regular expressions: the whole parse is linear in the size of stderr, which the runner caps.
+/// A backtracking pattern here once took seconds for one long line and would have taken hours at the cap.
+/// </remarks>
 internal sealed class HumanDiagnosticParserV015 : IDiagnosticParser
 {
     private const string LocationMarker = "┌─ ";
-
-    private static readonly Regex Header = new("^(?<severity>error|warning): (?<message>.*)$", RegexOptions.CultureInvariant);
-    private static readonly Regex Location = new("^(?<path>.+):(?<line>[0-9]+):(?<column>[0-9]+)$", RegexOptions.CultureInvariant);
-    private static readonly Regex Hint = new("^\\s*= (?<kind>hint|note|help): (?<text>.*)$", RegexOptions.CultureInvariant);
-    private static readonly Regex TraceFrame = new("^\\s+(?<message>.+?) at (?<location>.+:[0-9]+:[0-9]+)$", RegexOptions.CultureInvariant);
+    private const string TraceSeparator = " at ";
 
     public ImmutableArray<RawDiagnostic> Parse(string standardError)
     {
@@ -29,7 +29,7 @@ internal sealed class HumanDiagnosticParserV015 : IDiagnosticParser
         var orphans = new List<string>();
         foreach (var line in standardError.Replace("\r\n", "\n").Split('\n'))
         {
-            if (Header.IsMatch(line))
+            if (TryParseHeader(line, out _, out _))
             {
                 FlushBlock(block, result);
                 FlushUnrecognized(orphans, result);
@@ -50,6 +50,136 @@ internal sealed class HumanDiagnosticParserV015 : IDiagnosticParser
         return result.ToImmutable();
     }
 
+    /// <summary><c>error: message</c> or <c>warning: message</c>.</summary>
+    internal static bool TryParseHeader(string line, out TypstDiagnosticSeverity severity, out string message)
+    {
+        const string Error = "error: ";
+        const string Warning = "warning: ";
+        if (line.StartsWith(Error, StringComparison.Ordinal))
+        {
+            severity = TypstDiagnosticSeverity.Error;
+            message = line.Substring(Error.Length);
+            return true;
+        }
+
+        if (line.StartsWith(Warning, StringComparison.Ordinal))
+        {
+            severity = TypstDiagnosticSeverity.Warning;
+            message = line.Substring(Warning.Length);
+            return true;
+        }
+
+        severity = default;
+        message = string.Empty;
+        return false;
+    }
+
+    /// <summary>
+    /// <c>= hint: text</c>, <c>= note: text</c> or <c>= help: text</c> after optional whitespace. Notes and help keep
+    /// their kind as a prefix; hints don't.
+    /// </summary>
+    internal static bool TryParseHint(string line, out string hint)
+    {
+        var start = SkipWhitespace(line, 0);
+        foreach (var kind in new[] { "hint", "note", "help" })
+        {
+            var prefix = "= " + kind + ": ";
+            if (string.CompareOrdinal(line, start, prefix, 0, prefix.Length) == 0)
+            {
+                var text = line.Substring(start + prefix.Length);
+                hint = kind == "hint" ? text : kind + ": " + text;
+                return true;
+            }
+        }
+
+        hint = string.Empty;
+        return false;
+    }
+
+    /// <summary>
+    /// An indented <c>message at path:line:column</c> line. The message ends at the first <c> at </c> that leaves a
+    /// valid location after it, so a message may itself contain <c> at </c>.
+    /// </summary>
+    internal static bool TryParseTraceFrame(string line, out string message, out RawLocation? location)
+    {
+        message = string.Empty;
+        location = null;
+        var start = SkipWhitespace(line, 0);
+        if (start == 0 || start == line.Length || !TryFindLocationSuffix(line, start, out var suffixStart))
+        {
+            return false;
+        }
+
+        // The location needs a non-empty path before its ":line:column" suffix.
+        var separator = line.IndexOf(TraceSeparator, start, StringComparison.Ordinal);
+        if (separator <= start || separator + TraceSeparator.Length >= suffixStart)
+        {
+            return false;
+        }
+
+        message = line.Substring(start, separator - start);
+        location = ParseLocation(line.Substring(separator + TraceSeparator.Length));
+        return true;
+    }
+
+    /// <summary><c>path:line:column</c> with a non-empty path, which may itself contain colons (<c>C:\x.typ:2:1</c>).</summary>
+    internal static RawLocation? ParseLocation(string text)
+    {
+        text = text.Trim();
+        if (!TryFindLocationSuffix(text, 0, out var suffixStart))
+        {
+            return null;
+        }
+
+        var lineStart = suffixStart + 1;
+        var columnSeparator = text.IndexOf(':', lineStart);
+        if (!int.TryParse(text.Substring(lineStart, columnSeparator - lineStart), NumberStyles.None, CultureInfo.InvariantCulture, out var line)
+            || !int.TryParse(text.Substring(columnSeparator + 1), NumberStyles.None, CultureInfo.InvariantCulture, out var zeroBasedColumn))
+        {
+            return null;
+        }
+
+        return new RawLocation(text.Substring(0, suffixStart), line, zeroBasedColumn + 1, null);
+    }
+
+    /// <summary>
+    /// Finds a trailing <c>:digits:digits</c> with at least one character before it (from <paramref name="start"/>),
+    /// scanning back from the end once. <paramref name="suffixStart"/> is the index of its first colon.
+    /// </summary>
+    private static bool TryFindLocationSuffix(string text, int start, out int suffixStart)
+    {
+        suffixStart = -1;
+        var i = text.Length - 1;
+        for (var group = 0; group < 2; group++)
+        {
+            var digitsEnd = i;
+            while (i >= start && text[i] is >= '0' and <= '9')
+            {
+                i--;
+            }
+
+            if (i == digitsEnd || i < start || text[i] != ':')
+            {
+                return false;
+            }
+
+            i--;
+        }
+
+        suffixStart = i + 1;
+        return suffixStart > start;
+    }
+
+    private static int SkipWhitespace(string text, int index)
+    {
+        while (index < text.Length && char.IsWhiteSpace(text[index]))
+        {
+            index++;
+        }
+
+        return index;
+    }
+
     private static void FlushBlock(List<string> block, ImmutableArray<RawDiagnostic>.Builder result)
     {
         if (block.Count == 0)
@@ -57,8 +187,7 @@ internal sealed class HumanDiagnosticParserV015 : IDiagnosticParser
             return;
         }
 
-        var header = Header.Match(block[0]);
-        var severity = header.Groups["severity"].Value == "warning" ? TypstDiagnosticSeverity.Warning : TypstDiagnosticSeverity.Error;
+        TryParseHeader(block[0], out var severity, out var headerMessage);
         RawLocation? location = null;
         int? caretCount = null;
         var hints = ImmutableArray.CreateBuilder<string>();
@@ -76,21 +205,19 @@ internal sealed class HumanDiagnosticParserV015 : IDiagnosticParser
             }
             else if (trimmed.StartsWith(LocationMarker, StringComparison.Ordinal))
             {
-                location = ParseLocation(trimmed.Substring(LocationMarker.Length), endColumnCarets: null);
+                location = ParseLocation(trimmed.Substring(LocationMarker.Length));
             }
             else if (IsGutterLine(line))
             {
                 caretCount ??= CountCarets(line);
             }
-            else if (Hint.Match(line) is { Success: true } hint)
+            else if (TryParseHint(line, out var hint))
             {
-                var kind = hint.Groups["kind"].Value;
-                var text = hint.Groups["text"].Value;
-                hints.Add(kind == "hint" ? text : kind + ": " + text);
+                hints.Add(hint);
             }
-            else if (TraceFrame.Match(line) is { Success: true } frame)
+            else if (TryParseTraceFrame(line, out var frameMessage, out var frameLocation))
             {
-                trace.Add(new RawTraceFrame(frame.Groups["message"].Value, ParseLocation(frame.Groups["location"].Value, endColumnCarets: null)));
+                trace.Add(new RawTraceFrame(frameMessage, frameLocation));
                 isTrace = true;
             }
             else if (previousWasTrace && line.StartsWith("    ", StringComparison.Ordinal))
@@ -111,7 +238,7 @@ internal sealed class HumanDiagnosticParserV015 : IDiagnosticParser
         }
 
         var rawText = string.Join("\n", block).TrimEnd();
-        result.Add(new RawDiagnostic(severity, header.Groups["message"].Value, location, hints.ToImmutable(), trace.ToImmutable(), rawText, IsRecognized: true));
+        result.Add(new RawDiagnostic(severity, headerMessage, location, hints.ToImmutable(), trace.ToImmutable(), rawText, IsRecognized: true));
         FlushUnrecognized(unrecognized, result);
         block.Clear();
     }
@@ -127,20 +254,6 @@ internal sealed class HumanDiagnosticParserV015 : IDiagnosticParser
 
         result.Add(new RawDiagnostic(
             TypstDiagnosticSeverity.Error, text, null, ImmutableArray<string>.Empty, ImmutableArray<RawTraceFrame>.Empty, text, IsRecognized: false));
-    }
-
-    private static RawLocation? ParseLocation(string text, int? endColumnCarets)
-    {
-        var match = Location.Match(text.Trim());
-        if (!match.Success
-            || !int.TryParse(match.Groups["line"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var line)
-            || !int.TryParse(match.Groups["column"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var zeroBasedColumn))
-        {
-            return null;
-        }
-
-        var column = zeroBasedColumn + 1;
-        return new RawLocation(match.Groups["path"].Value, line, column, endColumnCarets is { } carets ? column + carets - 1 : null);
     }
 
     /// <summary>Source and underline lines of the snippet: they contain the box-drawing gutter.</summary>

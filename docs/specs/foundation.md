@@ -707,6 +707,10 @@ N │ <source line>
     <snippet>
 ```
 
+- **Linear time, no regular expressions (D42):** each line is matched by hand in one pass; locations are read
+  from the end (`:<line>:<col>`), so paths may contain colons; a trace frame's message ends at the first
+  ` at ` that leaves a valid location. Stderr is attacker-influenced (an `assert` message is printed
+  verbatim), and the whole parse is linear in its size, which the runner caps at 1 MB.
 - **Paths:** strip `\\?\`, handle the drive-letter colon, and map paths to `TypstSourceFile`:
   - sandbox → `Project` or `Virtual`
   - `@ns/name:ver/…` → `Package`
@@ -1109,6 +1113,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D39 | Process priority: `CliTypstCompilerSettings.ProcessPriority` (default `Normal`), overridable per request with `TypstCompileOptions.ProcessPriority`; values `Normal`, `BelowNormal`, `Idle` | Default `BelowNormal`; compiler-only or request-only; above-normal values | `Normal` matches running `typst` from a shell, and hosts opt in with one line. Per-request overrides allow interactive and batch work through one compiler. Raising priority needs elevated rights on Unix. Named `ProcessPriority` to keep "priority" free for a future queue (decided in PR #1 review) |
 | D40 | Pipe I/O runs on dedicated threads; the kill callback terminates the job object, and the tree walk (which kills the parent too) runs on a dedicated thread | `ReadAsync` on pool threads; `Kill(entireProcessTree: true)` on the callback; job only, no tree walk | With every concurrency slot busy, blocked pool threads delayed the timeout's kill by up to 36 s, and the tree walk (a snapshot of every process) took seconds under load. Typstium never changes `ThreadPool` settings; they belong to the host (found in PR #1 review) |
 | D41 | Timing tests in their own project, `Typstium.TimingTests`, run alone after the others; CI runs `build.ps1`, the same script as a local run | TUnit categories with filters; `[NotInParallel]` in the integration project with every test module serialized; CI steps in YAML only | A project makes the boundary visible and needs no filter expressions; everything else stays parallel. One script for CI and local runs can't drift apart, and a Cake build can replace its body later (decided in PR #1 review) |
+| D42 | The human-format diagnostic parser matches lines by hand, without regular expressions, in time linear in stderr size | Regexes with match timeouts; `RegexOptions.NonBacktracking` | A template controls what stderr contains, and the old trace-frame pattern backtracked quadratically: seconds for one 20,000-character line, hours at the 1 MB cap, on the host after Typst had exited. `NonBacktracking` needs .NET 7+, and timeouts throw mid-parse and need a fallback per pattern. The library's remaining regexes are linear (anchored single quantifiers or non-overlapping classes); only `SourcePathMapper.PackagePath` sees stderr (found in the 2026-10-08 review) |
 
 ## 9. To verify while planning
 
