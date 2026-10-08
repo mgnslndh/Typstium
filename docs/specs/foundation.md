@@ -743,8 +743,10 @@ N │ <source line>
 The template bundle is copied file by file into the sandbox on every compile. Caching prepared bundles by
 `TypstTemplateVersion` is a later optimization, gated on measurements.
 
-On startup (the first compile), the compiler deletes sandbox folders in `TempRoot` older than
-`OrphanedWorkspaceAge`. These are left behind when a host is killed hard.
+On startup (the first compile), the compiler deletes scratch folders in `TempRoot` older than
+`OrphanedWorkspaceAge`. These are left behind when a host is killed hard. It only deletes folders named
+exactly `ws-` plus 32 lowercase hex digits, so a host folder that merely starts with `ws-` (for example
+`ws-reports`, if `TempRoot` points at the host's own data) is never touched.
 
 ### 5.2 Command line
 

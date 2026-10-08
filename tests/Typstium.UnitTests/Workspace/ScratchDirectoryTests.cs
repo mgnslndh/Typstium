@@ -45,4 +45,18 @@ public class ScratchDirectoryTests
 
         await Assert.That(Directory.Exists(scratch.Path)).IsFalse();
     }
+
+    [Test]
+    [Arguments("ws-0123456789abcdef0123456789abcdef", true)]
+    [Arguments("ws-0123456789ABCDEF0123456789ABCDEF", false)]
+    [Arguments("ws-0123456789abcdef0123456789abcde", false)]
+    [Arguments("ws-0123456789abcdef0123456789abcdef0", false)]
+    [Arguments("ws-0123456789abcdef0123456789abcdeg", false)]
+    [Arguments("ws-reports", false)]
+    [Arguments("xs-0123456789abcdef0123456789abcdef", false)]
+    public async Task Only_exact_scratch_names_are_recognised(string name, bool expected)
+    {
+        await Assert.That(ScratchDirectory.IsScratchName(name)).IsEqualTo(expected);
+        await Assert.That(ScratchDirectory.IsScratchName(ScratchDirectory.NewName())).IsTrue();
+    }
 }

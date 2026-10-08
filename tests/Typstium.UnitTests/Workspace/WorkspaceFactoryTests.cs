@@ -33,11 +33,15 @@ public class WorkspaceFactoryTests
     public async Task Cleaner_deletes_only_old_workspace_folders()
     {
         using var temp = new TemporaryDirectory("cleaner");
-        var old = temp.CreateDirectory(ScratchDirectory.Prefix + "old");
-        var fresh = temp.CreateDirectory(ScratchDirectory.Prefix + "fresh");
+        var old = temp.CreateDirectory(ScratchDirectory.NewName());
+        var fresh = temp.CreateDirectory(ScratchDirectory.NewName());
         var unrelated = temp.CreateDirectory("keep-me");
-        Directory.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddHours(-2));
-        Directory.SetLastWriteTimeUtc(unrelated, DateTime.UtcNow.AddHours(-2));
+        var lookalike = temp.CreateDirectory(ScratchDirectory.Prefix + "reports");
+        var upperCase = temp.CreateDirectory(ScratchDirectory.NewName().ToUpperInvariant().Replace("WS-", ScratchDirectory.Prefix));
+        foreach (var directory in new[] { old, unrelated, lookalike, upperCase })
+        {
+            Directory.SetLastWriteTimeUtc(directory, DateTime.UtcNow.AddHours(-2));
+        }
 
         var deleted = OrphanedWorkspaceCleaner.Clean(temp.Path, TimeSpan.FromHours(1), DateTime.UtcNow);
 
@@ -45,13 +49,15 @@ public class WorkspaceFactoryTests
         await Assert.That(Directory.Exists(old)).IsFalse();
         await Assert.That(Directory.Exists(fresh)).IsTrue();
         await Assert.That(Directory.Exists(unrelated)).IsTrue();
+        await Assert.That(Directory.Exists(lookalike)).IsTrue();
+        await Assert.That(Directory.Exists(upperCase)).IsTrue();
     }
 
     [Test]
     public async Task Parallel_cold_start_cleans_up_once_and_keeps_every_fresh_sandbox()
     {
         using var temp = new TemporaryDirectory("factory");
-        var stale = temp.CreateDirectory(ScratchDirectory.Prefix + "stale");
+        var stale = temp.CreateDirectory(ScratchDirectory.NewName());
         Directory.SetLastWriteTimeUtc(stale, DateTime.UtcNow.AddHours(-2));
         var factory = new WorkspaceFactory(temp.Path, TimeSpan.FromHours(1));
         var request = new TypstCompileRequest(TypstSource.Markup("= Hi"));

@@ -14,7 +14,8 @@ internal static class OrphanedWorkspaceCleaner
         var deleted = 0;
         foreach (var directory in new DirectoryInfo(tempRoot).EnumerateDirectories(ScratchDirectory.Prefix + "*"))
         {
-            if (utcNow - directory.LastWriteTimeUtc < age)
+            // The prefix pattern is only a pre-filter: a host folder such as "ws-reports" must never match.
+            if (!ScratchDirectory.IsScratchName(directory.Name) || utcNow - directory.LastWriteTimeUtc < age)
             {
                 continue;
             }
