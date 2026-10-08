@@ -38,3 +38,6 @@ locations or `PATH`.
 dotnet build
 dotnet test   # integration tests are skipped when Typst isn't installed
 ```
+
+To run exactly what CI runs (build, unit, integration, then the timing tests alone), use `./build.ps1`
+(PowerShell 7).

@@ -967,6 +967,11 @@ warning, and the per-version diagnostic fixtures (7.1) pin each profile's parser
 | `tests/Typstium.Testing` | Class library (shared infrastructure) | `net10.0;net472` | No | No |
 | `tests/Typstium.UnitTests` | TUnit test project | `net10.0` (+ `net472` on Windows) | Yes (`InternalsVisibleTo`) | No |
 | `tests/Typstium.IntegrationTests` | TUnit test project | `net10.0` (+ `net472` on Windows) | **No**, public API only | Yes |
+| `tests/Typstium.TimingTests` | TUnit test project, `[assembly: NotInParallel]` | `net10.0` (+ `net472` on Windows) | **No**, public API only | Yes |
+
+`Typstium.TimingTests` holds the tests that assert wall-clock bounds (timeouts, cancellation, timeouts
+with every concurrency slot busy). They need the machine to themselves, so they run one at a time and,
+in `build.ps1` and CI, after the other projects (D41). Everything else runs in parallel.
 
 Test namespaces mirror the source namespaces (`Typstium.UnitTests.Diagnostics`, …). Shared test
 infrastructure lives in `Typstium.Testing`, organized by kind:
@@ -1025,17 +1030,23 @@ runner setting.
 | --- | --- |
 | Compile the license and release-notes samples | `%PDF` header, expected page count, no warnings |
 | Every spike diagnostic case end to end | Status, ID, location mapped to template paths, no sandbox path in any diagnostic |
-| Nested loops with a 2 s timeout | `TimedOut`, process gone, sandbox deleted |
-| 20,000 pages with a 1 MB cap | `OutputLimitExceeded` |
+| 300 pages with a 64 KB cap | `OutputLimitExceeded` |
 | Missing package, network blocked | `Failed`, `TYPST1005` with the added hint |
-| Caller cancellation | `OperationCanceledException`, process gone, sandbox deleted |
 | 50 parallel compiles | All succeed, no sandbox collisions, `MaxConcurrency` respected |
 | Reproducibility | Same request twice with `CreationTimestamp.Fixed` → byte-identical PDFs |
 | PNG multi-page | `Paged` document with the right page count and order |
 | Markup source over stdin | Succeeds; diagnostics point at `Markup` |
 | Windows: job-object memory cap | Memory-heavy template is killed and mapped to a crash or limit outcome |
 
-Integration tests **skip with a clear reason** when Typst can't be found. In CI,
+**Timing tests** (`Typstium.TimingTests`, real Typst, run alone):
+
+| Scenario | Checks |
+| --- | --- |
+| Nested loops with a 2 s timeout | `TimedOut`; the process ran at least 2 s and stopped within 5 s more; sandbox deleted |
+| Twice `MaxConcurrency` timed-out compiles at once | Every process stops within 5 s of its timeout (guards D40) |
+| Caller cancellation | `OperationCanceledException` within 5 s of the cancel; sandbox deleted |
+
+Integration and timing tests **skip with a clear reason** when Typst can't be found. In CI,
 `TYPSTIUM_REQUIRE_TYPST=1` makes a missing Typst fail the run instead.
 
 ### 7.4 CI
@@ -1044,8 +1055,8 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 - restore, build (warnings as errors), unit tests, integration tests
 - Typst installed with a pinned version (**0.15.1**, the declared minimum)
 - a second job with the latest Typst release, allowed to fail, as an early warning for format changes
-- test modules run one at a time, and `LimitsTests` runs `[NotInParallel]`: they time CPU-bound
-  compiles, which a 2-vCPU runner shared with other compiles can't do reliably
+- every job runs `./build.ps1`, the same script used locally: build, unit tests, integration tests,
+  then the timing tests alone (D41)
 
 ## 8. Decisions
 
@@ -1091,6 +1102,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D38 | Inputs are `TypstInputKey` / `TypstInput` / `TypstInputs`; values stay `string` and are always secret | `ImmutableDictionary<string, string>`; a `TypstInputValue` hierarchy (secret, computed); a per-input `IsSecret` flag | Validation lives on the key type and uniqueness and order on the set. Secrecy is a display policy separate from what kind of value it is, so it won't be a value subtype; values are usually customer data, so all stay redacted, and a per-input opt-out can be added later. Computed values, if added, are resolved by the builder at `Build()`, never inside a compiler, so the request stays plain, replayable data (decided in PR #1 review) |
 | D39 | Process priority: `CliTypstCompilerSettings.ProcessPriority` (default `Normal`), overridable per request with `TypstCompileOptions.ProcessPriority`; values `Normal`, `BelowNormal`, `Idle` | Default `BelowNormal`; compiler-only or request-only; above-normal values | `Normal` matches running `typst` from a shell, and hosts opt in with one line. Per-request overrides allow interactive and batch work through one compiler. Raising priority needs elevated rights on Unix. Named `ProcessPriority` to keep "priority" free for a future queue (decided in PR #1 review) |
 | D40 | Pipe I/O runs on dedicated threads, and the Windows job object is terminated before any tree walk | `ReadAsync` on pool threads; `Kill(entireProcessTree: true)` first | With every concurrency slot busy, blocked pool threads delayed the timeout's kill by up to 36 s, and the tree walk (a snapshot of every process) took seconds under load. Typstium never changes `ThreadPool` settings; they belong to the host (found in PR #1 review) |
+| D41 | Timing tests in their own project, `Typstium.TimingTests`, run alone after the others; CI runs `build.ps1`, the same script as a local run | TUnit categories with filters; `[NotInParallel]` in the integration project with every test module serialized; CI steps in YAML only | A project makes the boundary visible and needs no filter expressions; everything else stays parallel. One script for CI and local runs can't drift apart, and a Cake build can replace its body later (decided in PR #1 review) |
 
 ## 9. To verify while planning
 
