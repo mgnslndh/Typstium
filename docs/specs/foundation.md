@@ -1,6 +1,6 @@
 # Foundation: core API and CLI backend
 
-**Status:** Draft · Oct 8, 2026 · Magnus Lindhe
+**Status:** Implemented (foundation) · Oct 8, 2026 · Magnus Lindhe
 **Part of:** [Typstium design overview](../design.md)
 **Based on:** [Spike 0: CLI latency, Markdown, offline packages, diagnostics](../spikes/2026-10-07-cli-and-markdown.md)
 
@@ -84,7 +84,7 @@ Typstium/
 ├─ global.json                  .NET 10 SDK pin; "test": { "runner": "Microsoft.Testing.Platform" }
 ├─ Directory.Build.props        LangVersion=latest, Nullable=enable, TreatWarningsAsErrors=true,
 │                               Deterministic, ContinuousIntegrationBuild (CI), SourceLink,
-│                               ImplicitUsings=disable in src, analyzers
+│                               ImplicitUsings=enable, PolyArgumentExceptions=true, analyzers
 ├─ Directory.Packages.props     Central Package Management
 ├─ .editorconfig
 ├─ .gitattributes               text=auto; *.sh eol=lf; binary fonts/images
@@ -1041,6 +1041,22 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D19 | Minimum Typst 0.15.0 | Support 0.14 | `typst info` and the current `--deps` flags; less branching |
 | D20 | P/Invoke grouped per native library in `Typstium.Interop.Windows`, behind `SafeHandle`-owning types | Inline P/Invoke | Clear boundary; correct resource cleanup |
 | D21 | Version differences handled by an internal per-executable `TypstCliProfile`: named capability facts plus version-specific components, chosen by `TypstCliProfileFactory`, the only code that compares versions. Newer unknown versions get the newest profile | Version `if`s where needed; a public dialect abstraction with per-version implementations now | Differences cluster in three components; designs the place for variation without speculative variations; internal, so free to reshape |
+| D22 | Canonical roots: workspace roots are canonicalized (8.3 names expanded on Windows, symlinks resolved on Unix, filesystem roots kept intact) before Typst sees them | Pass the caller's path as is | Typst prints canonical paths in diagnostics; source mapping and the `--root` containment check only work if both sides use the same form |
+| D23 | Kill terminates the whole Windows job object; no reliance on Polyfill's `Process.Kill(true)` | Polyfill's tree kill | The Polyfill `Kill` is not tree-aware on netstandard2.0; the job object is |
+| D24 | The WinGet locator has no "newest first" ordering; the PATH locator accepts only `typst.exe` and only fully qualified entries (the resolver also rejects non-fully-qualified results from any locator) | Sort WinGet packages by version; accept `.cmd`/`.bat` shims; accept drive- or root-relative PATH entries | Shims can't be started without a shell; `C:typst.exe` resolves against the current directory of a drive, which would break 4.10 |
+| D25 | `ITypstCompiler.CompileAsync` takes `CancellationToken cancellationToken = default` | Token without default | Callers that don't cancel shouldn't have to pass one |
+| D26 | TYPST1008 also covers "condition is always true" | Only "always false" | Typst reports both forms with the same cause |
+| D27 | `TypstCompileResult` has public factories and `Errors`/`Warnings` views | Internal factories only | Consumers fake compilers in their own tests; the factories keep status, `IsSuccess` and `Document` consistent |
+| D28 | Implicit usings are enabled in `src`, and `PolyArgumentExceptions=true` | `ImplicitUsings=disable`; Polyfill's default exceptions | Less boilerplate; Polyfill's argument guards then throw the expected exception types |
+| D29 | Validating regexes anchor with `\z`, never `$` | `$` | `$` accepts a trailing newline in .NET |
+| D30 | Sandbox paths are scrubbed from diagnostic message, hint and trace text (the root becomes "/") | Scrub the location only | No sandbox path may leak through any diagnostic text |
+| D31 | If the process exits before it is attached to the job object, continue uncontained | Fail the compile | A process that already exited needs no containment |
+| D32 | A failed capability probe evicts itself from the profile cache | Cache failures | A transient failure must not poison later compiles |
+| D33 | Unknown `PdfStandard.FromCliValue` values pass capability validation and go to Typst; only standards Typstium knows and the profile lacks are refused | Reject everything the profile doesn't list | Newer Typst versions add standards; a bad value surfaces as exit code 2 (`TypstInvocationException`) |
+| D34 | `CliTypstCompilerSettings` is an allowed unprefixed public name | Rename to `TypstCliCompilerSettings` | It pairs with `CliTypstCompiler`, which is already an exception to the `Typst` prefix rule |
+| D35 | Per-TFM `PublicAPI.Unshipped.<tfm>.txt` files alongside the shared one | One shared file | Some members differ between netstandard2.0 and net8.0 |
+| D36 | RS0026/RS0027 suppressed | Remove the `CancellationToken = default` overloads | The overload families with an optional token are intentional |
+| D37 | Paged output size is checked from file lengths before any page is read | Read pages, then compare | A runaway compile can't exhaust memory before `MaxOutputBytes` applies |
 
 ## 9. To verify while planning
 
