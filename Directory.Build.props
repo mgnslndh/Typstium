@@ -6,6 +6,7 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
+    <PolyArgumentExceptions>true</PolyArgumentExceptions>
     <Authors>Magnus Lindhe</Authors>
     <Copyright>Copyright (c) 2026 Magnus Lindhe</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
