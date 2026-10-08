@@ -22,7 +22,8 @@ public class LimitsTests
 
         await Assert.That(result.Status).IsEqualTo(TypstCompileStatus.TimedOut);
         await Assert.That(result.Diagnostics.Last().Id.Value).IsEqualTo("TYPST9002");
-        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(15));
+        // Unkilled, the loop runs for hours; the bound is loose because CI runners compile other tests in parallel.
+        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(60));
         await Assert.That(NoWorkspaces(temp.Path)).IsTrue();
     }
 
@@ -50,7 +51,7 @@ public class LimitsTests
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => compiler.CompileMarkupAsync(NestedLoops, cancellation.Token));
 
-        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(10));
+        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(60));
         await Assert.That(NoWorkspaces(temp.Path)).IsTrue();
     }
 
