@@ -158,11 +158,12 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
     }
 
     /// <summary>
-    /// Kills the process and anything it started. Runs on the timer or cancellation callback, so it only makes
-    /// single system calls: terminating the Windows job object and killing the process stop Typst at once.
-    /// On .NET 8+ the tree walk follows on a dedicated thread, as a backstop for children outside the job (started
-    /// before it was attached) or with no job at all (non-Windows); it snapshots every process on the machine,
-    /// which takes seconds under load and must not hold a thread-pool thread. netstandard2.0 has no tree walk.
+    /// Kills the process and anything it started. Runs on the timer or cancellation callback, which must not block:
+    /// terminating the Windows job object is one system call and stops Typst at once. On .NET 8+ the tree walk
+    /// (Kill(entireProcessTree: true)) runs on a dedicated thread, because it snapshots every process on the machine
+    /// and takes seconds under load. It is the kill where there is no job (non-Windows), and the backstop for children
+    /// outside the job (started before it was attached). It kills the parent itself, and must: on Unix a child whose
+    /// parent died is re-parented and can no longer be found. netstandard2.0 has no tree walk and kills the process.
     /// </summary>
     private static void Kill(Process process, IProcessContainment containment)
     {
@@ -172,16 +173,7 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
         }
         catch (Exception)
         {
-            // Killing the process below, and job kill-on-close, remain the backstops.
-        }
-
-        try
-        {
-            process.Kill();
-        }
-        catch (Exception)
-        {
-            // Never throw from the kill callback (it may run on a timer thread); the outcome is decided by the flags.
+            // The kill below, and job kill-on-close, remain the backstops.
         }
 
 #if NET8_0_OR_GREATER
@@ -196,6 +188,15 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
                 // The process may be gone or disposed by now; nothing is left to kill then.
             }
         });
+#else
+        try
+        {
+            process.Kill();
+        }
+        catch (Exception)
+        {
+            // Never throw from the kill callback (it may run on a timer thread); the outcome is decided by the flags.
+        }
 #endif
     }
 
