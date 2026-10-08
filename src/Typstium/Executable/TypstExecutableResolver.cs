@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Runtime.InteropServices;
+using Typstium.Utilities;
 
 namespace Typstium;
 
@@ -50,6 +52,9 @@ public sealed class TypstExecutableResolver : ITypstExecutableResolver
                 var result = await locator.LocateAsync(cancellationToken).ConfigureAwait(false);
                 switch (result)
                 {
+                    case TypstLocatorResult.FoundResult found when !FullyQualifiedPath.IsFullyQualified(found.Path, RuntimeInformation.IsOSPlatform(OSPlatform.Windows)):
+                        searches.Add(new TypstLocatorSearch(locator.Name, ImmutableArray.Create($"{found.Path} (rejected: not a fully qualified path)")));
+                        break;
                     case TypstLocatorResult.FoundResult found:
                         var executable = new TypstExecutable(found.Path, locator.Name);
                         Volatile.Write(ref _resolved, executable);

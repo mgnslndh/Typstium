@@ -1,3 +1,5 @@
+using Typstium.Utilities;
+
 namespace Typstium.Executable;
 
 internal sealed class ExplicitPathLocator(string path, ILocatorEnvironment environment) : ITypstExecutableLocator
@@ -21,6 +23,11 @@ internal sealed class EnvironmentVariableLocator(string variable, ILocatorEnviro
         if (string.IsNullOrWhiteSpace(value))
         {
             return new(TypstLocatorResult.NotFound(new[] { $"%{variable}% (not set)" }));
+        }
+
+        if (!FullyQualifiedPath.IsFullyQualified(value!.Trim(), environment.IsWindows))
+        {
+            return new(TypstLocatorResult.NotFound(new[] { $"{value} (relative paths are not allowed)" }));
         }
 
         var full = Path.GetFullPath(value);
@@ -137,7 +144,7 @@ internal sealed class WellKnownLocationsLocator(ILocatorEnvironment environment)
 }
 
 /// <summary>
-/// PATH, absolute entries only: never the current directory. On Windows only typst.exe is accepted, because
+/// PATH, fully qualified entries only (not drive- or root-relative ones): never the current directory. On Windows only typst.exe is accepted, because
 /// .cmd/.bat shims can't be started without a shell.
 /// </summary>
 internal sealed class SearchPathLocator(ILocatorEnvironment environment) : ITypstExecutableLocator
@@ -152,7 +159,7 @@ internal sealed class SearchPathLocator(ILocatorEnvironment environment) : ITyps
         foreach (var entry in entries)
         {
             var directory = entry.Trim().Trim('"');
-            if (directory.Length == 0 || !Path.IsPathRooted(directory))
+            if (directory.Length == 0 || !FullyQualifiedPath.IsFullyQualified(directory, environment.IsWindows))
             {
                 continue;
             }

@@ -19,17 +19,30 @@ public class TypstExecutableResolverTests
         }
     }
 
+    private static string OptA => Path.Combine(FakeLocatorEnvironment.Root, "opt", "a", "typst");
+
+    [Test]
+    public async Task Custom_locators_cannot_return_relative_paths()
+    {
+        var relative = new CountingLocator("Custom", TypstLocatorResult.Found("C:typst.exe"));
+        var resolver = new TypstExecutableResolver(new ITypstExecutableLocator[] { relative });
+
+        var exception = await Assert.ThrowsAsync<TypstExecutableNotFoundException>(() => resolver.ResolveAsync(CancellationToken.None).AsTask());
+
+        await Assert.That(exception!.Message).Contains("C:typst.exe");
+    }
+
     [Test]
     public async Task First_hit_wins_and_is_cached()
     {
-        var first = new CountingLocator("TYPST_PATH", TypstLocatorResult.Found("/opt/a/typst"));
-        var second = new CountingLocator("PATH", TypstLocatorResult.Found("/usr/bin/typst"));
+        var first = new CountingLocator("TYPST_PATH", TypstLocatorResult.Found(OptA));
+        var second = new CountingLocator("PATH", TypstLocatorResult.Found(Path.Combine(FakeLocatorEnvironment.Root, "usr", "typst")));
         var resolver = new TypstExecutableResolver(new ITypstExecutableLocator[] { first, second });
 
         var resolved = await resolver.ResolveAsync(CancellationToken.None);
         await resolver.ResolveAsync(CancellationToken.None);
 
-        await Assert.That(resolved).IsEqualTo(new TypstExecutable("/opt/a/typst", "TYPST_PATH"));
+        await Assert.That(resolved).IsEqualTo(new TypstExecutable(OptA, "TYPST_PATH"));
         await Assert.That(first.Calls).IsEqualTo(1);
         await Assert.That(second.Calls).IsEqualTo(0);
     }

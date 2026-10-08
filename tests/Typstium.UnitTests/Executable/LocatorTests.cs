@@ -80,4 +80,42 @@ public class LocatorTests
         var found = await new SearchPathLocator(environment).LocateAsync(CancellationToken.None);
         await Assert.That(found).IsEqualTo(TypstLocatorResult.Found(typst));
     }
+
+    [Test]
+    [Arguments("C:")]
+    [Arguments("C:tools")]
+    [Arguments("\\tools")]
+    public async Task Search_path_ignores_drive_and_root_relative_entries_on_windows(string entry)
+    {
+        var environment = new FakeLocatorEnvironment { IsWindows = true };
+        environment.Variables["PATH"] = entry;
+        environment.AddFile(entry, "typst.exe");
+
+        var result = await new SearchPathLocator(environment).LocateAsync(CancellationToken.None);
+
+        await Assert.That(result is TypstLocatorResult.NotFoundResult).IsTrue();
+    }
+
+    [Test]
+    public async Task Search_path_accepts_drive_absolute_entries_on_windows()
+    {
+        var environment = new FakeLocatorEnvironment { IsWindows = true };
+        environment.Variables["PATH"] = "C:\\tools";
+        environment.Files.Add(Path.Combine(@"C:\tools", "typst.exe"));
+
+        var result = await new SearchPathLocator(environment).LocateAsync(CancellationToken.None);
+
+        await Assert.That(result is TypstLocatorResult.FoundResult).IsTrue();
+    }
+
+    [Test]
+    public async Task A_relative_typst_path_variable_is_not_found()
+    {
+        var environment = new FakeLocatorEnvironment { IsWindows = true };
+        environment.Variables["TYPST_PATH"] = "C:typst.exe";
+
+        var result = (TypstLocatorResult.NotFoundResult)await new EnvironmentVariableLocator("TYPST_PATH", environment).LocateAsync(CancellationToken.None);
+
+        await Assert.That(result.SearchedLocations.Single()).Contains("relative paths are not allowed");
+    }
 }
