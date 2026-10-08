@@ -10,15 +10,20 @@ public sealed class TypstTemplateName : IEquatable<TypstTemplateName>
 
     private TypstTemplateName(string value) => Value = value;
 
+    /// <summary>The name as given, e.g. <c>invoices/standard</c>.</summary>
     public string Value { get; }
 
+    /// <summary>The part after the last <c>/</c>, e.g. <c>standard</c>. Names the main file <c>standard.typ</c>.</summary>
     public string LastSegment => Value.Substring(Value.LastIndexOf('/') + 1);
 
+    /// <summary>Parses a template name.</summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> isn't a valid name.</exception>
     public static TypstTemplateName Parse(string value) =>
         TryParse(value, out var name)
             ? name
             : throw new ArgumentException($"'{value}' is not a valid template name. Use segments of letters, digits, '.', '_' and '-' separated by '/'.", nameof(value));
 
+    /// <summary>Like <see cref="Parse"/>, but returns <c>false</c> instead of throwing.</summary>
     public static bool TryParse(string? value, [NotNullWhen(true)] out TypstTemplateName? name)
     {
         name = null;
@@ -40,11 +45,15 @@ public sealed class TypstTemplateName : IEquatable<TypstTemplateName>
         return true;
     }
 
+    /// <summary>Two names are equal when their values are equal (ordinal, case-sensitive).</summary>
     public bool Equals(TypstTemplateName? other) => other is not null && string.Equals(Value, other.Value, StringComparison.Ordinal);
 
+    /// <inheritdoc cref="Equals(TypstTemplateName?)"/>
     public override bool Equals(object? obj) => Equals(obj as TypstTemplateName);
 
+    /// <inheritdoc/>
     public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value);
 
+    /// <summary>Returns <see cref="Value"/>.</summary>
     public override string ToString() => Value;
 }

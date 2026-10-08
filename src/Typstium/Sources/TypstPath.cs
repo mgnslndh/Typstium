@@ -22,10 +22,15 @@ public sealed class TypstPath : IEquatable<TypstPath>
     /// <summary>The path in Typst's root-relative form, e.g. <c>/assets/logo.png</c>.</summary>
     public string RootRelative => "/" + Value;
 
+    /// <summary>The path's segments, without <c>.</c> segments; never empty.</summary>
     public IReadOnlyList<string> Segments { get; }
 
+    /// <summary>The last segment, e.g. <c>logo.png</c>.</summary>
     public string FileName => Segments[Segments.Count - 1];
 
+    /// <summary>Parses and normalizes a root-relative path. Backslashes become forward slashes and a leading slash is optional.</summary>
+    /// <exception cref="ArgumentException">The path is empty, absolute (drive letter or UNC), contains <c>..</c>, an empty segment
+    /// or a character that isn't allowed in file names.</exception>
     public static TypstPath Parse(string value)
     {
         if (!TryParseCore(value, out var path, out var error))
@@ -36,6 +41,7 @@ public sealed class TypstPath : IEquatable<TypstPath>
         return path;
     }
 
+    /// <summary>Like <see cref="Parse"/>, but returns <c>false</c> instead of throwing.</summary>
     public static bool TryParse(string? value, [NotNullWhen(true)] out TypstPath? path)
     {
         if (TryParseCore(value, out var parsed, out _))
@@ -115,15 +121,21 @@ public sealed class TypstPath : IEquatable<TypstPath>
         return true;
     }
 
+    /// <summary>Two paths are equal when their normalized values are equal (ordinal, case-sensitive).</summary>
     public bool Equals(TypstPath? other) => other is not null && string.Equals(Value, other.Value, StringComparison.Ordinal);
 
+    /// <inheritdoc cref="Equals(TypstPath?)"/>
     public override bool Equals(object? obj) => Equals(obj as TypstPath);
 
+    /// <inheritdoc/>
     public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value);
 
+    /// <summary>Returns <see cref="RootRelative"/>, the form Typst shows.</summary>
     public override string ToString() => RootRelative;
 
+    /// <inheritdoc cref="Equals(TypstPath?)"/>
     public static bool operator ==(TypstPath? left, TypstPath? right) => Equals(left, right);
 
+    /// <summary>Whether two paths differ; see <see cref="Equals(TypstPath?)"/>.</summary>
     public static bool operator !=(TypstPath? left, TypstPath? right) => !Equals(left, right);
 }

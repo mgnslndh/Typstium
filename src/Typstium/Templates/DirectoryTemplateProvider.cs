@@ -8,14 +8,19 @@ namespace Typstium;
 /// </summary>
 public sealed class DirectoryTemplateProvider : ITemplateProvider
 {
+    /// <summary>Creates a provider over a folder of template folders.</summary>
+    /// <param name="rootDirectory">The folder; resolved against the current directory now. It doesn't need to exist yet.</param>
     public DirectoryTemplateProvider(string rootDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
         RootDirectory = Path.GetFullPath(rootDirectory);
     }
 
+    /// <summary>The full path of the folder holding the template folders.</summary>
     public string RootDirectory { get; }
 
+    /// <inheritdoc/>
+    /// <remarks>Reads the folder on every call and hashes every file for <see cref="TypstTemplate.Version"/>.</remarks>
     public async ValueTask<TypstTemplate?> GetTemplateAsync(TypstTemplateName name, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(name);

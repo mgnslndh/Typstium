@@ -13,6 +13,9 @@ public sealed class EmbeddedResourceTemplateProvider : ITemplateProvider
     private readonly Assembly _assembly;
     private readonly string _prefix;
 
+    /// <summary>Creates a provider over an assembly's embedded resources.</summary>
+    /// <param name="assembly">The assembly holding the resources.</param>
+    /// <param name="resourcePrefix">The logical-name prefix of the template folders, such as <c>Templates</c>.</param>
     public EmbeddedResourceTemplateProvider(Assembly assembly, string resourcePrefix)
     {
         _assembly = assembly ?? throw new ArgumentNullException(nameof(assembly));
@@ -20,6 +23,8 @@ public sealed class EmbeddedResourceTemplateProvider : ITemplateProvider
         _prefix = Normalize(resourcePrefix).TrimEnd('/') + "/";
     }
 
+    /// <inheritdoc/>
+    /// <remarks>Hashes every file of the template on each call for <see cref="TypstTemplate.Version"/>.</remarks>
     public async ValueTask<TypstTemplate?> GetTemplateAsync(TypstTemplateName name, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(name);
