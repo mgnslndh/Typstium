@@ -56,6 +56,33 @@ public class SourcePathMapperTests
         await Assert.That(Sandbox(WindowsRoot).MapFile(@"\\?\C:\Windows\win.ini")).IsNull();
     }
 
+    // On Linux and macOS Typst prints paths under its working directory (the project root) relative to it,
+    // e.g. "sub/helper.typ:2:2" (verified with Typst 0.15.1 on Ubuntu).
+    [Test]
+    public async Task Relative_printed_paths_are_root_relative_in_a_sandbox()
+    {
+        var mapper = Sandbox(UnixRoot, "data.json");
+        await Assert.That(mapper.MapFile("sub/helper.typ")).IsEqualTo((TypstSourceFile)new TypstSourceFile.Project(TypstPath.Parse("sub/helper.typ"), null));
+        await Assert.That(mapper.MapFile("data.json")).IsEqualTo((TypstSourceFile)new TypstSourceFile.Virtual(TypstPath.Parse("data.json")));
+        await Assert.That(mapper.MapFile("<stdin>")).IsEqualTo((TypstSourceFile)TypstSourceFile.Markup.Instance);
+    }
+
+    [Test]
+    public async Task Relative_printed_paths_get_a_full_path_for_in_place_sources()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "repo", "docs");
+        var mapper = new SourcePathMapper(new SourceMappingContext(root, IsSandbox: false, ImmutableHashSet<TypstPath>.Empty));
+        var file = mapper.MapFile("chapters/intro.typ");
+        var expectedFullPath = Path.Combine(root, "chapters", "intro.typ");
+        await Assert.That(file).IsEqualTo((TypstSourceFile)new TypstSourceFile.Project(TypstPath.Parse("chapters/intro.typ"), expectedFullPath));
+    }
+
+    [Test]
+    public async Task Relative_printed_paths_that_leave_the_root_are_not_mapped()
+    {
+        await Assert.That(Sandbox(UnixRoot).MapFile("../outside.typ")).IsNull();
+    }
+
     [Test]
     public async Task Locations_keep_line_and_columns()
     {

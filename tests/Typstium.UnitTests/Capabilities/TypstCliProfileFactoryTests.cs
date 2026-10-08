@@ -63,30 +63,45 @@ public class TypstCliProfileFactoryTests
     {
         using var temp = new TemporaryDirectory("profile");
         var calls = 0;
-        var firstProbeFinished = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFirstProbe = new ManualResetEventSlim(false);
         var runner = new FakeProcessRunner(_ =>
         {
             if (Interlocked.Increment(ref calls) == 1)
             {
-                firstProbeFinished.TrySetResult(true);
+                // Fail only after the test has seen its caller cancelled: ordering, not timing.
+                releaseFirstProbe.Wait(TimeSpan.FromSeconds(30));
                 return FakeProcessRunner.Exited(101, stderr: "panicked");
             }
 
             return FakeProcessRunner.Exited(0, FakeProcessRunner.InfoJson("0.15.1"));
-        }) { Delay = TimeSpan.FromMilliseconds(200) };
+        }) { Delay = TimeSpan.FromMilliseconds(1) }; // runs the responder off the caller's thread
         var factory = new TypstCliProfileFactory(runner);
         var executable = Executable(temp);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(20));
-        await Assert.ThrowsAsync<TaskCanceledException>(() => factory.GetProfileAsync(executable, cts.Token));
+        using var cts = new CancellationTokenSource();
+        var cancelledCall = factory.GetProfileAsync(executable, cts.Token);
+        cts.Cancel();
+        await Assert.ThrowsAsync<TaskCanceledException>(() => cancelledCall);
+        releaseFirstProbe.Set();
 
-        // The probe keeps running without its only caller; wait for it to fail, then let its eviction run.
-        await firstProbeFinished.Task;
-        await Task.Delay(200);
+        // The probe now fails with no caller waiting and must evict itself. Until its eviction has run, a
+        // call can still observe the failed probe; retry until a fresh probe answers.
+        TypstCliProfile? profile = null;
+        for (var attempt = 0; attempt < 100 && profile is null; attempt++)
+        {
+            try
+            {
+                profile = await factory.GetProfileAsync(executable, CancellationToken.None);
+            }
+            catch (TypstProcessCrashedException)
+            {
+                await Task.Delay(20);
+            }
+        }
 
-        var profile = await factory.GetProfileAsync(executable, CancellationToken.None);
+        await Assert.That(profile).IsNotNull();
         await Assert.That(factory.ProbeCount).IsEqualTo(2);
-        await Assert.That(profile.Capabilities.Version).IsEqualTo(new TypstVersion(0, 15, 1));
+        await Assert.That(profile!.Capabilities.Version).IsEqualTo(new TypstVersion(0, 15, 1));
     }
 
     [Test]

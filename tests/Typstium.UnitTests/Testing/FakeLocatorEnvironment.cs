@@ -8,7 +8,7 @@ internal sealed class FakeLocatorEnvironment : ILocatorEnvironment
 {
     public static string Root { get; } = Path.Combine(Path.GetTempPath(), "fake-fs");
 
-    public bool IsWindows { get; init; } = true;
+    public bool IsWindows { get; init; } = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows);
 
     public Dictionary<string, string> Variables { get; } = new(StringComparer.OrdinalIgnoreCase);
 

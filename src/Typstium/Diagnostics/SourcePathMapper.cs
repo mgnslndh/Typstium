@@ -37,15 +37,35 @@ internal sealed class SourcePathMapper
             return TypstSourceFile.Markup.Instance;
         }
 
-        if (!normalized.StartsWith(_root + "/", _comparison)
-            || !TypstPath.TryParse(normalized.Substring(_root.Length + 1), out var relative))
+        // Typst prints paths under its working directory relative to it (Linux, macOS), and everything else
+        // absolute (always on Windows, as \\?\-prefixed paths). The runner starts Typst with the project root
+        // as its working directory, so a relative printed path is root-relative.
+        string relativeText;
+        if (IsAbsolute(normalized))
+        {
+            if (!normalized.StartsWith(_root + "/", _comparison))
+            {
+                return null;
+            }
+
+            relativeText = normalized.Substring(_root.Length + 1);
+        }
+        else
+        {
+            relativeText = normalized;
+        }
+
+        if (!TypstPath.TryParse(relativeText, out var relative))
         {
             return null;
         }
 
         if (!_context.IsSandbox)
         {
-            return new TypstSourceFile.Project(relative, path);
+            var fullPath = IsAbsolute(normalized)
+                ? path
+                : Path.Combine(_context.RootDirectory, relative.Value.Replace('/', Path.DirectorySeparatorChar));
+            return new TypstSourceFile.Project(relative, fullPath);
         }
 
         return _context.VirtualFiles.Contains(relative)
@@ -155,4 +175,8 @@ internal sealed class SourcePathMapper
     private static string Normalize(string path) => path.Replace('\\', '/');
 
     private static bool IsWindowsPath(string path) => path.Length >= 2 && char.IsLetter(path[0]) && path[1] == ':';
+
+    // A normalized (forward-slash) path is absolute when it starts at a root: "/x", "//server/share", "C:/x".
+    private static bool IsAbsolute(string normalized) =>
+        normalized.StartsWith("/", StringComparison.Ordinal) || IsWindowsPath(normalized);
 }

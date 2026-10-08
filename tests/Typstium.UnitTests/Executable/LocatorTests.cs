@@ -49,7 +49,7 @@ public class LocatorTests
     public async Task WinGet_finds_links_and_package_folders()
     {
         var local = Path.Combine(Root, "LocalAppData");
-        var environment = new FakeLocatorEnvironment();
+        var environment = new FakeLocatorEnvironment { IsWindows = true };
         environment.Variables["LOCALAPPDATA"] = local;
         var packaged = environment.AddFile(local, "Microsoft", "WinGet", "Packages", "Typst.Typst_Microsoft.Winget.Source_8wekyb3d8bbwe", "typst-x86_64-pc-windows-msvc", "typst.exe");
 
@@ -99,6 +99,13 @@ public class LocatorTests
     [Test]
     public async Task Search_path_accepts_drive_absolute_entries_on_windows()
     {
+        // PATH is split with the host's separator (';' on Windows, ':' elsewhere), so a drive-letter entry
+        // only exists as such on Windows.
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+        {
+            Skip.Test("Drive-letter PATH entries only exist on Windows.");
+        }
+
         var environment = new FakeLocatorEnvironment { IsWindows = true };
         environment.Variables["PATH"] = "C:\\tools";
         environment.Files.Add(Path.Combine(@"C:\tools", "typst.exe"));
