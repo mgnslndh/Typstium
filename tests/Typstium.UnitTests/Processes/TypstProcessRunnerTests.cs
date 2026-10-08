@@ -68,7 +68,7 @@ public class TypstProcessRunnerTests
     [Test]
     public async Task Stderr_is_capped_with_a_marker()
     {
-        var text = await StreamReading.ReadTextCappedAsync(new MemoryStream(Encoding.UTF8.GetBytes(new string('e', 100))), maxBytes: 10);
+        var text = StreamReading.ReadTextCapped(new MemoryStream(Encoding.UTF8.GetBytes(new string('e', 100))), maxBytes: 10);
         await Assert.That(text).StartsWith("eeeeeeeeee");
         await Assert.That(text).Contains(StreamReading.TruncationMarker);
     }

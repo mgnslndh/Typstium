@@ -33,6 +33,25 @@ public class LimitsTests
         await Assert.That(NoWorkspaces(temp.Path)).IsTrue();
     }
 
+    // Each running compile must not hold thread-pool threads while Typst runs: if it did, a full set of
+    // concurrent compiles would starve the pool, and the timer that kills Typst would fire seconds late.
+    [Test]
+    [Timeout(120_000)]
+    public async Task Timeouts_fire_on_time_when_every_concurrency_slot_is_busy(CancellationToken cancellationToken)
+    {
+        using var temp = new TemporaryDirectory("it-limits");
+        var compiler = await TypstAvailability.CreateCompilerAsync(CliTypstCompilerSettings.Default with { TempRoot = temp.Path });
+        var timeout = TimeSpan.FromSeconds(2);
+        var options = TypstCompileOptions.Default with { Timeout = timeout };
+
+        var results = await Task.WhenAll(Enumerable.Range(0, Environment.ProcessorCount * 2)
+            .Select(_ => compiler.CompileMarkupAsync(NestedLoops, TypstOutput.Pdf(), options, cancellationToken)));
+
+        var durations = string.Join(", ", results.Select(result => $"{result.Invocation.ProcessDuration.TotalMilliseconds:F0}"));
+        await Assert.That(results.All(result => result.Status == TypstCompileStatus.TimedOut)).IsTrue().Because($"statuses: {string.Join(", ", results.Select(r => r.Status))}");
+        await Assert.That(results.Max(result => result.Invocation.ProcessDuration)).IsLessThan(timeout + TimeSpan.FromSeconds(5)).Because($"process ms: {durations}");
+    }
+
     [Test]
     public async Task Huge_output_hits_the_output_limit()
     {

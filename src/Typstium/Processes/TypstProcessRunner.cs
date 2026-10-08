@@ -69,9 +69,11 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
             using var kill = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token, outputLimit.Token);
             using var registration = kill.Token.Register(() => Kill(process, containment));
 
-            var stdout = StreamReading.ReadBoundedAsync(process.StandardOutput.BaseStream, spec.MaxStdoutBytes, outputLimit.Cancel);
-            var stderr = StreamReading.ReadTextCappedAsync(process.StandardError.BaseStream, spec.MaxStderrBytes);
-            var stdin = WriteStdinAsync(process, spec.Stdin);
+            // Pipe I/O blocks, so it runs on dedicated threads: on pool threads, a full set of concurrent compiles
+            // starves the pool and the timeout's kill callback fires late (see StreamReading).
+            var stdout = DedicatedThread.Run(() => StreamReading.ReadBounded(process.StandardOutput.BaseStream, spec.MaxStdoutBytes, outputLimit.Cancel));
+            var stderr = DedicatedThread.Run(() => StreamReading.ReadTextCapped(process.StandardError.BaseStream, spec.MaxStderrBytes));
+            var stdin = DedicatedThread.Run(() => WriteStdin(process, spec.Stdin));
 
             await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
             var (output, limitExceeded) = await stdout.ConfigureAwait(false);
@@ -123,7 +125,7 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
         return startInfo;
     }
 
-    private static async Task WriteStdinAsync(Process process, ReadOnlyMemory<byte> stdin)
+    private static void WriteStdin(Process process, ReadOnlyMemory<byte> stdin)
     {
         var stream = process.StandardInput.BaseStream;
         try
@@ -131,8 +133,8 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
             if (!stdin.IsEmpty)
             {
                 var segment = ByteMemory.AsSegment(stdin);
-                await stream.WriteAsync(segment.Array!, segment.Offset, segment.Count).ConfigureAwait(false);
-                await stream.FlushAsync().ConfigureAwait(false);
+                stream.Write(segment.Array!, segment.Offset, segment.Count);
+                stream.Flush();
             }
         }
         finally
