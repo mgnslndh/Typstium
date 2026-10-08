@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Typstium.Diagnostics;
@@ -62,6 +63,91 @@ internal sealed class SourcePathMapper
         var end = location.EndColumn is { } endColumn ? new TypstPosition(location.Line, endColumn) : (TypstPosition?)null;
         return new TypstLocation(file, new TypstPosition(location.Line, location.Column), end);
     }
+
+    /// <summary>
+    /// Replaces every printed sandbox root (with or without the verbatim prefix, with either separator)
+    /// by <c>/</c>, so <c>\\?\C:\Temp\root\img.png</c> becomes <c>/img.png</c>. Returns the text unchanged
+    /// when the sources are not sandboxed.
+    /// </summary>
+    public string Scrub(string text)
+    {
+        if (!_context.IsSandbox || string.IsNullOrEmpty(text) || _root.Length == 0)
+        {
+            return text;
+        }
+
+        var builder = new StringBuilder(text.Length);
+        var index = 0;
+        while (index < text.Length)
+        {
+            var end = RootEndAt(text, index);
+            if (end < 0)
+            {
+                builder.Append(text[index]);
+                index++;
+                continue;
+            }
+
+            builder.Append('/');
+            index = end;
+            if (index < text.Length && IsSeparator(text[index]))
+            {
+                index++;
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    // The index just past the sandbox root starting at index (including an optional verbatim prefix), or -1.
+    private int RootEndAt(string text, int index)
+    {
+        if (HasVerbatimPrefixAt(text, index))
+        {
+            var afterPrefix = MatchRootAt(text, index + VerbatimPrefix.Length);
+            if (afterPrefix >= 0)
+            {
+                return afterPrefix;
+            }
+        }
+
+        return MatchRootAt(text, index);
+    }
+
+    // Matches _root at start, treating both separators as equal. The root must not run into a longer name.
+    private int MatchRootAt(string text, int start)
+    {
+        var index = start;
+        for (var r = 0; r < _root.Length; r++, index++)
+        {
+            if (index >= text.Length || !SameChar(_root[r], text[index]))
+            {
+                return -1;
+            }
+        }
+
+        return index < text.Length && IsNameChar(text[index]) ? -1 : index;
+    }
+
+    private bool SameChar(char root, char text)
+    {
+        if (root == '/')
+        {
+            return IsSeparator(text);
+        }
+
+        return _comparison == StringComparison.OrdinalIgnoreCase
+            ? char.ToUpperInvariant(root) == char.ToUpperInvariant(text)
+            : root == text;
+    }
+
+    private static bool HasVerbatimPrefixAt(string text, int index) =>
+        index + VerbatimPrefix.Length <= text.Length
+        && string.CompareOrdinal(text, index, VerbatimPrefix, 0, VerbatimPrefix.Length) == 0;
+
+    private static bool IsSeparator(char c) => c == '/' || c == '\\';
+
+    private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.';
 
     private static string StripVerbatimPrefix(string path) =>
         path.StartsWith(VerbatimPrefix, StringComparison.Ordinal) ? path.Substring(VerbatimPrefix.Length) : path;

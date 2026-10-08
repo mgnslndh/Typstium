@@ -63,4 +63,39 @@ public class SourcePathMapperTests
         await Assert.That(location!.Start).IsEqualTo(new TypstPosition(3, 2));
         await Assert.That(location.End).IsEqualTo(new TypstPosition(3, 16));
     }
+
+    [Test]
+    public async Task Scrub_replaces_a_unix_root_with_a_slash()
+    {
+        await Assert.That(Sandbox(UnixRoot).Scrub("/tmp/typstium/ws-1/root/a/b.png")).IsEqualTo("/a/b.png");
+    }
+
+    [Test]
+    public async Task Scrub_matches_windows_roots_case_insensitively_with_either_separator()
+    {
+        var mapper = Sandbox(WindowsRoot);
+        await Assert.That(mapper.Scrub(@"searched at \\?\c:\temp\TYPSTIUM\ws-1\root\img.png")).IsEqualTo("searched at /img.png");
+        await Assert.That(mapper.Scrub("searched at C:/Temp/typstium/ws-1/root/img.png")).IsEqualTo("searched at /img.png");
+    }
+
+    [Test]
+    public async Task Scrub_scrubs_hint_text_too()
+    {
+        await Assert.That(Sandbox(WindowsRoot).Scrub(@"see \\?\C:\Temp\typstium\ws-1\root\x.typ")).IsEqualTo("see /x.typ");
+    }
+
+    [Test]
+    public async Task Scrub_replaces_a_bare_root_and_leaves_longer_names_alone()
+    {
+        var mapper = Sandbox(UnixRoot);
+        await Assert.That(mapper.Scrub("at /tmp/typstium/ws-1/root")).IsEqualTo("at /");
+        await Assert.That(mapper.Scrub("/tmp/typstium/ws-1/rootless.typ")).IsEqualTo("/tmp/typstium/ws-1/rootless.typ");
+    }
+
+    [Test]
+    public async Task Scrub_is_a_no_op_for_in_place_sources()
+    {
+        var mapper = new SourcePathMapper(new SourceMappingContext(@"C:\repo\docs", IsSandbox: false, ImmutableHashSet<TypstPath>.Empty));
+        await Assert.That(mapper.Scrub(@"\\?\C:\repo\docs\spec.typ")).IsEqualTo(@"\\?\C:\repo\docs\spec.typ");
+    }
 }

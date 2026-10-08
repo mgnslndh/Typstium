@@ -74,4 +74,29 @@ public class DiagnosticAssemblerTests
         await Assert.That(diagnostic.Location).IsNull();
         await Assert.That(diagnostic.Message).IsEqualTo("boom (at a.typ:1:1)");
     }
+
+    [Test]
+    public async Task Sandbox_paths_in_the_message_are_scrubbed()
+    {
+        var mapper = new SourcePathMapper(new SourceMappingContext(@"C:\Temp\typstium\ws-1\root", IsSandbox: true, ImmutableHashSet<TypstPath>.Empty));
+        var stderr = @"error: file not found (searched at \\?\C:\Temp\typstium\ws-1\root\img.png)"
+            + "\n  ┌─ " + @"\\?\C:\Temp\typstium\ws-1\root\main.typ:1:0" + "\n";
+        var diagnostic = DiagnosticAssembler.Assemble(stderr, new HumanDiagnosticParserV015(), new DiagnosticClassifierV015(), mapper, TypstCompileOptions.Default).Single();
+
+        var text = diagnostic.ToString();
+        await Assert.That(text).DoesNotContain("ws-1");
+        await Assert.That(text).DoesNotContain(@"Temp\typstium");
+        await Assert.That(text).DoesNotContain("Temp/typstium");
+        await Assert.That(diagnostic.Message).EndsWith("(searched at /img.png)");
+    }
+
+    [Test]
+    public async Task Sandbox_paths_in_hints_are_scrubbed()
+    {
+        var mapper = new SourcePathMapper(new SourceMappingContext(@"C:\Temp\typstium\ws-1\root", IsSandbox: true, ImmutableHashSet<TypstPath>.Empty));
+        var stderr = "error: boom\n  = hint: see " + @"\\?\C:\Temp\typstium\ws-1\root\x.typ" + "\n";
+        var diagnostic = DiagnosticAssembler.Assemble(stderr, new HumanDiagnosticParserV015(), new DiagnosticClassifierV015(), mapper, TypstCompileOptions.Default).Single();
+
+        await Assert.That(diagnostic.Hints.Single()).IsEqualTo("see /x.typ");
+    }
 }

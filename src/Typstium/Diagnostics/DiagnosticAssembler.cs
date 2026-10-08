@@ -19,12 +19,14 @@ internal static class DiagnosticAssembler
                 : raw.Severity == TypstDiagnosticSeverity.Warning ? DiagnosticIds.GenericWarning : DiagnosticIds.GenericError;
 
             var location = mapper.Map(raw.Location);
-            var message = raw.Location is { } printed && location is null
-                ? $"{raw.Message} (at {FileName(printed.Path)}:{printed.Line}:{printed.Column})"
-                : raw.Message;
+            var message = mapper.Scrub(raw.Message);
+            if (raw.Location is { } printed && location is null)
+            {
+                message = $"{message} (at {FileName(printed.Path)}:{printed.Line}:{printed.Column})";
+            }
 
-            var trace = raw.Trace.Select(frame => new TypstTraceFrame(frame.Message, mapper.Map(frame.Location))).ToImmutableArray();
-            var hints = raw.Hints.AddRange(DiagnosticHints.For(id, options));
+            var trace = raw.Trace.Select(frame => new TypstTraceFrame(mapper.Scrub(frame.Message), mapper.Map(frame.Location))).ToImmutableArray();
+            var hints = raw.Hints.Select(hint => mapper.Scrub(hint)).Concat(DiagnosticHints.For(id, options)).ToImmutableArray();
             result.Add(new TypstDiagnostic(id, raw.Severity, message, location, hints, trace));
         }
 
