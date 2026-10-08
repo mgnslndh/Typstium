@@ -95,4 +95,18 @@ public partial class TypstInputTests
         await Assert.That(one.TryGetValue(Key("missing"), out _)).IsFalse();
         await Assert.That(Assert.Throws<KeyNotFoundException>(() => _ = one[Key("missing")])).IsNotNull();
     }
+
+    [Test]
+    public async Task String_lookups_are_shorthands_for_key_lookups()
+    {
+        var inputs = TypstInputs.Of(TypstInput.FromText(Key("edition"), "Enterprise"));
+
+        await Assert.That(inputs["edition"]).IsEqualTo("Enterprise");
+        await Assert.That(inputs.TryGetValue("edition", out var value)).IsTrue();
+        await Assert.That(value).IsEqualTo("Enterprise");
+        await Assert.That(inputs.TryGetValue("missing", out _)).IsFalse();
+        await Assert.That(inputs.TryGetValue("a=b", out _)).IsFalse();
+        await Assert.That(Assert.Throws<KeyNotFoundException>(() => _ = inputs["missing"])).IsNotNull();
+        await Assert.That(Assert.Throws<ArgumentException>(() => _ = inputs["a=b"])!.ParamName).IsEqualTo("key");
+    }
 }

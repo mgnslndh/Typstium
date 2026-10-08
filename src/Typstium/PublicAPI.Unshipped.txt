@@ -230,7 +230,9 @@ Typstium.TypstInputs.GetEnumerator() -> System.Collections.Generic.IEnumerator<T
 Typstium.TypstInputs.Remove(Typstium.TypstInputKey! key) -> Typstium.TypstInputs!
 Typstium.TypstInputs.Set(Typstium.TypstInput! input) -> Typstium.TypstInputs!
 Typstium.TypstInputs.TryGetValue(Typstium.TypstInputKey! key, out string? value) -> bool
+Typstium.TypstInputs.TryGetValue(string! key, out string? value) -> bool
 Typstium.TypstInputs.this[Typstium.TypstInputKey! key].get -> string!
+Typstium.TypstInputs.this[string! key].get -> string!
 Typstium.TypstInvocation
 Typstium.TypstInvocation.<Clone>$() -> Typstium.TypstInvocation!
 Typstium.TypstInvocation.CommandLine.get -> string!

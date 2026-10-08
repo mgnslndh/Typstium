@@ -48,6 +48,11 @@ public sealed class TypstInputs : IReadOnlyCollection<TypstInput>, IEquatable<Ty
     public string this[TypstInputKey key] =>
         TryGetValue(key, out var value) ? value : throw new KeyNotFoundException($"There is no input '{key}'.");
 
+    /// <summary>The value of the input with <paramref name="key"/>; a shorthand for the <see cref="TypstInputKey"/> indexer.</summary>
+    /// <exception cref="ArgumentException"><paramref name="key"/> isn't a valid input key.</exception>
+    /// <exception cref="KeyNotFoundException">No input has this key.</exception>
+    public string this[string key] => this[TypstInputKey.Parse(key, nameof(key))];
+
     /// <summary>Whether an input has <paramref name="key"/>.</summary>
     public bool ContainsKey(TypstInputKey key)
     {
@@ -59,7 +64,22 @@ public sealed class TypstInputs : IReadOnlyCollection<TypstInput>, IEquatable<Ty
     public bool TryGetValue(TypstInputKey key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? value)
     {
         ArgumentNullException.ThrowIfNull(key);
-        if (_items.TryGetValue(key.Value, out var input))
+        return TryGetValueCore(key.Value, out value);
+    }
+
+    /// <summary>
+    /// Gets the value of the input with <paramref name="key"/>, if there is one; a shorthand for the
+    /// <see cref="TypstInputKey"/> overload. Returns <c>false</c> for a key that isn't valid, since no input can have it.
+    /// </summary>
+    public bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? value)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        return TryGetValueCore(key, out value);
+    }
+
+    private bool TryGetValueCore(string key, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out string? value)
+    {
+        if (_items.TryGetValue(key, out var input))
         {
             value = input.Value;
             return true;
