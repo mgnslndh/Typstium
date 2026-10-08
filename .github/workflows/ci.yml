@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / Typst ${{ matrix.typst }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        typst: ['0.15.1']
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_NOLOGO: 'true'
+      TYPSTIUM_REQUIRE_TYPST: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: typst-community/setup-typst@v5
+        with:
+          typst-version: ${{ matrix.typst }}
+      - run: typst --version
+      - run: dotnet build --configuration Release
+      - run: dotnet test --configuration Release --no-build
+
+  latest-typst:
+    name: Early warning / latest Typst
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      DOTNET_NOLOGO: 'true'
+      TYPSTIUM_REQUIRE_TYPST: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: typst-community/setup-typst@v5
+        with:
+          typst-version: latest
+      - run: typst --version
+      - run: dotnet build --configuration Release
+      - run: dotnet test --configuration Release --no-build
