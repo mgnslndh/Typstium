@@ -85,6 +85,8 @@ public class TypstProcessRunnerTests
 
     private sealed class ExitedBeforeAttachContainment : IProcessContainment
     {
+        public bool TerminatesTree => false;
+
         public void Attach(Process process)
         {
             process.WaitForExit();

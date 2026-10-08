@@ -49,6 +49,8 @@ internal sealed class WindowsJobObject : IProcessContainment
         }
     }
 
+    public bool TerminatesTree => true;
+
     public void Terminate()
     {
         if (!_handle.IsClosed)

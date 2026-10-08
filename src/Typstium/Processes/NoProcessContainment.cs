@@ -7,6 +7,8 @@ internal sealed class NoProcessContainment : IProcessContainment
 {
     public static NoProcessContainment Instance { get; } = new();
 
+    public bool TerminatesTree => false;
+
     public void Attach(Process process)
     {
     }
