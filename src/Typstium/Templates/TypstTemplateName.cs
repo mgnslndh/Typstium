@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Typstium;
 
-/// <summary>A template name: segments of <c>[A-Za-z0-9._-]</c> separated by <c>/</c>, without "..".</summary>
+/// <summary>A template name: segments of <c>[A-Za-z0-9._-]</c> separated by <c>/</c>, where no segment consists only of dots.</summary>
 public sealed class TypstTemplateName : IEquatable<TypstTemplateName>
 {
     private static readonly Regex Segment = new("^[A-Za-z0-9._-]+\\z", RegexOptions.CultureInvariant);
@@ -29,7 +29,8 @@ public sealed class TypstTemplateName : IEquatable<TypstTemplateName>
 
         foreach (var segment in value!.Split('/'))
         {
-            if (segment is "." or ".." || !Segment.IsMatch(segment))
+            // All-dot segments ("..", "...") are rejected: Windows normalizes them away.
+            if (!Segment.IsMatch(segment) || segment.Trim('.').Length == 0)
             {
                 return false;
             }

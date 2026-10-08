@@ -35,7 +35,9 @@ internal sealed class InPlaceWorkspace : IWorkspace
         var root = PathCanonicalizer.CanonicalizeDirectory(rootDirectory);
         var main = Path.Combine(PathCanonicalizer.CanonicalizeDirectory(Path.GetDirectoryName(mainFile)!), Path.GetFileName(mainFile));
         var comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        if (!main.StartsWith(root + Path.DirectorySeparatorChar, comparison))
+        // A filesystem root already ends with a separator.
+        var rootPrefix = root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ? root : root + Path.DirectorySeparatorChar;
+        if (!main.StartsWith(rootPrefix, comparison))
         {
             throw new ArgumentException($"The file '{mainFile}' is outside the project root '{rootDirectory}'.", "request");
         }

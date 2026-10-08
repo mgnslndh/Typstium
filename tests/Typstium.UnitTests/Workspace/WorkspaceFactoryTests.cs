@@ -18,6 +18,18 @@ public class WorkspaceFactoryTests
     }
 
     [Test]
+    public async Task A_failing_orphan_cleanup_does_not_fail_the_compile()
+    {
+        using var temp = new TemporaryDirectory("factory");
+        var factory = new WorkspaceFactory(temp.Path, TimeSpan.FromHours(1), (_, _, _) => throw new InvalidOperationException("boom"));
+
+        var workspace = await factory.CreateAsync(new TypstCompileRequest(TypstSource.Markup("= Hi")), CancellationToken.None);
+        await workspace.DisposeAsync();
+
+        await Assert.That(factory.CleanupRuns).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task Cleaner_deletes_only_old_workspace_folders()
     {
         using var temp = new TemporaryDirectory("cleaner");

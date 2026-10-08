@@ -10,15 +10,26 @@ internal sealed class WorkspaceFactory
     private int _cleanupStarted;
     private int _cleanupRuns;
 
+    private readonly Func<string, TimeSpan, DateTime, int> _cleanup;
+
     public WorkspaceFactory(string tempRoot, TimeSpan orphanAge)
+        : this(tempRoot, orphanAge, OrphanedWorkspaceCleaner.Clean)
     {
+    }
+
+    /// <summary>Test seam: lets a test make the cleanup fail.</summary>
+    internal WorkspaceFactory(string tempRoot, TimeSpan orphanAge, Func<string, TimeSpan, DateTime, int> cleanup)
+    {
+        _cleanup = cleanup;
         ArgumentException.ThrowIfNullOrWhiteSpace(tempRoot);
         _orphanAge = orphanAge;
-        _tempRoot = new Lazy<string>(() =>
-        {
-            Directory.CreateDirectory(tempRoot);
-            return PathCanonicalizer.CanonicalizeDirectory(tempRoot);
-        });
+        _tempRoot = new Lazy<string>(
+            () =>
+            {
+                Directory.CreateDirectory(tempRoot);
+                return PathCanonicalizer.CanonicalizeDirectory(tempRoot);
+            },
+            LazyThreadSafetyMode.PublicationOnly);
     }
 
     public string TempRoot => _tempRoot.Value;
@@ -55,6 +66,13 @@ internal sealed class WorkspaceFactory
         }
 
         Interlocked.Increment(ref _cleanupRuns);
-        OrphanedWorkspaceCleaner.Clean(TempRoot, _orphanAge, DateTime.UtcNow);
+        try
+        {
+            _cleanup(TempRoot, _orphanAge, DateTime.UtcNow);
+        }
+        catch (Exception)
+        {
+            // Best effort: cleaning up after earlier crashes must never fail a compile.
+        }
     }
 }

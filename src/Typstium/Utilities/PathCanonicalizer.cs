@@ -11,7 +11,17 @@ internal static class PathCanonicalizer
 {
     public static string CanonicalizeDirectory(string existingDirectory)
     {
-        var full = Path.GetFullPath(existingDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var full = Path.GetFullPath(existingDirectory);
+        var root = Path.GetPathRoot(full)!;
+
+        // A filesystem root keeps its trailing separator: trimmed, "/" would be empty and a drive root drive-relative.
+        var trimmed = full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (trimmed.Length <= root.Length)
+        {
+            return root;
+        }
+
+        full = trimmed;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return Kernel32.GetLongPath(full) ?? full;
