@@ -11,8 +11,12 @@ public abstract record TypstDocument
     {
     }
 
+    /// <summary>The format the document was compiled to.</summary>
     public abstract TypstOutputFormat Format { get; }
 
+    /// <summary>Creates a PDF or HTML document, for tests and custom <see cref="ITypstCompiler"/> implementations.</summary>
+    /// <param name="format"><see cref="TypstOutputFormat.Pdf"/> or <see cref="TypstOutputFormat.Html"/>.</param>
+    /// <param name="content">The file content. It is not copied.</param>
     public static TypstDocument CreateSingleFile(TypstOutputFormat format, ReadOnlyMemory<byte> content)
     {
         if (format is not (TypstOutputFormat.Pdf or TypstOutputFormat.Html))
@@ -23,6 +27,9 @@ public abstract record TypstDocument
         return new SingleFile(format, content);
     }
 
+    /// <summary>Creates a PNG or SVG document, for tests and custom <see cref="ITypstCompiler"/> implementations.</summary>
+    /// <param name="format"><see cref="TypstOutputFormat.Png"/> or <see cref="TypstOutputFormat.Svg"/>.</param>
+    /// <param name="pages">At least one page, in page order. The page content is not copied.</param>
     public static TypstDocument CreatePaged(TypstOutputFormat format, ImmutableArray<ReadOnlyMemory<byte>> pages)
     {
         if (format is not (TypstOutputFormat.Png or TypstOutputFormat.Svg))
@@ -38,6 +45,7 @@ public abstract record TypstDocument
         return new Paged(format, pages);
     }
 
+    /// <summary>A PDF or HTML document.</summary>
     public sealed record SingleFile : TypstDocument
     {
         internal SingleFile(TypstOutputFormat format, ReadOnlyMemory<byte> content)
@@ -46,10 +54,13 @@ public abstract record TypstDocument
             Content = content;
         }
 
+        /// <inheritdoc/>
         public override TypstOutputFormat Format { get; }
 
+        /// <summary>The file content.</summary>
         public ReadOnlyMemory<byte> Content { get; }
 
+        /// <summary>Writes the content to a stream. The stream is neither flushed nor closed.</summary>
         public Task WriteToAsync(Stream destination, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(destination);
@@ -57,6 +68,7 @@ public abstract record TypstDocument
             return destination.WriteAsync(segment.Array!, segment.Offset, segment.Count, cancellationToken);
         }
 
+        /// <summary>Writes the content to a file, replacing any existing file.</summary>
         public async Task SaveAsync(string path, CancellationToken cancellationToken)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -65,6 +77,7 @@ public abstract record TypstDocument
         }
     }
 
+    /// <summary>A PNG or SVG document, one file per page.</summary>
     public sealed record Paged : TypstDocument
     {
         internal Paged(TypstOutputFormat format, ImmutableArray<ReadOnlyMemory<byte>> pages)
@@ -73,8 +86,10 @@ public abstract record TypstDocument
             Pages = pages;
         }
 
+        /// <inheritdoc/>
         public override TypstOutputFormat Format { get; }
 
+        /// <summary>The content of each exported page, in page order.</summary>
         public ImmutableArray<ReadOnlyMemory<byte>> Pages { get; }
 
         /// <summary>
