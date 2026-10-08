@@ -11,19 +11,25 @@ public class LimitsTests
 
     private static bool NoWorkspaces(string tempRoot) => Directory.GetDirectories(tempRoot, "ws-*").Length == 0;
 
+    // [Timeout] catches a kill that never happens (the compile would hang); the duration assertions catch a slow kill.
     [Test]
-    public async Task Heavy_templates_time_out()
+    [Timeout(60_000)]
+    public async Task Heavy_templates_time_out(CancellationToken cancellationToken)
     {
         using var temp = new TemporaryDirectory("it-limits");
         var compiler = await TypstAvailability.CreateCompilerAsync(CliTypstCompilerSettings.Default with { TempRoot = temp.Path });
-        var stopwatch = Stopwatch.StartNew();
+        var timeout = TimeSpan.FromSeconds(2);
 
-        var result = await compiler.CompileMarkupAsync(NestedLoops, TypstOutput.Pdf(), TypstCompileOptions.Default with { Timeout = TimeSpan.FromSeconds(2) });
+        var result = await compiler.CompileMarkupAsync(NestedLoops, TypstOutput.Pdf(), TypstCompileOptions.Default with { Timeout = timeout }, cancellationToken);
 
         await Assert.That(result.Status).IsEqualTo(TypstCompileStatus.TimedOut);
         await Assert.That(result.Diagnostics.Last().Id.Value).IsEqualTo("TYPST9002");
-        // Unkilled, the loop runs for hours; the bound is loose because CI runners compile other tests in parallel.
-        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(60));
+
+        // ProcessDuration runs from process start to exit, so start-up and probing outside the process don't count.
+        var invocation = result.Invocation;
+        var timings = $"process {invocation.ProcessDuration.TotalMilliseconds:F0} ms, total {invocation.TotalDuration.TotalMilliseconds:F0} ms";
+        await Assert.That(invocation.ProcessDuration).IsGreaterThanOrEqualTo(timeout).Because(timings);
+        await Assert.That(invocation.ProcessDuration).IsLessThan(timeout + TimeSpan.FromSeconds(5)).Because(timings);
         await Assert.That(NoWorkspaces(temp.Path)).IsTrue();
     }
 
@@ -42,16 +48,22 @@ public class LimitsTests
     }
 
     [Test]
-    public async Task Caller_cancellation_stops_typst_and_cleans_up()
+    [Timeout(60_000)]
+    public async Task Caller_cancellation_stops_typst_and_cleans_up(CancellationToken cancellationToken)
     {
         using var temp = new TemporaryDirectory("it-limits");
         var compiler = await TypstAvailability.CreateCompilerAsync(CliTypstCompilerSettings.Default with { TempRoot = temp.Path });
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var stopwatch = Stopwatch.StartNew();
+        var cancelledAt = TimeSpan.Zero;
+        using var registration = cancellation.Token.Register(() => cancelledAt = stopwatch.Elapsed);
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(500));
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => compiler.CompileMarkupAsync(NestedLoops, cancellation.Token));
 
-        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(60));
+        // Measured from the cancel, so a slow start before it doesn't count.
+        var stopping = stopwatch.Elapsed - cancelledAt;
+        await Assert.That(stopping).IsLessThan(TimeSpan.FromSeconds(5)).Because($"stopped {stopping.TotalMilliseconds:F0} ms after the cancel");
         await Assert.That(NoWorkspaces(temp.Path)).IsTrue();
     }
 
