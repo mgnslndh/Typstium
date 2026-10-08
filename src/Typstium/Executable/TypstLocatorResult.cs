@@ -23,11 +23,21 @@ public abstract record TypstLocatorResult
         return new NotFoundResult(searchedLocations.ToImmutableArray());
     }
 
-    /// <summary>Typst was found.</summary>
-    /// <param name="Path">The executable's path.</param>
-    public sealed record FoundResult(string Path) : TypstLocatorResult;
+    /// <summary>Typst was found. Create it with <see cref="Found"/>.</summary>
+    public sealed record FoundResult : TypstLocatorResult
+    {
+        internal FoundResult(string path) => Path = path;
 
-    /// <summary>Typst wasn't found.</summary>
-    /// <param name="SearchedLocations">The locations searched, or a note on why none were.</param>
-    public sealed record NotFoundResult(ImmutableArray<string> SearchedLocations) : TypstLocatorResult;
+        /// <summary>The executable's path.</summary>
+        public string Path { get; }
+    }
+
+    /// <summary>Typst wasn't found. Create it with <see cref="NotFound"/>.</summary>
+    public sealed record NotFoundResult : TypstLocatorResult
+    {
+        internal NotFoundResult(ImmutableArray<string> searchedLocations) => SearchedLocations = searchedLocations;
+
+        /// <summary>The locations searched, or a note on why none were.</summary>
+        public ImmutableArray<string> SearchedLocations { get; }
+    }
 }

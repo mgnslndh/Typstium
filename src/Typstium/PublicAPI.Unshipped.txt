@@ -248,17 +248,11 @@ Typstium.TypstLocation.Start.init -> void
 Typstium.TypstLocation.TypstLocation(Typstium.TypstSourceFile! File, Typstium.TypstPosition Start, Typstium.TypstPosition? End) -> void
 Typstium.TypstLocatorResult
 Typstium.TypstLocatorResult.FoundResult
-Typstium.TypstLocatorResult.FoundResult.Deconstruct(out string! Path) -> void
 Typstium.TypstLocatorResult.FoundResult.Equals(Typstium.TypstLocatorResult.FoundResult? other) -> bool
-Typstium.TypstLocatorResult.FoundResult.FoundResult(string! Path) -> void
 Typstium.TypstLocatorResult.FoundResult.Path.get -> string!
-Typstium.TypstLocatorResult.FoundResult.Path.init -> void
 Typstium.TypstLocatorResult.NotFoundResult
-Typstium.TypstLocatorResult.NotFoundResult.Deconstruct(out System.Collections.Immutable.ImmutableArray<string!> SearchedLocations) -> void
 Typstium.TypstLocatorResult.NotFoundResult.Equals(Typstium.TypstLocatorResult.NotFoundResult? other) -> bool
-Typstium.TypstLocatorResult.NotFoundResult.NotFoundResult(System.Collections.Immutable.ImmutableArray<string!> SearchedLocations) -> void
 Typstium.TypstLocatorResult.NotFoundResult.SearchedLocations.get -> System.Collections.Immutable.ImmutableArray<string!>
-Typstium.TypstLocatorResult.NotFoundResult.SearchedLocations.init -> void
 Typstium.TypstLocatorResult.TypstLocatorResult(Typstium.TypstLocatorResult! original) -> void
 Typstium.TypstLocatorSearch
 Typstium.TypstLocatorSearch.<Clone>$() -> Typstium.TypstLocatorSearch!
