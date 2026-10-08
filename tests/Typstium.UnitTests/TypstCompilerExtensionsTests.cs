@@ -22,4 +22,33 @@ public class TypstCompilerExtensionsTests
         await Assert.That(requests[2].Options).IsEqualTo(TypstCompileOptions.Untrusted);
         await Assert.That(((TypstSource.MarkupSource)requests[3].Source).Text).IsEqualTo("= Builder");
     }
+
+    [Test]
+    public async Task Overloads_without_a_token_pass_none_and_overloads_with_a_token_forward_it()
+    {
+        var compiler = new TokenRecordingCompiler();
+        using var cancellation = new CancellationTokenSource();
+        var token = cancellation.Token;
+
+        await compiler.CompileMarkupAsync("= Hi");
+        await compiler.CompileMarkupAsync("= Hi", token);
+        await compiler.CompileFileAsync("docs/spec.typ", TypstOutput.Png(), TypstCompileOptions.Default, token);
+        await compiler.CompileAsync(TypstCompileRequest.ForFile("docs/spec.typ"), token);
+
+        await Assert.That(compiler.Tokens[0]).IsEqualTo(CancellationToken.None);
+        await Assert.That(compiler.Tokens.Skip(1).All(recorded => recorded == token)).IsTrue();
+    }
+
+    private sealed class TokenRecordingCompiler : ITypstCompiler
+    {
+        private readonly RecordingTypstCompiler _inner = new();
+
+        public List<CancellationToken> Tokens { get; } = new();
+
+        public Task<TypstCompileResult> CompileAsync(TypstCompileRequest request, CancellationToken cancellationToken = default)
+        {
+            Tokens.Add(cancellationToken);
+            return _inner.CompileAsync(request, cancellationToken);
+        }
+    }
 }

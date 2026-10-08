@@ -18,7 +18,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 - Ruling: netstandard2.0 build on non-Windows (no job object, non-tree Kill) is out of scope — .NET 8+ hosts there get the net8.0 build with Kill(entireProcessTree); .NET Framework is Windows-only — if wrong, grandchildren could outlive a timeout on Mono.
 - Ruling: CliTypstCompilerSettings is an allowed exception to the Typst-prefix rule, alongside CliTypstCompiler (plan-mandated pair naming) — if wrong, a rename before first release.
 - Ruling: Per-target PublicAPI.Unshipped.<tfm>.txt for record <Clone>$ differences — compiler-generated, unavoidable — if wrong, cosmetic.
-- Ruling: RS0026/RS0027 suppressed in Typstium.csproj — spec 4.6 deliberately uses CancellationToken = default overload families (HttpClient pattern) — if wrong, API redesign of extension overloads before 1.0.
+- (Superseded in PR #1 review: suppression removed; overload families now use explicit no-token / required-token pairs, spec D36.) Ruling: RS0026/RS0027 suppressed in Typstium.csproj — spec 4.6 deliberately uses CancellationToken = default overload families (HttpClient pattern) — if wrong, API redesign of extension overloads before 1.0.
 - Final: parked — root-containment test skips on CI (needs a non-writing variant) — Ruling: production fix is a one-liner covered by canonicalizer tests; add the always-running test as a follow-up — cost if wrong: a regression in drive-root file sources goes unnoticed.
 - Final: parked — quoted TYPST_PATH gives a misleading "(relative paths are not allowed)" message; char.IsLetter accepts non-ASCII drive letters — Ruling: safe-side behavior, follow-up — cost if wrong: confusing error text.
 - Final: parked — spec body text still says WinGet "newest first" and PATH "PATHEXT" (contradicts D24); TypstTemplateName accepts trailing-dot segments (alias, not traversal) — Ruling: follow-up — cost if wrong: doc inconsistency / name aliasing on Windows.
@@ -49,7 +49,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 - Task 19: minor (deferred): no tests for name.typ-over-main.typ precedence, nested template names, nested files via directory provider; hasher cancellation only via ReadAsync; provider ctors lack XML docs
 - Task 20: minor (deferred): memory-cap test accepts any non-success (should exclude TimedOut); release-notes test needs network on first run (CI opt-in/skip); executable lookup cached statically across tests
 - Task 20: minor (deferred): page-order test does not assert the three pages differ
-- Task 21: minor (deferred): comment explaining RS0026/RS0027 NoWarn; actions pinned only to major tags
+- Task 21: minor (deferred): (NoWarn comment obsolete — suppression removed) actions pinned only to major tags
 
 ## Parked after the final review
 
@@ -61,3 +61,4 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 
 - CI has not run yet (needs a push): Linux paths (symlink canonicalization, /bin/sh runner tests, NoProcessContainment) are unverified, and `typst-community/setup-typst@v5` must be confirmed.
 - Decide record value-equality semantics across the public API and do an XML-docs pass before the first release.
+- Open question (before v1): trim the `(x, output, options)` convenience overloads in `TypstCompilerExtensions` and leave options to the builders, roughly halving the extension surface (spec 4.6).

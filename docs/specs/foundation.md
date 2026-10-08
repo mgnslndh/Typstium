@@ -371,17 +371,28 @@ request and calls `CompileAsync`. Strings are never ambiguous, because the metho
 string is:
 
 ```csharp
-CompileAsync(this ITypstCompiler, TypstCompileRequestBuilder builder, CancellationToken ct = default)
-CompileAsync(this ITypstCompiler, TypstFileCompileRequestBuilder builder, CancellationToken ct = default)
-CompileAsync(this ITypstCompiler, TypstSource source, CancellationToken ct = default)
-CompileAsync(this ITypstCompiler, TypstSource source, TypstOutput output, CancellationToken ct = default)
-CompileAsync(this ITypstCompiler, TypstSource source, TypstOutput output, TypstCompileOptions options, CancellationToken ct = default)
-CompileFileAsync(this ITypstCompiler, string path, CancellationToken ct = default)
-CompileFileAsync(this ITypstCompiler, string path, TypstOutput output, CancellationToken ct = default)
-CompileFileAsync(this ITypstCompiler, string path, TypstOutput output, TypstCompileOptions options, CancellationToken ct = default)
+CompileAsync(this ITypstCompiler, TypstCompileRequestBuilder builder)
+CompileAsync(this ITypstCompiler, TypstFileCompileRequestBuilder builder)
+CompileAsync(this ITypstCompiler, TypstSource source)
+CompileAsync(this ITypstCompiler, TypstSource source, TypstOutput output)
+CompileAsync(this ITypstCompiler, TypstSource source, TypstOutput output, TypstCompileOptions options)
+CompileFileAsync(this ITypstCompiler, string path)
+CompileFileAsync(this ITypstCompiler, string path, TypstOutput output)
+CompileFileAsync(this ITypstCompiler, string path, TypstOutput output, TypstCompileOptions options)
 CompileMarkupAsync(this ITypstCompiler, string markup, ...same overload pattern...)
 CompileTemplateAsync(this ITypstCompiler, ITemplateProvider provider, string name, ...same overload pattern...)
+// Each of the above also has an overload ending in a required `CancellationToken cancellationToken`.
 ```
+
+Overload families never use optional parameters (analyzers RS0026/RS0027 stay enabled): a default value
+is compiled into the caller, so adding overloads in later versions would be a source and binary
+compatibility hazard. Each shape is a pair instead, as in the BCL (`Stream.ReadAsync`,
+`HttpClient.GetAsync`): one overload without a token that passes `CancellationToken.None`, and one with a
+required token. The single interface method `ITypstCompiler.CompileAsync` keeps `= default`, because it is
+not an overload family.
+
+**Open question before v1:** trim the `(x, output, options)` shapes and leave options to the builders,
+which would roughly halve the extension surface.
 
 Example:
 
@@ -1055,7 +1066,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D33 | Unknown `PdfStandard.FromCliValue` values pass capability validation and go to Typst; only standards Typstium knows and the profile lacks are refused | Reject everything the profile doesn't list | Newer Typst versions add standards; a bad value surfaces as exit code 2 (`TypstInvocationException`) |
 | D34 | `CliTypstCompilerSettings` is an allowed unprefixed public name | Rename to `TypstCliCompilerSettings` | It pairs with `CliTypstCompiler`, which is already an exception to the `Typst` prefix rule |
 | D35 | Per-TFM `PublicAPI.Unshipped.<tfm>.txt` files alongside the shared one | One shared file | Some members differ between netstandard2.0 and net8.0 |
-| D36 | RS0026/RS0027 suppressed | Remove the `CancellationToken = default` overloads | The overload families with an optional token are intentional |
+| D36 | Overload families have no optional parameters: each shape is a pair (no token / required `CancellationToken`); RS0026/RS0027 stay enabled | Suppress RS0026/RS0027 globally or per method | Optional defaults are compiled into callers, so later overloads become compatibility hazards; the pair pattern matches the BCL and keeps the analyzer useful for future overloads (decided in PR #1 review) |
 | D37 | Paged output size is checked from file lengths before any page is read | Read pages, then compare | A runaway compile can't exhaust memory before `MaxOutputBytes` applies |
 
 ## 9. To verify while planning
