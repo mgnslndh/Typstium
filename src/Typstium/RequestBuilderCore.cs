@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -9,35 +8,25 @@ namespace Typstium;
 /// <summary>State shared by both request builders.</summary>
 internal sealed class RequestBuilderCore
 {
-    private readonly ImmutableDictionary<string, string>.Builder _inputs =
-        ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+    public TypstInputs Inputs { get; private set; } = TypstInputs.Empty;
 
     public TypstOutput Output { get; set; } = TypstOutput.Pdf();
 
     public TypstCompileOptions Options { get; set; } = TypstCompileOptions.Default;
 
-    public void AddInput(string key, string value)
-    {
-        InputKeys.Validate(key, nameof(key));
-        ArgumentNullException.ThrowIfNull(value);
-        _inputs[key] = value;
-    }
+    public void SetInput(TypstInput input) => Inputs = Inputs.Set(input);
+
+    public void SetInput(string key, string value) => SetInput(TypstInput.FromText(TypstInputKey.Parse(key, nameof(key)), value));
 
 #if NET8_0_OR_GREATER
     [RequiresUnreferencedCode(JsonDefaults.UnreferencedCodeMessage)]
     [RequiresDynamicCode(JsonDefaults.DynamicCodeMessage)]
 #endif
-    public void AddJsonInput<T>(string key, T value, JsonSerializerOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        AddInput(key, JsonSerializer.Serialize(value, options));
-    }
+    public void SetJsonInput<T>(string key, T value, JsonSerializerOptions options) =>
+        SetInput(TypstInput.FromJson(TypstInputKey.Parse(key, nameof(key)), value, options));
 
-    public void AddJsonInput<T>(string key, T value, JsonTypeInfo<T> typeInfo)
-    {
-        ArgumentNullException.ThrowIfNull(typeInfo);
-        AddInput(key, JsonSerializer.Serialize(value, typeInfo));
-    }
+    public void SetJsonInput<T>(string key, T value, JsonTypeInfo<T> typeInfo) =>
+        SetInput(TypstInput.FromJson(TypstInputKey.Parse(key, nameof(key)), value, typeInfo));
 
     public void Configure(Func<TypstCompileOptions, TypstCompileOptions> configure)
     {
@@ -46,5 +35,5 @@ internal sealed class RequestBuilderCore
     }
 
     public TypstCompileRequest Build(TypstSource source) =>
-        new(source) { Inputs = _inputs.ToImmutable(), Output = Output, Options = Options };
+        new(source) { Inputs = Inputs, Output = Output, Options = Options };
 }

@@ -186,7 +186,7 @@ are `HttpClient.SendAsync` and `ILogger.Log`.
 ```csharp
 public sealed record TypstCompileRequest(TypstSource Source)
 {
-    public ImmutableDictionary<string, string> Inputs { get; init; } = ImmutableDictionary<string, string>.Empty;
+    public TypstInputs Inputs { get; init; } = TypstInputs.Empty;
     public TypstOutput Output { get; init; } = TypstOutput.Pdf();
     public TypstCompileOptions Options { get; init; } = TypstCompileOptions.Default;
 
@@ -235,7 +235,11 @@ public abstract record TypstSource                       // closed hierarchy: pr
 | `Markup` | A fresh **sandbox** folder holding the virtual files; markup sent over stdin | Yes | Quick or one-off use |
 
 File sources get data through `Inputs`, including JSON (`TypstCompileRequestBuilder.WithJsonInput`,
-read in Typst with `json(bytes(sys.inputs.data))`). Windows limits command lines to about 32,000
+read in Typst with `json(bytes(sys.inputs.data))`). Inputs are modelled as concepts, not strings (D38):
+`TypstInputKey` (non-blank, no `=`, ordinal), `TypstInput` (key plus string value, with `FromText` and
+`FromJson` factories) and `TypstInputs` (an immutable set with unique keys that enumerates in ordinal key
+order, so the command line is deterministic). Every input value is redacted in logs and telemetry, and
+`ToString` shows only keys. Windows limits command lines to about 32,000
 characters, so the command-line builder checks the total length and throws `ArgumentException` that
 recommends a template or markup source with a virtual file when it's too long.
 
@@ -349,7 +353,8 @@ public sealed class TypstCompileRequestBuilder              // template and mark
     public TypstCompileRequestBuilder WithFile(TypstVirtualFile file);
     public TypstCompileRequestBuilder WithText(string path, string text);
     public TypstCompileRequestBuilder WithJson<T>(string path, T value);            // + options / JsonTypeInfo overloads
-    public TypstCompileRequestBuilder WithInput(string key, string value);
+    public TypstCompileRequestBuilder WithInput(string key, string value);          // setting a key again replaces it
+    public TypstCompileRequestBuilder WithInput(TypstInput input);
     public TypstCompileRequestBuilder WithJsonInput<T>(string key, T value);         // + overloads
     public TypstCompileRequestBuilder WithOutput(TypstOutput output);
     public TypstCompileRequestBuilder ToPdf(params PdfStandard[] standards);
@@ -1073,6 +1078,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D35 | Per-TFM `PublicAPI.Unshipped.<tfm>.txt` files alongside the shared one | One shared file | Some members differ between netstandard2.0 and net8.0 |
 | D36 | Overload families have no optional parameters: each shape is a pair (no token / required `CancellationToken`); RS0026/RS0027 stay enabled | Suppress RS0026/RS0027 globally or per method | Optional defaults are compiled into callers, so later overloads become compatibility hazards; the pair pattern matches the BCL and keeps the analyzer useful for future overloads (decided in PR #1 review) |
 | D37 | Paged output size is checked from file lengths before any page is read | Read pages, then compare | A runaway compile can't exhaust memory before `MaxOutputBytes` applies |
+| D38 | Inputs are `TypstInputKey` / `TypstInput` / `TypstInputs`; values stay `string` and are always secret | `ImmutableDictionary<string, string>`; a `TypstInputValue` hierarchy (secret, computed); a per-input `IsSecret` flag | Validation lives on the key type and uniqueness and order on the set. Secrecy is a display policy separate from what kind of value it is, so it won't be a value subtype; values are usually customer data, so all stay redacted, and a per-input opt-out can be added later. Computed values, if added, are resolved by the builder at `Build()`, never inside a compiler, so the request stays plain, replayable data (decided in PR #1 review) |
 
 ## 9. To verify while planning
 

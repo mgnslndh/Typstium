@@ -81,7 +81,7 @@ Typstium.TypstCompileOptions.TypstCompileOptions() -> void
 Typstium.TypstCompileRequest
 Typstium.TypstCompileRequest.<Clone>$() -> Typstium.TypstCompileRequest!
 Typstium.TypstCompileRequest.Equals(Typstium.TypstCompileRequest? other) -> bool
-Typstium.TypstCompileRequest.Inputs.get -> System.Collections.Immutable.ImmutableDictionary<string!, string!>!
+Typstium.TypstCompileRequest.Inputs.get -> Typstium.TypstInputs!
 Typstium.TypstCompileRequest.Inputs.init -> void
 Typstium.TypstCompileRequest.Options.get -> Typstium.TypstCompileOptions!
 Typstium.TypstCompileRequest.Options.init -> void
@@ -98,6 +98,7 @@ Typstium.TypstCompileRequestBuilder.ToPng(int ppi = 144) -> Typstium.TypstCompil
 Typstium.TypstCompileRequestBuilder.ToSvg() -> Typstium.TypstCompileRequestBuilder!
 Typstium.TypstCompileRequestBuilder.WithFile(Typstium.TypstVirtualFile! file) -> Typstium.TypstCompileRequestBuilder!
 Typstium.TypstCompileRequestBuilder.WithFile(string! path, System.ReadOnlyMemory<byte> content) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithInput(Typstium.TypstInput! input) -> Typstium.TypstCompileRequestBuilder!
 Typstium.TypstCompileRequestBuilder.WithInput(string! key, string! value) -> Typstium.TypstCompileRequestBuilder!
 Typstium.TypstCompileRequestBuilder.WithJson<T>(string! path, T value) -> Typstium.TypstCompileRequestBuilder!
 Typstium.TypstCompileRequestBuilder.WithJson<T>(string! path, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstCompileRequestBuilder!
@@ -197,6 +198,7 @@ Typstium.TypstFileCompileRequestBuilder.ConfigureOptions(System.Func<Typstium.Ty
 Typstium.TypstFileCompileRequestBuilder.ToPdf(params Typstium.PdfStandard![]! standards) -> Typstium.TypstFileCompileRequestBuilder!
 Typstium.TypstFileCompileRequestBuilder.ToPng(int ppi = 144) -> Typstium.TypstFileCompileRequestBuilder!
 Typstium.TypstFileCompileRequestBuilder.ToSvg() -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithInput(Typstium.TypstInput! input) -> Typstium.TypstFileCompileRequestBuilder!
 Typstium.TypstFileCompileRequestBuilder.WithInput(string! key, string! value) -> Typstium.TypstFileCompileRequestBuilder!
 Typstium.TypstFileCompileRequestBuilder.WithJsonInput<T>(string! key, T value) -> Typstium.TypstFileCompileRequestBuilder!
 Typstium.TypstFileCompileRequestBuilder.WithJsonInput<T>(string! key, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstFileCompileRequestBuilder!
@@ -213,6 +215,22 @@ Typstium.TypstFontOptions.IncludeEmbeddedFonts.init -> void
 Typstium.TypstFontOptions.IncludeSystemFonts.get -> bool
 Typstium.TypstFontOptions.IncludeSystemFonts.init -> void
 Typstium.TypstFontOptions.TypstFontOptions() -> void
+Typstium.TypstInput
+Typstium.TypstInput.Equals(Typstium.TypstInput? other) -> bool
+Typstium.TypstInput.Key.get -> Typstium.TypstInputKey!
+Typstium.TypstInput.Value.get -> string!
+Typstium.TypstInputKey
+Typstium.TypstInputKey.Equals(Typstium.TypstInputKey? other) -> bool
+Typstium.TypstInputKey.Value.get -> string!
+Typstium.TypstInputs
+Typstium.TypstInputs.ContainsKey(Typstium.TypstInputKey! key) -> bool
+Typstium.TypstInputs.Count.get -> int
+Typstium.TypstInputs.Equals(Typstium.TypstInputs? other) -> bool
+Typstium.TypstInputs.GetEnumerator() -> System.Collections.Generic.IEnumerator<Typstium.TypstInput!>!
+Typstium.TypstInputs.Remove(Typstium.TypstInputKey! key) -> Typstium.TypstInputs!
+Typstium.TypstInputs.Set(Typstium.TypstInput! input) -> Typstium.TypstInputs!
+Typstium.TypstInputs.TryGetValue(Typstium.TypstInputKey! key, out string? value) -> bool
+Typstium.TypstInputs.this[Typstium.TypstInputKey! key].get -> string!
 Typstium.TypstInvocation
 Typstium.TypstInvocation.<Clone>$() -> Typstium.TypstInvocation!
 Typstium.TypstInvocation.CommandLine.get -> string!
@@ -490,6 +508,15 @@ override Typstium.TypstExecutable.ToString() -> string!
 override Typstium.TypstFontOptions.Equals(object? obj) -> bool
 override Typstium.TypstFontOptions.GetHashCode() -> int
 override Typstium.TypstFontOptions.ToString() -> string!
+override Typstium.TypstInput.Equals(object? obj) -> bool
+override Typstium.TypstInput.GetHashCode() -> int
+override Typstium.TypstInput.ToString() -> string!
+override Typstium.TypstInputKey.Equals(object? obj) -> bool
+override Typstium.TypstInputKey.GetHashCode() -> int
+override Typstium.TypstInputKey.ToString() -> string!
+override Typstium.TypstInputs.Equals(object? obj) -> bool
+override Typstium.TypstInputs.GetHashCode() -> int
+override Typstium.TypstInputs.ToString() -> string!
 override Typstium.TypstInvocation.Equals(object? obj) -> bool
 override Typstium.TypstInvocation.GetHashCode() -> int
 override Typstium.TypstInvocation.ToString() -> string!
@@ -711,6 +738,16 @@ static Typstium.TypstExecutableResolver.CreateDefault(string! explicitPath) -> T
 static Typstium.TypstFontOptions.Default.get -> Typstium.TypstFontOptions!
 static Typstium.TypstFontOptions.operator !=(Typstium.TypstFontOptions? left, Typstium.TypstFontOptions? right) -> bool
 static Typstium.TypstFontOptions.operator ==(Typstium.TypstFontOptions? left, Typstium.TypstFontOptions? right) -> bool
+static Typstium.TypstInput.FromJson<T>(Typstium.TypstInputKey! key, T value) -> Typstium.TypstInput!
+static Typstium.TypstInput.FromJson<T>(Typstium.TypstInputKey! key, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstInput!
+static Typstium.TypstInput.FromJson<T>(Typstium.TypstInputKey! key, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Typstium.TypstInput!
+static Typstium.TypstInput.FromText(Typstium.TypstInputKey! key, string! value) -> Typstium.TypstInput!
+static Typstium.TypstInputKey.Parse(string! value) -> Typstium.TypstInputKey!
+static Typstium.TypstInputKey.TryParse(string? value, out Typstium.TypstInputKey? key) -> bool
+static Typstium.TypstInputKey.operator !=(Typstium.TypstInputKey? left, Typstium.TypstInputKey? right) -> bool
+static Typstium.TypstInputKey.operator ==(Typstium.TypstInputKey? left, Typstium.TypstInputKey? right) -> bool
+static Typstium.TypstInputs.Empty.get -> Typstium.TypstInputs!
+static Typstium.TypstInputs.Of(params Typstium.TypstInput![]! inputs) -> Typstium.TypstInputs!
 static Typstium.TypstInvocation.operator !=(Typstium.TypstInvocation? left, Typstium.TypstInvocation? right) -> bool
 static Typstium.TypstInvocation.operator ==(Typstium.TypstInvocation? left, Typstium.TypstInvocation? right) -> bool
 static Typstium.TypstLocation.operator !=(Typstium.TypstLocation? left, Typstium.TypstLocation? right) -> bool

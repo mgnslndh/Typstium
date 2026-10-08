@@ -24,7 +24,7 @@ public class TypstCompileRequestBuilderTests
         var source = (TypstSource.TemplateSource)request.Source;
         await Assert.That(source.Files.Select(f => f.Path.Value)).IsEquivalentTo(new[] { "data.json", "logo.png", "notes.md" }, CollectionOrdering.Matching);
         await Assert.That(Encoding.UTF8.GetString(source.Files[0].Content.ToArray())).IsEqualTo("{\"name\":\"Asa\"}");
-        await Assert.That(request.Inputs["edition"]).IsEqualTo("Enterprise");
+        await Assert.That(request.Inputs[TypstInputKey.Parse("edition")]).IsEqualTo("Enterprise");
         await Assert.That(((TypstOutput.PdfOutput)request.Output).Options.Standards[0]).IsEqualTo(PdfStandard.A2b);
         await Assert.That(request.Options).IsEqualTo(TypstCompileOptions.Untrusted);
     }
@@ -39,7 +39,7 @@ public class TypstCompileRequestBuilderTests
             .Build();
 
         await Assert.That(request.Source is TypstSource.FileSource).IsTrue();
-        await Assert.That(request.Inputs["data"]).IsEqualTo("{\"name\":\"x\"}");
+        await Assert.That(request.Inputs[TypstInputKey.Parse("data")]).IsEqualTo("{\"name\":\"x\"}");
         await Assert.That(((TypstOutput.PngOutput)request.Output).Ppi).IsEqualTo(300);
         await Assert.That(request.Options.Jobs).IsEqualTo(2);
     }
@@ -57,5 +57,17 @@ public class TypstCompileRequestBuilderTests
     {
         var exception = Assert.Throws<ArgumentException>(() => TypstCompileRequest.ForMarkup("x").WithInput("a=b", "c"));
         await Assert.That(exception!.ParamName).IsEqualTo("key");
+    }
+
+    [Test]
+    public async Task Setting_an_input_again_replaces_it()
+    {
+        var request = TypstCompileRequest.ForMarkup("x")
+            .WithInput("edition", "Community")
+            .WithInput(TypstInput.FromText(TypstInputKey.Parse("edition"), "Enterprise"))
+            .Build();
+
+        await Assert.That(request.Inputs.Count).IsEqualTo(1);
+        await Assert.That(request.Inputs[TypstInputKey.Parse("edition")]).IsEqualTo("Enterprise");
     }
 }

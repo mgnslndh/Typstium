@@ -1,5 +1,3 @@
-using System.Collections.Immutable;
-
 namespace Typstium.UnitTests;
 
 public class TypstCompileRequestTests
@@ -14,13 +12,9 @@ public class TypstCompileRequestTests
     }
 
     [Test]
-    [Arguments("")]
-    [Arguments(" ")]
-    [Arguments("a=b")]
-    public async Task Input_keys_must_be_non_empty_and_free_of_equals_signs(string key)
+    public async Task Inputs_cannot_be_null()
     {
-        var inputs = ImmutableDictionary<string, string>.Empty.Add(key, "value");
-        var exception = Assert.Throws<ArgumentException>(() => new TypstCompileRequest(TypstSource.Markup("x")) { Inputs = inputs });
+        var exception = Assert.Throws<ArgumentNullException>(() => new TypstCompileRequest(TypstSource.Markup("x")) { Inputs = null! });
         await Assert.That(exception).IsNotNull();
     }
 

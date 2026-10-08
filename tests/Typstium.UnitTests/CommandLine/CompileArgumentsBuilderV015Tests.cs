@@ -42,7 +42,7 @@ public class CompileArgumentsBuilderV015Tests
         var request = new TypstCompileRequest(TypstSource.Markup("x"))
         {
             Options = options,
-            Inputs = ImmutableDictionary<string, string>.Empty.Add("z", "last").Add("a", "first"),
+            Inputs = TypstInputs.Of(Input("z", "last"), Input("a", "first")),
         };
 
         var arguments = Build(request, Layout(mainInput: Path.Combine(Root, "main.typ")));
@@ -63,7 +63,7 @@ public class CompileArgumentsBuilderV015Tests
     [Test]
     public async Task Inputs_are_secret_in_the_safe_rendering()
     {
-        var request = new TypstCompileRequest(TypstSource.Markup("x")) { Inputs = ImmutableDictionary<string, string>.Empty.Add("license", "{\"id\":1}") };
+        var request = new TypstCompileRequest(TypstSource.Markup("x")) { Inputs = TypstInputs.Of(Input("license", "{\"id\":1}")) };
         var arguments = new CompileArgumentsBuilderV015().Build(new CompileArgumentsInput(request, Layout(), TestCapabilities.V015));
         await Assert.That(arguments.RenderSafe()).DoesNotContain("\"id\"");
         await Assert.That(arguments.RenderSafe()).Contains("--input [REDACTED]");
@@ -119,4 +119,6 @@ public class CompileArgumentsBuilderV015Tests
         var exception = Assert.Throws<InvalidOperationException>(() => Build(new TypstCompileRequest(TypstSource.Markup("x")) { Options = options }));
         await Assert.That(exception).IsNotNull();
     }
+
+    private static TypstInput Input(string key, string value) => TypstInput.FromText(TypstInputKey.Parse(key), value);
 }

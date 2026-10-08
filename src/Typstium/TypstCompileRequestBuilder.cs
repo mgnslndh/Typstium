@@ -62,13 +62,22 @@ public sealed class TypstCompileRequestBuilder
     public TypstCompileRequestBuilder WithJson<T>(string path, T value, JsonTypeInfo<T> typeInfo) =>
         WithFile(TypstVirtualFile.FromJson(TypstPath.Parse(path), value, typeInfo));
 
+    /// <summary>Sets an input. An input with the same key is replaced.</summary>
+    /// <returns>This builder.</returns>
+    public TypstCompileRequestBuilder WithInput(TypstInput input)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        _core.SetInput(input);
+        return this;
+    }
+
     /// <summary>Sets an input the document reads as <c>sys.inputs.at(key)</c>. Setting a key again replaces its value.</summary>
     /// <param name="key">The key; must not be blank or contain <c>=</c>.</param>
     /// <param name="value">The value; passed on the command line, so keep it small.</param>
     /// <returns>This builder.</returns>
     public TypstCompileRequestBuilder WithInput(string key, string value)
     {
-        _core.AddInput(key, value);
+        _core.SetInput(key, value);
         return this;
     }
 
@@ -91,7 +100,7 @@ public sealed class TypstCompileRequestBuilder
 #endif
     public TypstCompileRequestBuilder WithJsonInput<T>(string key, T value, JsonSerializerOptions options)
     {
-        _core.AddJsonInput(key, value, options);
+        _core.SetJsonInput(key, value, options);
         return this;
     }
 
@@ -99,7 +108,7 @@ public sealed class TypstCompileRequestBuilder
     /// <returns>This builder.</returns>
     public TypstCompileRequestBuilder WithJsonInput<T>(string key, T value, JsonTypeInfo<T> typeInfo)
     {
-        _core.AddJsonInput(key, value, typeInfo);
+        _core.SetJsonInput(key, value, typeInfo);
         return this;
     }
 

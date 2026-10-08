@@ -39,9 +39,9 @@ internal sealed class CompileArgumentsBuilderV015 : ICompileArgumentsBuilder
         arguments = arguments.AddSwitch("--format", request.Output.FileExtension);
         arguments = AddOutputOptions(arguments, request.Output);
 
-        foreach (var pair in request.Inputs.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+        foreach (var entry in request.Inputs)
         {
-            arguments = arguments.AddSwitchSecret("--input", pair.Key + "=" + pair.Value);
+            arguments = arguments.AddSwitchSecret("--input", entry.Key.Value + "=" + entry.Value);
         }
 
         arguments = arguments
