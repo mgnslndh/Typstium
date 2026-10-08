@@ -72,10 +72,11 @@ public class LocatorTests
     public async Task Search_path_never_uses_relative_entries()
     {
         var environment = new FakeLocatorEnvironment();
+        var executable = environment.IsWindows ? "typst.exe" : "typst";
         var tools = Path.Combine(Root, "tools");
         environment.Variables["PATH"] = string.Join(Path.PathSeparator.ToString(), ".", "relative" + Path.DirectorySeparatorChar + "bin", "", tools);
-        environment.AddFile(".", "typst.exe");
-        var typst = environment.AddFile(tools, "typst.exe");
+        environment.AddFile(".", executable);
+        var typst = environment.AddFile(tools, executable);
 
         var found = await new SearchPathLocator(environment).LocateAsync(CancellationToken.None);
         await Assert.That(found).IsEqualTo(TypstLocatorResult.Found(typst));
