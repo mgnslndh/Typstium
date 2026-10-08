@@ -704,6 +704,11 @@ N │ <source line>
   - sandbox → `Project` or `Virtual`
   - `@ns/name:ver/…` → `Package`
   - `<stdin>` → `Markup`
+- **Printed path forms differ by platform.** On Windows Typst prints absolute `\\?\`-prefixed paths. On
+  Linux and macOS it prints paths under its working directory *relative* to it (`sub/helper.typ:2:2`;
+  verified with Typst 0.15.1 on Ubuntu). The runner always uses the project root as working directory,
+  so a relative printed path is root-relative. Spike 0 only captured Windows output; the CI run on Ubuntu
+  found this.
 - **Multi-line spans** (different box drawing) give `End = null`.
 - **Ignored:** package download progress lines.
 - **Robustness rule:** a block the parser doesn't recognize becomes a generic diagnostic whose message is

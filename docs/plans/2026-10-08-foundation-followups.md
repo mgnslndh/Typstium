@@ -59,6 +59,6 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 
 ## Open gates
 
-- CI has not run yet (needs a push): Linux paths (symlink canonicalization, /bin/sh runner tests, NoProcessContainment) are unverified, and `typst-community/setup-typst@v5` must be confirmed.
+- ~~CI has not run yet~~ Done in PR #1: green on windows-latest, ubuntu-latest and the latest-Typst job after fixing relative diagnostic paths on Linux (`setup-typst@v5` confirmed). macOS is still untested.
 - Decide record value-equality semantics across the public API and do an XML-docs pass before the first release.
 - Open question (before v1): trim the `(x, output, options)` convenience overloads in `TypstCompilerExtensions` and leave options to the builders, roughly halving the extension surface (spec 4.6).
