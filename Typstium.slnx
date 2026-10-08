@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Typstium/Typstium.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Typstium.IntegrationTests/Typstium.IntegrationTests.csproj" />
+    <Project Path="tests/Typstium.Testing/Typstium.Testing.csproj" />
+    <Project Path="tests/Typstium.UnitTests/Typstium.UnitTests.csproj" />
+  </Folder>
+</Solution>
