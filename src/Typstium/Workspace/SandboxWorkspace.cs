@@ -5,17 +5,19 @@ using Typstium.Utilities;
 
 namespace Typstium.Workspace;
 
-/// <summary>A fresh folder per compile holding only the template bundle and virtual files.</summary>
+/// <summary>
+/// A fresh scratch folder per compile whose <c>root/</c> holds only the template bundle and virtual files,
+/// so the template can't read anything else.
+/// </summary>
 internal sealed class SandboxWorkspace : IWorkspace
 {
-    internal const string Prefix = "ws-";
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
-    private readonly string _workspaceDirectory;
+    private readonly ScratchDirectory _scratch;
 
-    private SandboxWorkspace(string workspaceDirectory, WorkspaceLayout layout)
+    private SandboxWorkspace(ScratchDirectory scratch, WorkspaceLayout layout)
     {
-        _workspaceDirectory = workspaceDirectory;
+        _scratch = scratch;
         Layout = layout;
     }
 
@@ -24,7 +26,7 @@ internal sealed class SandboxWorkspace : IWorkspace
     public static async Task<SandboxWorkspace> CreateForTemplateAsync(
         TypstTemplate template, ImmutableArray<TypstVirtualFile> files, bool needsPagedOutput, string tempRoot, CancellationToken cancellationToken)
     {
-        var (directory, root, output) = CreateDirectories(tempRoot, needsPagedOutput);
+        var (scratch, root, output) = CreateScratch(tempRoot, needsPagedOutput);
         try
         {
             foreach (var file in template.Files)
@@ -43,11 +45,11 @@ internal sealed class SandboxWorkspace : IWorkspace
 
             await WriteVirtualFilesAsync(root, files, cancellationToken).ConfigureAwait(false);
             var layout = new WorkspaceLayout(root, Resolve(root, template.MainFile), ReadOnlyMemory<byte>.Empty, output, Mapping(root, files));
-            return new SandboxWorkspace(directory, layout);
+            return new SandboxWorkspace(scratch, layout);
         }
         catch
         {
-            await DeleteDirectoryAsync(directory).ConfigureAwait(false);
+            await scratch.DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }
@@ -55,61 +57,29 @@ internal sealed class SandboxWorkspace : IWorkspace
     public static async Task<SandboxWorkspace> CreateForMarkupAsync(
         string markup, ImmutableArray<TypstVirtualFile> files, bool needsPagedOutput, string tempRoot, CancellationToken cancellationToken)
     {
-        var (directory, root, output) = CreateDirectories(tempRoot, needsPagedOutput);
+        var (scratch, root, output) = CreateScratch(tempRoot, needsPagedOutput);
         try
         {
             await WriteVirtualFilesAsync(root, files, cancellationToken).ConfigureAwait(false);
             var layout = new WorkspaceLayout(root, WorkspaceLayout.StdinInput, Utf8NoBom.GetBytes(markup), output, Mapping(root, files));
-            return new SandboxWorkspace(directory, layout);
+            return new SandboxWorkspace(scratch, layout);
         }
         catch
         {
-            await DeleteDirectoryAsync(directory).ConfigureAwait(false);
+            await scratch.DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }
 
-    public ValueTask DisposeAsync() => new(DeleteDirectoryAsync(_workspaceDirectory));
+    public ValueTask DisposeAsync() => _scratch.DisposeAsync();
 
     internal static string Resolve(string root, TypstPath path) =>
         Path.Combine(new[] { root }.Concat(path.Segments).ToArray());
 
-    /// <summary>Deletes a folder, retrying briefly: Windows can hold handles for a moment after a process exits.</summary>
-    internal static async Task DeleteDirectoryAsync(string path)
+    private static (ScratchDirectory Scratch, string Root, string? Output) CreateScratch(string tempRoot, bool needsPagedOutput)
     {
-        for (var attempt = 0; attempt < 3; attempt++)
-        {
-            try
-            {
-                if (Directory.Exists(path))
-                {
-                    Directory.Delete(path, recursive: true);
-                }
-
-                return;
-            }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-            {
-                await Task.Delay(50).ConfigureAwait(false);
-            }
-        }
-
-        // Left for OrphanedWorkspaceCleaner.
-    }
-
-    internal static (string Directory, string Root, string? Output) CreateDirectories(string tempRoot, bool needsPagedOutput)
-    {
-        var directory = Path.Combine(tempRoot, Prefix + Guid.NewGuid().ToString("N"));
-        var root = Path.Combine(directory, "root");
-        System.IO.Directory.CreateDirectory(root);
-        string? output = null;
-        if (needsPagedOutput)
-        {
-            output = Path.Combine(directory, "out");
-            System.IO.Directory.CreateDirectory(output);
-        }
-
-        return (directory, root, output);
+        var scratch = ScratchDirectory.Create(tempRoot);
+        return (scratch, scratch.CreateSubdirectory("root"), needsPagedOutput ? scratch.CreateSubdirectory("out") : null);
     }
 
     private static async Task WriteVirtualFilesAsync(string root, ImmutableArray<TypstVirtualFile> files, CancellationToken cancellationToken)

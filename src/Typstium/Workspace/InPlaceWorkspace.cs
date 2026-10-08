@@ -1,18 +1,20 @@
 using System.Collections.Immutable;
-using System.Runtime.InteropServices;
 using Typstium.Diagnostics;
 using Typstium.Utilities;
 
 namespace Typstium.Workspace;
 
-/// <summary>A file source compiled where it is. Only paged output needs a temporary folder.</summary>
+/// <summary>
+/// A file source compiled where it is: the caller's folder is only passed to Typst as --root and is never
+/// written to. Only paged output needs a scratch folder, under the temp root, for the page files.
+/// </summary>
 internal sealed class InPlaceWorkspace : IWorkspace
 {
-    private readonly string? _temporaryDirectory;
+    private readonly ScratchDirectory? _scratch;
 
-    private InPlaceWorkspace(string? temporaryDirectory, WorkspaceLayout layout)
+    private InPlaceWorkspace(ScratchDirectory? scratch, WorkspaceLayout layout)
     {
-        _temporaryDirectory = temporaryDirectory;
+        _scratch = scratch;
         Layout = layout;
     }
 
@@ -34,7 +36,7 @@ internal sealed class InPlaceWorkspace : IWorkspace
 
         var root = PathCanonicalizer.CanonicalizeDirectory(rootDirectory);
         var main = Path.Combine(PathCanonicalizer.CanonicalizeDirectory(Path.GetDirectoryName(mainFile)!), Path.GetFileName(mainFile));
-        var comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var comparison = PathComparison.For(root);
         // A filesystem root already ends with a separator.
         var rootPrefix = root.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ? root : root + Path.DirectorySeparatorChar;
         if (!main.StartsWith(rootPrefix, comparison))
@@ -42,17 +44,11 @@ internal sealed class InPlaceWorkspace : IWorkspace
             throw new ArgumentException($"The file '{mainFile}' is outside the project root '{rootDirectory}'.", "request");
         }
 
-        string? temporaryDirectory = null;
-        string? output = null;
-        if (needsPagedOutput)
-        {
-            (temporaryDirectory, _, output) = SandboxWorkspace.CreateDirectories(tempRoot, needsPagedOutput: true);
-        }
-
+        var scratch = needsPagedOutput ? ScratchDirectory.Create(tempRoot) : null;
+        var output = scratch?.CreateSubdirectory("out");
         var mapping = new SourceMappingContext(root, IsSandbox: false, ImmutableHashSet<TypstPath>.Empty);
-        return new InPlaceWorkspace(temporaryDirectory, new WorkspaceLayout(root, main, ReadOnlyMemory<byte>.Empty, output, mapping));
+        return new InPlaceWorkspace(scratch, new WorkspaceLayout(root, main, ReadOnlyMemory<byte>.Empty, output, mapping));
     }
 
-    public ValueTask DisposeAsync() =>
-        _temporaryDirectory is null ? default : new ValueTask(SandboxWorkspace.DeleteDirectoryAsync(_temporaryDirectory));
+    public ValueTask DisposeAsync() => _scratch?.DisposeAsync() ?? default;
 }

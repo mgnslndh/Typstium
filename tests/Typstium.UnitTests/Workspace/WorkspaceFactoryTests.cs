@@ -33,8 +33,8 @@ public class WorkspaceFactoryTests
     public async Task Cleaner_deletes_only_old_workspace_folders()
     {
         using var temp = new TemporaryDirectory("cleaner");
-        var old = temp.CreateDirectory("ws-old");
-        var fresh = temp.CreateDirectory("ws-fresh");
+        var old = temp.CreateDirectory(ScratchDirectory.Prefix + "old");
+        var fresh = temp.CreateDirectory(ScratchDirectory.Prefix + "fresh");
         var unrelated = temp.CreateDirectory("keep-me");
         Directory.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddHours(-2));
         Directory.SetLastWriteTimeUtc(unrelated, DateTime.UtcNow.AddHours(-2));
@@ -51,7 +51,7 @@ public class WorkspaceFactoryTests
     public async Task Parallel_cold_start_cleans_up_once_and_keeps_every_fresh_sandbox()
     {
         using var temp = new TemporaryDirectory("factory");
-        var stale = temp.CreateDirectory("ws-stale");
+        var stale = temp.CreateDirectory(ScratchDirectory.Prefix + "stale");
         Directory.SetLastWriteTimeUtc(stale, DateTime.UtcNow.AddHours(-2));
         var factory = new WorkspaceFactory(temp.Path, TimeSpan.FromHours(1));
         var request = new TypstCompileRequest(TypstSource.Markup("= Hi"));

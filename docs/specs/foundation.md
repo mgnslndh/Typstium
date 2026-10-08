@@ -732,7 +732,7 @@ N │ <source line>
 | 1 | Validate | request validation | Caller errors → `ArgumentException`, before any I/O |
 | 2 | Resolve executable | `ITypstExecutableResolver` | Cached for the compiler's lifetime |
 | 3 | Resolve profile | `TypstCliProfileFactory` | Runs `typst info --format json` once per executable, cached per (path, size, last-write time), and produces a `TypstCliProfile`: the `TypstCapabilities` plus the version-sensitive components for steps 5 and 8. Then validates the request against the capabilities (≥ 0.15.0, features such as `html`), otherwise `TypstFeatureNotSupportedException`. See 5.7 |
-| 4 | Prepare workspace | `InPlaceWorkspace` / `SandboxWorkspace` | Sandbox: `TempRoot/<random>/` with `root/` (template + virtual files) and `out/` (paged output); `IAsyncDisposable` deletes it |
+| 4 | Prepare workspace | `InPlaceWorkspace` / `SandboxWorkspace`, over a `ScratchDirectory` | A `ScratchDirectory` is a fresh `TempRoot/ws-<guid>/` that Typstium owns and deletes on dispose. Sandbox: its `root/` (template + virtual files) and `out/` (paged output). In place: the caller's folder is only `--root` and is never written to; a scratch `out/` exists only for paged output |
 | 5 | Build command line | `profile.ArgumentsBuilder` | See 5.2 |
 | 6 | Build environment | `ProcessEnvironmentBuilder` | See 5.3 |
 | 7 | Run process | `ITypstProcessRunner` | Inside the `MaxConcurrency` semaphore; see 5.4 |

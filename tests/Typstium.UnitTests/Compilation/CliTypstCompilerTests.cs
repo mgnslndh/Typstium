@@ -7,6 +7,7 @@ using Typstium.Processes;
 using Typstium.Testing.Fakes;
 using Typstium.Testing.Fixtures;
 using Typstium.UnitTests.Testing;
+using Typstium.Workspace;
 using TUnit.Assertions.Enums;
 
 namespace Typstium.UnitTests.Compilation;
@@ -40,7 +41,7 @@ public class CliTypstCompilerTests
 
         public IEnumerable<ProcessSpec> CompileSpecs => Runner.Specs.Where(spec => !FakeProcessRunner.IsInfo(spec));
 
-        public bool NoWorkspacesLeft => !Directory.Exists(TempRoot) || Directory.GetDirectories(TempRoot, "ws-*").Length == 0;
+        public bool NoWorkspacesLeft => !Directory.Exists(TempRoot) || Directory.GetDirectories(TempRoot, ScratchDirectory.Prefix + "*").Length == 0;
 
         public void Dispose() => Temp.Dispose();
     }

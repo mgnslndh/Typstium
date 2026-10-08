@@ -1,6 +1,6 @@
 namespace Typstium.Workspace;
 
-/// <summary>Removes sandbox folders left behind when a host was killed hard.</summary>
+/// <summary>Removes scratch folders left behind when a host was killed hard.</summary>
 internal static class OrphanedWorkspaceCleaner
 {
     /// <returns>The number of folders deleted.</returns>
@@ -12,7 +12,7 @@ internal static class OrphanedWorkspaceCleaner
         }
 
         var deleted = 0;
-        foreach (var directory in new DirectoryInfo(tempRoot).EnumerateDirectories(SandboxWorkspace.Prefix + "*"))
+        foreach (var directory in new DirectoryInfo(tempRoot).EnumerateDirectories(ScratchDirectory.Prefix + "*"))
         {
             if (utcNow - directory.LastWriteTimeUtc < age)
             {

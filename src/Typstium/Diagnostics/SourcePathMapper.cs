@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using Typstium.Utilities;
 
 namespace Typstium.Diagnostics;
 
@@ -16,8 +17,9 @@ internal sealed class SourcePathMapper
     public SourcePathMapper(SourceMappingContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _root = Normalize(StripVerbatimPrefix(context.RootDirectory)).TrimEnd('/');
-        _comparison = IsWindowsPath(_root) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var root = StripVerbatimPrefix(context.RootDirectory);
+        _root = Normalize(root).TrimEnd('/');
+        _comparison = PathComparison.For(root);
     }
 
     public TypstSourceFile? MapFile(string printedPath)
