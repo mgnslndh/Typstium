@@ -50,8 +50,13 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
             }
             catch (Win32Exception exception)
             {
-                Kill(process, containment);
-                throw new TypstProcessStartException(spec.Executable, exception);
+                // A process that already exited cannot be assigned to a job (access denied). That is a valid run;
+                // children spawned before Attach would be outside the job (Typst does not spawn children).
+                if (!HasExited(process))
+                {
+                    Kill(process, containment);
+                    throw new TypstProcessStartException(spec.Executable, exception);
+                }
             }
 
             using var timeout = new CancellationTokenSource();
@@ -162,11 +167,30 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
             process.Kill();
 #endif
         }
-        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception or NotSupportedException)
+        catch (Exception)
         {
-            // Already exited.
+            // Never throw from the kill callback (it may run on a timer thread); the outcome is decided by the flags.
         }
 
-        containment.Terminate();
+        try
+        {
+            containment.Terminate();
+        }
+        catch (Exception)
+        {
+            // Job kill-on-close remains the backstop.
+        }
+    }
+
+    private static bool HasExited(Process process)
+    {
+        try
+        {
+            return process.HasExited;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+        {
+            return false;
+        }
     }
 }

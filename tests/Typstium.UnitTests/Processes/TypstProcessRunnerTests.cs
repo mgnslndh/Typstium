@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 using Typstium.Processes;
@@ -70,5 +71,32 @@ public class TypstProcessRunnerTests
         var text = await StreamReading.ReadTextCappedAsync(new MemoryStream(Encoding.UTF8.GetBytes(new string('e', 100))), maxBytes: 10);
         await Assert.That(text).StartsWith("eeeeeeeeee");
         await Assert.That(text).Contains(StreamReading.TruncationMarker);
+    }
+
+    [Test]
+    public async Task A_process_that_exits_before_attach_still_yields_its_outcome()
+    {
+        var runner = new TypstProcessRunner(_ => new ExitedBeforeAttachContainment());
+        var outcome = await runner.RunAsync(ShellCommands.Spec(ShellCommands.Run("exit 0", "exit 0")), CancellationToken.None);
+        var exited = outcome as ProcessOutcome.Exited;
+        await Assert.That(exited).IsNotNull();
+        await Assert.That(exited!.ExitCode).IsEqualTo(0);
+    }
+
+    private sealed class ExitedBeforeAttachContainment : IProcessContainment
+    {
+        public void Attach(Process process)
+        {
+            process.WaitForExit();
+            throw new Win32Exception(5);
+        }
+
+        public void Terminate()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }
