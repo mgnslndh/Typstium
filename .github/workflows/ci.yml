@@ -30,7 +30,9 @@ jobs:
           typst-version: ${{ matrix.typst }}
       - run: typst --version
       - run: dotnet build --configuration Release
-      - run: dotnet test --configuration Release --no-build
+      # One test module at a time: the integration tests time CPU-bound compiles, and on a 2-vCPU runner
+      # the net472 and net10.0 assemblies running together starve each other of CPU.
+      - run: dotnet test --configuration Release --no-build --max-parallel-test-modules 1
 
   latest-typst:
     name: Early warning / latest Typst
@@ -49,4 +51,6 @@ jobs:
           typst-version: latest
       - run: typst --version
       - run: dotnet build --configuration Release
-      - run: dotnet test --configuration Release --no-build
+      # One test module at a time: the integration tests time CPU-bound compiles, and on a 2-vCPU runner
+      # the net472 and net10.0 assemblies running together starve each other of CPU.
+      - run: dotnet test --configuration Release --no-build --max-parallel-test-modules 1

@@ -5,6 +5,9 @@ using Typstium.Testing.Typst;
 
 namespace Typstium.IntegrationTests;
 
+// These tests assert on wall-clock timings with CPU-bound templates, so they run alone: alongside other compiles
+// on a small CI runner, the test process gets too little CPU for timers to fire on time.
+[NotInParallel]
 public class LimitsTests
 {
     private const string NestedLoops = "#let n = 0\n#for i in range(100000) { for j in range(100000) { n += 1 } }\n#n\n";
