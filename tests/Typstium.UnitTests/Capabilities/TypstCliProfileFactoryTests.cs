@@ -59,6 +59,37 @@ public class TypstCliProfileFactoryTests
     }
 
     [Test]
+    public async Task Failed_probe_is_evicted_even_when_every_caller_was_cancelled()
+    {
+        using var temp = new TemporaryDirectory("profile");
+        var calls = 0;
+        var firstProbeFinished = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var runner = new FakeProcessRunner(_ =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+            {
+                firstProbeFinished.TrySetResult(true);
+                return FakeProcessRunner.Exited(101, stderr: "panicked");
+            }
+
+            return FakeProcessRunner.Exited(0, FakeProcessRunner.InfoJson("0.15.1"));
+        }) { Delay = TimeSpan.FromMilliseconds(200) };
+        var factory = new TypstCliProfileFactory(runner);
+        var executable = Executable(temp);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(20));
+        await Assert.ThrowsAsync<TaskCanceledException>(() => factory.GetProfileAsync(executable, cts.Token));
+
+        // The probe keeps running without its only caller; wait for it to fail, then let its eviction run.
+        await firstProbeFinished.Task;
+        await Task.Delay(200);
+
+        var profile = await factory.GetProfileAsync(executable, CancellationToken.None);
+        await Assert.That(factory.ProbeCount).IsEqualTo(2);
+        await Assert.That(profile.Capabilities.Version).IsEqualTo(new TypstVersion(0, 15, 1));
+    }
+
+    [Test]
     public async Task Version_table_uses_the_newest_profile_for_unknown_newer_versions()
     {
         var info = new TypstInfo(new TypstVersion(0, 17, 3), ImmutableHashSet.Create("html"));

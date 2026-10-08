@@ -35,17 +35,11 @@ internal sealed class TypstCliProfileFactory
     {
         ArgumentNullException.ThrowIfNull(executable);
         var key = ProfileKey.For(executable.Path);
-        var entry = _cache.GetOrAdd(key, _ => new Lazy<Task<TypstCliProfile>>(() => ProbeAsync(executable)));
-        try
-        {
-            // The probe is shared, so one caller's cancellation must not cancel it for others.
-            return await entry.Value.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            ((ICollection<KeyValuePair<ProfileKey, Lazy<Task<TypstCliProfile>>>>)_cache).Remove(new KeyValuePair<ProfileKey, Lazy<Task<TypstCliProfile>>>(key, entry));
-            throw;
-        }
+        var entry = _cache.GetOrAdd(key, _ => CreateEntry(key, executable));
+
+        // The probe is shared and evicts itself on failure, so one caller's cancellation neither cancels it
+        // for others nor leaves a stale failure behind.
+        return await entry.Value.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     internal static TypstCliProfile CreateProfile(TypstInfo info)
@@ -64,6 +58,27 @@ internal sealed class TypstCliProfileFactory
         new CompileArgumentsBuilderV015(),
         new HumanDiagnosticParserV015(),
         new DiagnosticClassifierV015());
+
+    private Lazy<Task<TypstCliProfile>> CreateEntry(ProfileKey key, TypstExecutable executable)
+    {
+        Lazy<Task<TypstCliProfile>>? entry = null;
+        entry = new Lazy<Task<TypstCliProfile>>(() => ProbeAndEvictOnFailureAsync(key, entry!, executable));
+        return entry;
+    }
+
+    private async Task<TypstCliProfile> ProbeAndEvictOnFailureAsync(ProfileKey key, Lazy<Task<TypstCliProfile>> entry, TypstExecutable executable)
+    {
+        try
+        {
+            return await ProbeAsync(executable).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Failures are not cached, whether or not any caller is still waiting.
+            ((ICollection<KeyValuePair<ProfileKey, Lazy<Task<TypstCliProfile>>>>)_cache).Remove(new KeyValuePair<ProfileKey, Lazy<Task<TypstCliProfile>>>(key, entry));
+            throw;
+        }
+    }
 
     private async Task<TypstCliProfile> ProbeAsync(TypstExecutable executable)
     {
