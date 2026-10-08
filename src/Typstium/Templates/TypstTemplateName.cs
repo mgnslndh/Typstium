@@ -6,7 +6,7 @@ namespace Typstium;
 /// <summary>A template name: segments of <c>[A-Za-z0-9._-]</c> separated by <c>/</c>, without "..".</summary>
 public sealed class TypstTemplateName : IEquatable<TypstTemplateName>
 {
-    private static readonly Regex Segment = new("^[A-Za-z0-9._-]+$", RegexOptions.CultureInvariant);
+    private static readonly Regex Segment = new("^[A-Za-z0-9._-]+\\z", RegexOptions.CultureInvariant);
 
     private TypstTemplateName(string value) => Value = value;
 

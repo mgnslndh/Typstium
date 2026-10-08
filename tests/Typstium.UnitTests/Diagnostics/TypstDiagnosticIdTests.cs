@@ -16,6 +16,7 @@ public class TypstDiagnosticIdTests
     [Arguments("typst1001")]
     [Arguments("CS1001")]
     [Arguments("TYPST10011")]
+    [Arguments("TYPST1001\n")]
     public async Task Parse_rejects_other_formats(string input)
     {
         var exception = Assert.Throws<ArgumentException>(() => TypstDiagnosticId.Parse(input));

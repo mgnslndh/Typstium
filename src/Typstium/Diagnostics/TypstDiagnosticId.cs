@@ -6,7 +6,7 @@ namespace Typstium;
 /// <summary>A stable diagnostic code such as <c>TYPST1001</c>. Typst has no codes; Typstium assigns them.</summary>
 public sealed class TypstDiagnosticId : IEquatable<TypstDiagnosticId>
 {
-    private static readonly Regex Format = new("^TYPST[0-9]{4}$", RegexOptions.CultureInvariant);
+    private static readonly Regex Format = new("^TYPST[0-9]{4}\\z", RegexOptions.CultureInvariant);
 
     private TypstDiagnosticId(string value) => Value = value;
 

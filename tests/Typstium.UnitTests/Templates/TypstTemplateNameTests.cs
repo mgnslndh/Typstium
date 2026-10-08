@@ -22,6 +22,7 @@ public class TypstTemplateNameTests
     [Arguments("lic ense")]
     [Arguments("lic\\ense")]
     [Arguments("a//b")]
+    [Arguments("license\n")]
     public async Task Parse_rejects_invalid_names(string input)
     {
         var parsed = TypstTemplateName.TryParse(input, out _);
