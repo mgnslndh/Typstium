@@ -7,6 +7,7 @@ public sealed record CliTypstCompilerSettings
     private string _tempRoot = Path.Combine(Path.GetTempPath(), "typstium");
     private TimeSpan _orphanedWorkspaceAge = TimeSpan.FromHours(1);
 
+    /// <summary>One Typst process per CPU, sandboxes in a <c>typstium</c> folder under the system temp folder, orphans removed after an hour.</summary>
     public static CliTypstCompilerSettings Default { get; } = new();
 
     /// <summary>The maximum number of Typst processes running at once.</summary>

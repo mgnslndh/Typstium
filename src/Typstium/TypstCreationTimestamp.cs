@@ -16,9 +16,13 @@ public abstract record TypstCreationTimestamp
     /// <summary>A fixed timestamp, for byte-identical output.</summary>
     public static TypstCreationTimestamp Fixed(DateTimeOffset value) => new FixedTimestamp(value);
 
+    /// <summary>See <see cref="Inherit"/>.</summary>
     public sealed record InheritTimestamp : TypstCreationTimestamp;
 
+    /// <summary>See <see cref="Now"/>.</summary>
     public sealed record NowTimestamp : TypstCreationTimestamp;
 
+    /// <summary>See <see cref="Fixed"/>.</summary>
+    /// <param name="Value">The timestamp written into the document.</param>
     public sealed record FixedTimestamp(DateTimeOffset Value) : TypstCreationTimestamp;
 }

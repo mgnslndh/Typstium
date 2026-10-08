@@ -17,27 +17,39 @@ public sealed class TypstCompileResult
         Invocation = invocation ?? throw new ArgumentNullException(nameof(invocation));
     }
 
+    /// <summary>How the compile ended.</summary>
     public TypstCompileStatus Status { get; }
 
+    /// <summary>Whether <see cref="Status"/> is <see cref="TypstCompileStatus.Succeeded"/>; then <see cref="Document"/> is set.</summary>
     [MemberNotNullWhen(true, nameof(Document))]
     public bool IsSuccess => Status == TypstCompileStatus.Succeeded;
 
+    /// <summary>The compiled document, set only when the compile succeeded.</summary>
     public TypstDocument? Document { get; }
 
+    /// <summary>Every error and warning, in the order reported. A success may still have warnings.</summary>
     public ImmutableArray<TypstDiagnostic> Diagnostics { get; }
 
+    /// <summary>The errors in <see cref="Diagnostics"/>.</summary>
     public IEnumerable<TypstDiagnostic> Errors => Diagnostics.Where(d => d.Severity == TypstDiagnosticSeverity.Error);
 
+    /// <summary>The warnings in <see cref="Diagnostics"/>.</summary>
     public IEnumerable<TypstDiagnostic> Warnings => Diagnostics.Where(d => d.Severity == TypstDiagnosticSeverity.Warning);
 
+    /// <summary>How Typst ran: executable, version, redacted command line and durations.</summary>
     public TypstInvocation Invocation { get; }
 
+    /// <summary>A successful result, for tests and custom <see cref="ITypstCompiler"/> implementations.</summary>
     public static TypstCompileResult CreateSucceeded(TypstDocument document, ImmutableArray<TypstDiagnostic> diagnostics, TypstInvocation invocation)
     {
         ArgumentNullException.ThrowIfNull(document);
         return new TypstCompileResult(TypstCompileStatus.Succeeded, document, diagnostics, invocation);
     }
 
+    /// <summary>An unsuccessful result, for tests and custom <see cref="ITypstCompiler"/> implementations.</summary>
+    /// <param name="status">Any status except <see cref="TypstCompileStatus.Succeeded"/>.</param>
+    /// <param name="diagnostics">The errors and warnings. A default array means none.</param>
+    /// <param name="invocation">How Typst ran.</param>
     public static TypstCompileResult CreateUnsuccessful(TypstCompileStatus status, ImmutableArray<TypstDiagnostic> diagnostics, TypstInvocation invocation)
     {
         if (status == TypstCompileStatus.Succeeded)

@@ -17,6 +17,9 @@ public sealed class CliTypstCompiler : ITypstCompiler
     private readonly WorkspaceFactory _workspaces;
     private readonly SemaphoreSlim _concurrency;
 
+    /// <summary>Creates a compiler. Typst is located and probed on the first compile, not here.</summary>
+    /// <param name="resolver">Finds the Typst executable.</param>
+    /// <param name="settings">Concurrency and sandbox settings.</param>
     public CliTypstCompiler(ITypstExecutableResolver resolver, CliTypstCompilerSettings settings)
         : this(resolver, settings, new TypstProcessRunner())
     {
@@ -32,6 +35,7 @@ public sealed class CliTypstCompiler : ITypstCompiler
         _concurrency = new SemaphoreSlim(settings.MaxConcurrency, settings.MaxConcurrency);
     }
 
+    /// <inheritdoc/>
     public async Task<TypstCompileResult> CompileAsync(TypstCompileRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);

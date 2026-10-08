@@ -13,6 +13,7 @@ public sealed record TypstCompileOptions
     private TypstArguments _extraGlobalArguments = TypstArguments.Empty;
     private TypstArguments _extraArguments = TypstArguments.Empty;
 
+    /// <summary>No system fonts, network blocked, 60 s timeout, 100 MB output cap, no memory cap.</summary>
     public static TypstCompileOptions Default { get; } = new();
 
     /// <summary>Tighter limits for templates written by end users.</summary>
@@ -23,12 +24,14 @@ public sealed record TypstCompileOptions
         MemoryLimitBytes = 1024L * 1024 * 1024,
     };
 
+    /// <summary>Which fonts Typst may use.</summary>
     public TypstFontOptions Fonts
     {
         get => _fonts;
         init => _fonts = value ?? throw new ArgumentNullException(nameof(value));
     }
 
+    /// <summary>Where packages come from and whether Typst may download them.</summary>
     public TypstPackageOptions Packages
     {
         get => _packages;
@@ -50,6 +53,8 @@ public sealed record TypstCompileOptions
         }
     }
 
+    /// <summary>The most output a compile may produce, summed over all pages. More ends the compile with
+    /// <see cref="TypstCompileStatus.OutputLimitExceeded"/>.</summary>
     public long MaxOutputBytes
     {
         get => _maxOutputBytes;
@@ -75,6 +80,7 @@ public sealed record TypstCompileOptions
         }
     }
 
+    /// <summary>The creation timestamp written into the document.</summary>
     public TypstCreationTimestamp CreationTimestamp
     {
         get => _creationTimestamp;
