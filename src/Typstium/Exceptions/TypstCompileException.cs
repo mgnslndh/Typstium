@@ -7,12 +7,14 @@ public sealed class TypstCompileException : TypstException
 {
     private const int MaxDiagnosticsInMessage = 10;
 
+    /// <summary>Creates the exception; the message lists the status and up to ten errors.</summary>
     public TypstCompileException(TypstCompileResult result)
         : base(BuildMessage(result ?? throw new ArgumentNullException(nameof(result))))
     {
         Result = result;
     }
 
+    /// <summary>The unsuccessful result, with every diagnostic.</summary>
     public TypstCompileResult Result { get; }
 
     private static string BuildMessage(TypstCompileResult result)

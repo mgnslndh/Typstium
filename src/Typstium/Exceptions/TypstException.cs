@@ -6,11 +6,13 @@ namespace Typstium;
 /// </summary>
 public abstract class TypstException : Exception
 {
+    /// <summary>Initializes the exception with a message.</summary>
     protected TypstException(string message)
         : base(message)
     {
     }
 
+    /// <summary>Initializes the exception with a message and the exception that caused it.</summary>
     protected TypstException(string message, Exception? innerException)
         : base(message, innerException)
     {

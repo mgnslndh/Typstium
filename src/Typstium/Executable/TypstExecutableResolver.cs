@@ -11,6 +11,8 @@ public sealed class TypstExecutableResolver : ITypstExecutableResolver
     private readonly SemaphoreSlim _gate = new(1, 1);
     private TypstExecutable? _resolved;
 
+    /// <summary>Creates a resolver over the given locators, tried in order.</summary>
+    /// <exception cref="ArgumentException"><paramref name="locators"/> is empty or contains null.</exception>
     public TypstExecutableResolver(IEnumerable<ITypstExecutableLocator> locators)
     {
         ArgumentNullException.ThrowIfNull(locators);
@@ -31,6 +33,7 @@ public sealed class TypstExecutableResolver : ITypstExecutableResolver
         return new TypstExecutableResolver(DefaultLocators(explicitPath));
     }
 
+    /// <inheritdoc/>
     public async ValueTask<TypstExecutable> ResolveAsync(CancellationToken cancellationToken)
     {
         if (Volatile.Read(ref _resolved) is { } cached)
