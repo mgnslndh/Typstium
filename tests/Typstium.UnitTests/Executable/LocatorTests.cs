@@ -11,7 +11,7 @@ public class LocatorTests
     public async Task Explicit_path_is_found_when_it_exists()
     {
         var environment = new FakeLocatorEnvironment();
-        var typst = environment.AddFile(Root, "tools", "typst.exe");
+        var typst = environment.AddFile(Root, "tools", environment.ExecutableFileName);
 
         var found = await new ExplicitPathLocator(typst, environment).LocateAsync(CancellationToken.None);
         var missing = await new ExplicitPathLocator(Path.Combine(Root, "nope.exe"), environment).LocateAsync(CancellationToken.None);
@@ -27,7 +27,7 @@ public class LocatorTests
         var result = (TypstLocatorResult.NotFoundResult)await new EnvironmentVariableLocator("TYPST_PATH", environment).LocateAsync(CancellationToken.None);
         await Assert.That(result.SearchedLocations.Single()).Contains("not set");
 
-        var typst = environment.AddFile(Root, "env", "typst.exe");
+        var typst = environment.AddFile(Root, "env", environment.ExecutableFileName);
         environment.Variables["TYPST_PATH"] = typst;
         var found = await new EnvironmentVariableLocator("TYPST_PATH", environment).LocateAsync(CancellationToken.None);
         await Assert.That(found).IsEqualTo(TypstLocatorResult.Found(typst));
@@ -37,7 +37,7 @@ public class LocatorTests
     public async Task Bundled_runtime_supports_the_classic_asp_net_bin_folder_and_sets_the_execute_bit()
     {
         var environment = new FakeLocatorEnvironment { IsWindows = false, RuntimeIdentifier = "linux-x64" };
-        var typst = environment.AddFile(environment.BaseDirectory, "bin", "typst", "linux-x64", "typst");
+        var typst = environment.AddFile(environment.BaseDirectory, "bin", "typst", "linux-x64", TypstExecutableFileNames.Unix);
 
         var found = await new BundledRuntimeLocator(environment).LocateAsync(CancellationToken.None);
 
@@ -51,12 +51,12 @@ public class LocatorTests
         var local = Path.Combine(Root, "LocalAppData");
         var environment = new FakeLocatorEnvironment { IsWindows = true };
         environment.Variables["LOCALAPPDATA"] = local;
-        var packaged = environment.AddFile(local, "Microsoft", "WinGet", "Packages", "Typst.Typst_Microsoft.Winget.Source_8wekyb3d8bbwe", "typst-x86_64-pc-windows-msvc", "typst.exe");
+        var packaged = environment.AddFile(local, "Microsoft", "WinGet", "Packages", "Typst.Typst_Microsoft.Winget.Source_8wekyb3d8bbwe", "typst-x86_64-pc-windows-msvc", TypstExecutableFileNames.Windows);
 
         var found = await new WinGetLocator(environment).LocateAsync(CancellationToken.None);
         await Assert.That(found).IsEqualTo(TypstLocatorResult.Found(packaged));
 
-        var link = environment.AddFile(local, "Microsoft", "WinGet", "Links", "typst.exe");
+        var link = environment.AddFile(local, "Microsoft", "WinGet", "Links", TypstExecutableFileNames.Windows);
         var preferred = await new WinGetLocator(environment).LocateAsync(CancellationToken.None);
         await Assert.That(preferred).IsEqualTo(TypstLocatorResult.Found(link));
     }
@@ -72,7 +72,7 @@ public class LocatorTests
     public async Task Search_path_never_uses_relative_entries()
     {
         var environment = new FakeLocatorEnvironment();
-        var executable = environment.IsWindows ? "typst.exe" : "typst";
+        var executable = environment.ExecutableFileName;
         var tools = Path.Combine(Root, "tools");
         environment.Variables["PATH"] = string.Join(Path.PathSeparator.ToString(), ".", "relative" + Path.DirectorySeparatorChar + "bin", "", tools);
         environment.AddFile(".", executable);
@@ -90,7 +90,7 @@ public class LocatorTests
     {
         var environment = new FakeLocatorEnvironment { IsWindows = true };
         environment.Variables["PATH"] = entry;
-        environment.AddFile(entry, "typst.exe");
+        environment.AddFile(entry, TypstExecutableFileNames.Windows);
 
         var result = await new SearchPathLocator(environment).LocateAsync(CancellationToken.None);
 
@@ -109,7 +109,7 @@ public class LocatorTests
 
         var environment = new FakeLocatorEnvironment { IsWindows = true };
         environment.Variables["PATH"] = "C:\\tools";
-        environment.Files.Add(Path.Combine(@"C:\tools", "typst.exe"));
+        environment.Files.Add(Path.Combine(@"C:\tools", TypstExecutableFileNames.Windows));
 
         var result = await new SearchPathLocator(environment).LocateAsync(CancellationToken.None);
 

@@ -70,7 +70,7 @@ public class TypstExecutableResolverTests
         var resolver = new TypstExecutableResolver(new ITypstExecutableLocator[] { new EnvironmentVariableLocator("TYPST_PATH", environment) });
 
         await Assert.ThrowsAsync<TypstExecutableNotFoundException>(() => resolver.ResolveAsync(CancellationToken.None).AsTask());
-        var typst = environment.AddFile(FakeLocatorEnvironment.Root, "late", "typst.exe");
+        var typst = environment.AddFile(FakeLocatorEnvironment.Root, "late", environment.ExecutableFileName);
         environment.Variables["TYPST_PATH"] = typst;
 
         var resolved = await resolver.ResolveAsync(CancellationToken.None);

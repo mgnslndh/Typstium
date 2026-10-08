@@ -42,7 +42,7 @@ internal sealed class BundledRuntimeLocator(ILocatorEnvironment environment) : I
 
     public ValueTask<TypstLocatorResult> LocateAsync(CancellationToken cancellationToken)
     {
-        var executable = environment.IsWindows ? "typst.exe" : "typst";
+        var executable = environment.ExecutableFileName;
         var candidates = new[]
         {
             Path.Combine(environment.BaseDirectory, "typst", environment.RuntimeIdentifier, executable),
@@ -82,7 +82,7 @@ internal sealed class WinGetLocator(ILocatorEnvironment environment) : ITypstExe
 
         foreach (var root in roots.OfType<string>())
         {
-            var link = Path.Combine(root, "Links", "typst.exe");
+            var link = Path.Combine(root, "Links", TypstExecutableFileNames.Windows);
             searched.Add(link);
             if (environment.FileExists(link))
             {
@@ -93,12 +93,12 @@ internal sealed class WinGetLocator(ILocatorEnvironment environment) : ITypstExe
         foreach (var root in roots.OfType<string>())
         {
             var packages = Path.Combine(root, "Packages");
-            searched.Add(Path.Combine(packages, "Typst.Typst_*", "typst-*", "typst.exe"));
+            searched.Add(Path.Combine(packages, "Typst.Typst_*", "typst-*", TypstExecutableFileNames.Windows));
             foreach (var package in environment.EnumerateDirectories(packages, "Typst.Typst_*"))
             {
                 foreach (var build in environment.EnumerateDirectories(package, "typst-*"))
                 {
-                    var candidate = Path.Combine(build, "typst.exe");
+                    var candidate = Path.Combine(build, TypstExecutableFileNames.Windows);
                     if (environment.FileExists(candidate))
                     {
                         return new(TypstLocatorResult.Found(candidate));
@@ -119,23 +119,22 @@ internal sealed class WellKnownLocationsLocator(ILocatorEnvironment environment)
     {
         var candidates = new List<string>();
         var home = environment.HomeDirectory;
+        if (home is not null)
+        {
+            candidates.Add(Path.Combine(home, ".cargo", "bin", environment.ExecutableFileName));
+        }
+
         if (environment.IsWindows)
         {
             if (home is not null)
             {
-                candidates.Add(Path.Combine(home, ".cargo", "bin", "typst.exe"));
-                candidates.Add(Path.Combine(home, "scoop", "shims", "typst.exe"));
+                candidates.Add(Path.Combine(home, "scoop", "shims", TypstExecutableFileNames.Windows));
             }
         }
         else
         {
-            if (home is not null)
-            {
-                candidates.Add(Path.Combine(home, ".cargo", "bin", "typst"));
-            }
-
-            candidates.Add("/opt/homebrew/bin/typst");
-            candidates.Add("/usr/local/bin/typst");
+            candidates.Add("/opt/homebrew/bin/" + TypstExecutableFileNames.Unix);
+            candidates.Add("/usr/local/bin/" + TypstExecutableFileNames.Unix);
         }
 
         var found = candidates.FirstOrDefault(environment.FileExists);
@@ -153,7 +152,7 @@ internal sealed class SearchPathLocator(ILocatorEnvironment environment) : ITyps
 
     public ValueTask<TypstLocatorResult> LocateAsync(CancellationToken cancellationToken)
     {
-        var executable = environment.IsWindows ? "typst.exe" : "typst";
+        var executable = environment.ExecutableFileName;
         var searched = new List<string>();
         var entries = (environment.GetVariable("PATH") ?? string.Empty).Split(Path.PathSeparator);
         foreach (var entry in entries)
