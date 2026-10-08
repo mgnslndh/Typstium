@@ -33,7 +33,11 @@ public sealed record CliTypstCompilerSettings
         }
     }
 
-    /// <summary>Sandbox folders older than this are deleted on the first compile (left behind by hard kills).</summary>
+    /// <summary>
+    /// Scratch folders older than this, whose owner is gone, are deleted on the first compile (left behind by hard
+    /// kills). A folder still in use, by this or another compiler sharing <see cref="TempRoot"/>, is never deleted
+    /// whatever its age, so this needn't exceed any timeout; it only decides how soon leftovers go.
+    /// </summary>
     public TimeSpan OrphanedWorkspaceAge
     {
         get => _orphanedWorkspaceAge;

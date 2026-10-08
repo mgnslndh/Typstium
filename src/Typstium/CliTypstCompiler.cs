@@ -63,9 +63,14 @@ public sealed class CliTypstCompiler : ITypstCompiler
         var profile = await _profiles.GetProfileAsync(executable, cancellationToken).ConfigureAwait(false);
         CapabilityValidator.Validate(request, profile.Capabilities);
 
-        var workspace = await _workspaces.CreateAsync(request, cancellationToken).ConfigureAwait(false);
+        // The slot covers preparing the workspace too, so a long queue holds no scratch folders: at most
+        // MaxConcurrency exist at once, and none of them ages while waiting.
+        await _concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var holdsSlot = true;
+        IWorkspace? workspace = null;
         try
         {
+            workspace = await _workspaces.CreateAsync(request, cancellationToken).ConfigureAwait(false);
             var layout = workspace.Layout;
             var arguments = profile.ArgumentsBuilder.Build(new CompileArgumentsInput(request, layout, profile.Capabilities));
             CommandLineLimits.EnsureFits(executable.Path, arguments);
@@ -83,7 +88,6 @@ public sealed class CliTypstCompiler : ITypstCompiler
                 request.Options.ProcessPriority ?? _processPriority);
 
             ProcessOutcome outcome;
-            await _concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 outcome = await _runner.RunAsync(spec, cancellationToken).ConfigureAwait(false);
@@ -91,6 +95,7 @@ public sealed class CliTypstCompiler : ITypstCompiler
             finally
             {
                 _concurrency.Release();
+                holdsSlot = false;
             }
 
             var diagnostics = DiagnosticAssembler.Assemble(
@@ -101,7 +106,15 @@ public sealed class CliTypstCompiler : ITypstCompiler
         }
         finally
         {
-            await workspace.DisposeAsync().ConfigureAwait(false);
+            if (holdsSlot)
+            {
+                _concurrency.Release();
+            }
+
+            if (workspace is not null)
+            {
+                await workspace.DisposeAsync().ConfigureAwait(false);
+            }
         }
     }
 }

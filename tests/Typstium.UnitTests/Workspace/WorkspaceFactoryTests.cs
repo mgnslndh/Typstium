@@ -53,6 +53,34 @@ public class WorkspaceFactoryTests
         await Assert.That(Directory.Exists(upperCase)).IsTrue();
     }
 
+    // The review's reproduction: two compilers share a temp root, and one's live workspace is older than the
+    // other's orphan age (an infinite timeout, or a long queue). Age alone used to get it deleted.
+    [Test]
+    public async Task Another_compilers_live_workspace_survives_cleanup_however_old_it_is()
+    {
+        using var temp = new TemporaryDirectory("factory");
+        var first = new WorkspaceFactory(temp.Path, TimeSpan.FromMilliseconds(100));
+        var live = await first.CreateAsync(new TypstCompileRequest(TypstSource.Markup("= Hi")), CancellationToken.None);
+        var abandoned = ScratchDirectory.Create(temp.Path);
+        abandoned.AbandonForTesting();
+        var liveScratch = Path.GetDirectoryName(live.Layout.RootDirectory)!;
+        Directory.SetLastWriteTimeUtc(liveScratch, DateTime.UtcNow.AddHours(-2));
+        Directory.SetLastWriteTimeUtc(abandoned.Path, DateTime.UtcNow.AddHours(-2));
+
+        var second = new WorkspaceFactory(temp.Path, TimeSpan.FromMilliseconds(100));
+        var other = await second.CreateAsync(new TypstCompileRequest(TypstSource.Markup("= Hi")), CancellationToken.None);
+        try
+        {
+            await Assert.That(Directory.Exists(live.Layout.RootDirectory)).IsTrue();
+            await Assert.That(Directory.Exists(abandoned.Path)).IsFalse();
+        }
+        finally
+        {
+            await other.DisposeAsync();
+            await live.DisposeAsync();
+        }
+    }
+
     [Test]
     public async Task Parallel_cold_start_cleans_up_once_and_keeps_every_fresh_sandbox()
     {

@@ -65,6 +65,38 @@ public class CliTypstCompilerTests
         await Assert.That(harness.Runner.Specs.Where(FakeProcessRunner.IsInfo).All(spec => spec.Priority == TypstProcessPriority.BelowNormal)).IsTrue();
     }
 
+    // Workspaces are prepared inside the concurrency slot, so queued requests hold no scratch folders.
+    [Test]
+    public async Task Queued_requests_prepare_no_workspace_until_they_get_a_slot()
+    {
+        var most = 0;
+        Harness? harness = null;
+        harness = new Harness(
+            _ =>
+            {
+                var count = Directory.GetDirectories(harness!.TempRoot, ScratchDirectory.Prefix + "*").Length;
+                InterlockedMax(ref most, count);
+                return FakeProcessRunner.Exited(0, Encoding.ASCII.GetString(Pdf));
+            },
+            delay: TimeSpan.FromMilliseconds(50),
+            maxConcurrency: 1);
+        using (harness)
+        {
+            await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => harness.Compiler.CompileAsync(TypstCompileRequest.ForMarkup("= Hi").Build())));
+
+            await Assert.That(most).IsEqualTo(1);
+            await Assert.That(harness.NoWorkspacesLeft).IsTrue();
+        }
+    }
+
+    private static void InterlockedMax(ref int target, int value)
+    {
+        int current;
+        while ((current = Volatile.Read(ref target)) < value && Interlocked.CompareExchange(ref target, value, current) != current)
+        {
+        }
+    }
+
     [Test]
     public async Task Successful_pdf_compile()
     {

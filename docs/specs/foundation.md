@@ -748,10 +748,10 @@ N │ <source line>
 | 1 | Validate | request validation | Caller errors → `ArgumentException`, before any I/O |
 | 2 | Resolve executable | `ITypstExecutableResolver` | Cached for the compiler's lifetime |
 | 3 | Resolve profile | `TypstCliProfileFactory` | Runs `typst info --format json` once per executable, cached per (path, size, last-write time), and produces a `TypstCliProfile`: the `TypstCapabilities` plus the version-sensitive components for steps 5 and 8. Then validates the request against the capabilities (≥ 0.15.0, features such as `html`), otherwise `TypstFeatureNotSupportedException`. See 5.7 |
-| 4 | Prepare workspace | `InPlaceWorkspace` / `SandboxWorkspace`, over a `ScratchDirectory` | A `ScratchDirectory` is a fresh `TempRoot/ws-<guid>/` that Typstium owns and deletes on dispose. Sandbox: its `root/` (template + virtual files) and `out/` (paged output). In place: the caller's folder is only `--root` and is never written to; a scratch `out/` exists only for paged output |
+| 4 | Prepare workspace | `InPlaceWorkspace` / `SandboxWorkspace`, over a `ScratchDirectory` | Inside the `MaxConcurrency` slot, which is taken before this step and released after step 7, so queued requests hold no folders (D44). A `ScratchDirectory` is a fresh `TempRoot/ws-<guid>/` that Typstium owns, holds a lease on, and deletes on dispose. Sandbox: its `root/` (template + virtual files) and `out/` (paged output). In place: the caller's folder is only `--root` and is never written to; a scratch `out/` exists only for paged output |
 | 5 | Build command line | `profile.ArgumentsBuilder` | See 5.2 |
 | 6 | Build environment | `ProcessEnvironmentBuilder` | See 5.3 |
-| 7 | Run process | `ITypstProcessRunner` | Inside the `MaxConcurrency` semaphore; see 5.4 |
+| 7 | Run process | `ITypstProcessRunner` | Still inside the slot taken before step 4; see 5.4 |
 | 8 | Parse diagnostics | `profile.DiagnosticParser` + `profile.DiagnosticClassifier` + `SourcePathMapper` | Section 4.12 |
 | 9 | Map outcome | `OutcomeMapper` | See 5.5 |
 | 10 | Collect document | `DocumentCollector` | Stdout bytes, or `out/` pages in page order |
@@ -760,9 +760,14 @@ The template bundle is copied file by file into the sandbox on every compile. Ca
 `TypstTemplateVersion` is a later optimization, gated on measurements.
 
 On startup (the first compile), the compiler deletes scratch folders in `TempRoot` older than
-`OrphanedWorkspaceAge`. These are left behind when a host is killed hard. It only deletes folders named
-exactly `ws-` plus 32 lowercase hex digits, so a host folder that merely starts with `ws-` (for example
-`ws-reports`, if `TempRoot` points at the host's own data) is never touched.
+`OrphanedWorkspaceAge` whose owner is gone. These are left behind when a host is killed hard. It only deletes
+folders named exactly `ws-` plus 32 lowercase hex digits, so a host folder that merely starts with `ws-` (for
+example `ws-reports`, if `TempRoot` points at the host's own data) is never touched. Ownership is a **lease**
+(D44): every scratch folder holds its `.lease` file open with `FileShare.None` while it's in use (a sharing
+lock on Windows, an advisory `flock` honored by every .NET process on Unix), and the operating system releases
+it when the owner dies, even on a hard kill. The cleaner skips any folder whose lease it can't open, so a live
+folder of another compiler sharing `TempRoot` survives however old it is. Setting
+`DOTNET_SYSTEM_IO_DISABLEFILELOCKING=1` turns the Unix lock off and with it this protection.
 
 ### 5.2 Command line
 
@@ -1127,6 +1132,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D41 | Timing tests in their own project, `Typstium.TimingTests`, run alone after the others; CI runs `build.ps1`, the same script as a local run | TUnit categories with filters; `[NotInParallel]` in the integration project with every test module serialized; CI steps in YAML only | A project makes the boundary visible and needs no filter expressions; everything else stays parallel. One script for CI and local runs can't drift apart, and a Cake build can replace its body later (decided in PR #1 review) |
 | D42 | The human-format diagnostic parser matches lines by hand, without regular expressions, in time linear in stderr size | Regexes with match timeouts; `RegexOptions.NonBacktracking` | A template controls what stderr contains, and the old trace-frame pattern backtracked quadratically: seconds for one 20,000-character line, hours at the 1 MB cap, on the host after Typst had exited. `NonBacktracking` needs .NET 7+, and timeouts throw mid-parse and need a fallback per pattern. The library's remaining regexes are linear (anchored single quantifiers or non-overlapping classes); only `SourcePathMapper.PackagePath` sees stderr (found in the 2026-10-08 review) |
 | D43 | Portable names for files Typstium writes and for template names, on every platform; `TypstPath` stays permissive; the sandbox writes with `CreateNew` | Validate only on Windows; validate in `TypstPath`; trust the name rules alone | Windows aliases trailing dots and spaces and reserves device names, so two accepted virtual files could become one (found in the 2026-10-08 review). Checking everywhere keeps requests portable, as rejecting case-only duplicates already does. `TypstPath` also reads back paths Typst prints, which on Linux may use those names. `CreateNew` turns any alias the rules miss (8.3 short names) into an error instead of a silent overwrite |
+| D44 | Scratch folders hold a `.lease` file open with `FileShare.None`, and the cleaner deletes only folders whose lease it can open; the `MaxConcurrency` slot is taken before the workspace is prepared | Age only; a PID file; preparing workspaces before the queue | `TempRoot` is shared machine-wide by default, and age can't tell another compiler's live folder (infinite timeout, long queue) from an abandoned one (found in the 2026-10-08 review). A held lock dies with its process, unlike a PID file, which can be reused. Preparing inside the slot keeps a long queue from holding one copied template per waiting request |
 
 ## 9. To verify while planning
 

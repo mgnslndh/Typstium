@@ -36,7 +36,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 - Task 9: minor (deferred): builder fluent methods duplicated across two builders (plan-mandated); public builder/extension members lack XML docs; thin coverage for JsonTypeInfo/options overloads, ForFile(path,root), direct CompileAsync(source), null guards
 - Task 10: minor (deferred): capture-diagnostics.sh lacks a post-check that {ROOT} replaced; Linux captures use / separators (document); ParseLocation endColumnCarets param always null (dead code, brief-verbatim); Header regex uses $ (non-validating); DiagnosticFixtures throws if a typst-* folder lacks diagnostics/; 10-multiple-errors capture holds one error
 - Task 11: minor (deferred): Scrub skips bare root followed by "." (sentence end); unmapped trace-frame locations lose location without file-name fallback; duplicated mapper setup in assembler tests
-- Task 12: minor (deferred): canonicalizer TrimEnd breaks filesystem roots (C:\ or /); ResolveLinkTarget does not re-walk target path; no PathCanonicalizer test; cleanup exceptions other than IO/UnauthorizedAccess fail first compile; cleaner age relies on dir mtime (orphanAge must exceed timeouts)
+- Task 12: minor (deferred): canonicalizer TrimEnd breaks filesystem roots (C:\ or /); ResolveLinkTarget does not re-walk target path; no PathCanonicalizer test; cleanup exceptions other than IO/UnauthorizedAccess fail first compile; ~~cleaner age relies on dir mtime (orphanAge must exceed timeouts)~~ (the lease makes age irrelevant for live folders, D44)
 - Task 13: minor (deferred): feature-name semantics (disabled features still listed) worth a comment; no ParseVersionOutput failure test; sync Assert.Throws
 - Task 14: minor (deferred): CommandLineLimits ParamName "request" misleading for direct callers; MaxLength constant only indirectly asserted; env remove list not de-duplicated
 - Task 15: minor (deferred): natural-exit vs timeout race reports TimedOut; stderr truncation may split UTF-8 char; spec values (Timeout, MemoryLimit on 32-bit) validated only after Start; int casts on huge limits; ~~ns2.0 pipes block thread-pool threads~~ (fixed in PR #1, all target frameworks); tests lack memory-limit/boundary/late-cancel cases
@@ -61,7 +61,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 
 - External review (2026-10-08, `docs/Typstium-review.md`, to be deleted once its findings are fixed):
   - ~~#1 [P1] quadratic trace-frame regex in the diagnostic parser~~ Fixed: hand-written linear parser (D42), with a 1 MB unit test and an end-to-end timing test that timed out on the old parser.
-  - #2 [P2] orphan cleanup can delete live workspaces of another compiler sharing `TempRoot`: lock-file lease plus creating the workspace after admission.
+  - ~~#2 [P2] orphan cleanup can delete live workspaces of another compiler sharing `TempRoot`~~ Fixed: a `.lease` file held open while a scratch folder is in use, and the workspace prepared inside the concurrency slot (D44).
   - ~~#3 [P2] Windows path aliases (trailing dots and spaces) and reserved device names~~ Fixed: portable-name rules for virtual files, template bundles and template names, plus `CreateNew` in the sandbox (D43).
   - #4 [P3] extended UNC (`\\?\UNC\`) diagnostic paths are neither mapped nor scrubbed.
   - #5 [P3] the template version hash framing is ambiguous when file contents contain NUL bytes.

@@ -38,12 +38,36 @@ public class ScratchDirectoryTests
     {
         using var temp = new TemporaryDirectory("scratch");
         var scratch = ScratchDirectory.Create(temp.Path);
-        Directory.Delete(scratch.Path);
+        scratch.AbandonForTesting();
+        Directory.Delete(scratch.Path, recursive: true);
 
         await scratch.DisposeAsync();
         await scratch.DisposeAsync();
 
         await Assert.That(Directory.Exists(scratch.Path)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_live_scratch_directory_holds_its_lease_until_disposed()
+    {
+        using var temp = new TemporaryDirectory("scratch");
+        var scratch = ScratchDirectory.Create(temp.Path);
+
+        await Assert.That(File.Exists(Path.Combine(scratch.Path, ScratchDirectory.LeaseFileName))).IsTrue();
+        await Assert.That(ScratchDirectory.IsLeaseHeld(scratch.Path)).IsTrue();
+
+        scratch.AbandonForTesting();
+        await Assert.That(ScratchDirectory.IsLeaseHeld(scratch.Path)).IsFalse();
+        await scratch.DisposeAsync();
+    }
+
+    [Test]
+    public async Task A_folder_without_a_lease_file_is_not_held()
+    {
+        using var temp = new TemporaryDirectory("scratch");
+        var folder = temp.CreateDirectory(ScratchDirectory.NewName());
+
+        await Assert.That(ScratchDirectory.IsLeaseHeld(folder)).IsFalse();
     }
 
     [Test]

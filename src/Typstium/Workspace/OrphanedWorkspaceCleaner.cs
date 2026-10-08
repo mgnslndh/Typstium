@@ -1,6 +1,6 @@
 namespace Typstium.Workspace;
 
-/// <summary>Removes scratch folders left behind when a host was killed hard.</summary>
+/// <summary>Removes scratch folders left behind when a host was killed hard: old enough, and with no live lease.</summary>
 internal static class OrphanedWorkspaceCleaner
 {
     /// <returns>The number of folders deleted.</returns>
@@ -14,8 +14,11 @@ internal static class OrphanedWorkspaceCleaner
         var deleted = 0;
         foreach (var directory in new DirectoryInfo(tempRoot).EnumerateDirectories(ScratchDirectory.Prefix + "*"))
         {
-            // The prefix pattern is only a pre-filter: a host folder such as "ws-reports" must never match.
-            if (!ScratchDirectory.IsScratchName(directory.Name) || utcNow - directory.LastWriteTimeUtc < age)
+            // The prefix pattern is only a pre-filter: a host folder such as "ws-reports" must never match. A held
+            // lease means a live compile, possibly another compiler's sharing this temp root, however old it is.
+            if (!ScratchDirectory.IsScratchName(directory.Name)
+                || utcNow - directory.LastWriteTimeUtc < age
+                || ScratchDirectory.IsLeaseHeld(directory.FullName))
             {
                 continue;
             }
