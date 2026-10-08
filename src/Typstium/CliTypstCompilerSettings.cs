@@ -6,8 +6,9 @@ public sealed record CliTypstCompilerSettings
     private int _maxConcurrency = Environment.ProcessorCount;
     private string _tempRoot = Path.Combine(Path.GetTempPath(), "typstium");
     private TimeSpan _orphanedWorkspaceAge = TimeSpan.FromHours(1);
+    private TypstProcessPriority _processPriority = TypstProcessPriority.Normal;
 
-    /// <summary>One Typst process per CPU, sandboxes in a <c>typstium</c> folder under the system temp folder, orphans removed after an hour.</summary>
+    /// <summary>Normal priority, one Typst process per CPU, sandboxes in a <c>typstium</c> folder under the system temp folder, orphans removed after an hour.</summary>
     public static CliTypstCompilerSettings Default { get; } = new();
 
     /// <summary>The maximum number of Typst processes running at once.</summary>
@@ -44,6 +45,24 @@ public sealed record CliTypstCompilerSettings
             }
 
             _orphanedWorkspaceAge = value;
+        }
+    }
+
+    /// <summary>
+    /// The scheduling priority of Typst processes, unless a request sets <see cref="TypstCompileOptions.ProcessPriority"/>.
+    /// <see cref="TypstProcessPriority.BelowNormal"/> keeps a busy host responsive; see <see cref="TypstProcessPriority"/>.
+    /// </summary>
+    public TypstProcessPriority ProcessPriority
+    {
+        get => _processPriority;
+        init
+        {
+            if (value is not (TypstProcessPriority.Normal or TypstProcessPriority.BelowNormal or TypstProcessPriority.Idle))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown process priority.");
+            }
+
+            _processPriority = value;
         }
     }
 }

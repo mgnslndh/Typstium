@@ -10,6 +10,7 @@ public sealed record TypstCompileOptions
     private long? _memoryLimitBytes;
     private TypstCreationTimestamp _creationTimestamp = TypstCreationTimestamp.Inherit;
     private int? _jobs;
+    private TypstProcessPriority? _processPriority;
     private TypstArguments _extraGlobalArguments = TypstArguments.Empty;
     private TypstArguments _extraArguments = TypstArguments.Empty;
 
@@ -85,6 +86,24 @@ public sealed record TypstCompileOptions
     {
         get => _creationTimestamp;
         init => _creationTimestamp = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    /// <summary>
+    /// The scheduling priority of the Typst process for this request. Null (the default) uses the compiler's
+    /// <see cref="CliTypstCompilerSettings.ProcessPriority"/>; see <see cref="TypstProcessPriority"/> for the trade-off.
+    /// </summary>
+    public TypstProcessPriority? ProcessPriority
+    {
+        get => _processPriority;
+        init
+        {
+            if (value is { } priority && priority is not (TypstProcessPriority.Normal or TypstProcessPriority.BelowNormal or TypstProcessPriority.Idle))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown process priority.");
+            }
+
+            _processPriority = value;
+        }
     }
 
     /// <summary>--jobs. Null leaves Typst's default (number of CPUs).</summary>

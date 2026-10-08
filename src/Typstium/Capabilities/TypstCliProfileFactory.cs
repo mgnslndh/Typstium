@@ -27,7 +27,13 @@ internal sealed class TypstCliProfileFactory
     private readonly ConcurrentDictionary<ProfileKey, Lazy<Task<TypstCliProfile>>> _cache = new();
     private int _probeCount;
 
-    public TypstCliProfileFactory(ITypstProcessRunner runner) => _runner = runner ?? throw new ArgumentNullException(nameof(runner));
+    private readonly TypstProcessPriority _priority;
+
+    public TypstCliProfileFactory(ITypstProcessRunner runner, TypstProcessPriority priority = TypstProcessPriority.Normal)
+    {
+        _runner = runner ?? throw new ArgumentNullException(nameof(runner));
+        _priority = priority;
+    }
 
     public int ProbeCount => Volatile.Read(ref _probeCount);
 
@@ -118,7 +124,8 @@ internal sealed class TypstCliProfileFactory
                 ProbeTimeout,
                 MaxStdoutBytes: 1024 * 1024,
                 ProcessSpec.DefaultMaxStderrBytes,
-                MemoryLimitBytes: null),
+                MemoryLimitBytes: null,
+                _priority),
             CancellationToken.None);
 
     private static string Utf8(ReadOnlyMemory<byte> bytes) => Encoding.UTF8.GetString(bytes.ToArray());

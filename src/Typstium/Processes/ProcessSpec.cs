@@ -11,7 +11,8 @@ internal sealed record ProcessSpec(
     TimeSpan Timeout,
     long MaxStdoutBytes,
     long MaxStderrBytes,
-    long? MemoryLimitBytes)
+    long? MemoryLimitBytes,
+    TypstProcessPriority Priority = TypstProcessPriority.Normal)
 {
     internal const long DefaultMaxStderrBytes = 1024 * 1024;
 }

@@ -83,6 +83,48 @@ public class TypstProcessRunnerTests
         await Assert.That(exited!.ExitCode).IsEqualTo(0);
     }
 
+    [Test]
+    [Arguments(TypstProcessPriority.BelowNormal, ProcessPriorityClass.BelowNormal)]
+    [Arguments(TypstProcessPriority.Idle, ProcessPriorityClass.Idle)]
+    public async Task Priority_is_lowered_before_the_process_joins_its_containment(TypstProcessPriority priority, ProcessPriorityClass expected)
+    {
+        var containment = new PriorityRecordingContainment();
+        var runner = new TypstProcessRunner(_ => containment);
+
+        await runner.RunAsync(ShellCommands.Spec(ShellCommands.Sleep30(), timeout: TimeSpan.FromMilliseconds(500)) with { Priority = priority }, CancellationToken.None);
+
+        await Assert.That(containment.PriorityAtAttach).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task Normal_priority_leaves_the_inherited_priority_alone()
+    {
+        var containment = new PriorityRecordingContainment();
+        var runner = new TypstProcessRunner(_ => containment);
+
+        await runner.RunAsync(ShellCommands.Spec(ShellCommands.Sleep30(), timeout: TimeSpan.FromMilliseconds(500)), CancellationToken.None);
+
+        using var current = Process.GetCurrentProcess();
+        await Assert.That(containment.PriorityAtAttach).IsEqualTo(current.PriorityClass);
+    }
+
+    private sealed class PriorityRecordingContainment : IProcessContainment
+    {
+        public ProcessPriorityClass? PriorityAtAttach { get; private set; }
+
+        public bool TerminatesTree => false;
+
+        public void Attach(Process process) => PriorityAtAttach = process.PriorityClass;
+
+        public void Terminate()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
     private sealed class ExitedBeforeAttachContainment : IProcessContainment
     {
         public bool TerminatesTree => false;

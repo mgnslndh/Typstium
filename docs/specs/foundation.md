@@ -174,6 +174,7 @@ public sealed record CliTypstCompilerSettings
     public int MaxConcurrency { get; init; } = Environment.ProcessorCount;     // concurrent typst processes
     public string TempRoot { get; init; } = Path.Combine(Path.GetTempPath(), "typstium");
     public TimeSpan OrphanedWorkspaceAge { get; init; } = TimeSpan.FromHours(1);
+    public TypstProcessPriority ProcessPriority { get; init; } = TypstProcessPriority.Normal; // D39
 }
 ```
 
@@ -432,6 +433,7 @@ public sealed record TypstCompileOptions
     public long? MemoryLimitBytes { get; init; }                         // Windows job object only
     public TypstCreationTimestamp CreationTimestamp { get; init; }       // Inherit | Now | Fixed(DateTimeOffset)
     public int? Jobs { get; init; }                                      // --jobs; null = Typst default
+    public TypstProcessPriority? ProcessPriority { get; init; }         // null = the compiler's setting (D39)
     public TypstArguments ExtraGlobalArguments { get; init; }            // before the subcommand
     public TypstArguments ExtraArguments { get; init; }                  // after the generated arguments
     public Func<TypstArguments, TypstArguments>? ArgumentCustomization { get; init; } // full escape hatch
@@ -798,7 +800,7 @@ internal interface ITypstProcessRunner
 internal sealed record ProcessSpec(string Executable, TypstArguments Arguments,
     IReadOnlyDictionary<string, string> Environment, string WorkingDirectory,
     ReadOnlyMemory<byte> Stdin, TimeSpan Timeout, long MaxStdoutBytes, long MaxStderrBytes,
-    long? MemoryLimitBytes);
+    long? MemoryLimitBytes, TypstProcessPriority Priority = TypstProcessPriority.Normal);
 
 internal abstract record ProcessOutcome(TimeSpan Duration, string Stderr)   // closed hierarchy
 {
@@ -819,10 +821,16 @@ internal abstract record ProcessOutcome(TimeSpan Duration, string Stderr)   // c
 Runner behavior:
 - **Process start:** `UseShellExecute = false`, the fully resolved executable path, the working directory
   set to the workspace root, and stdin, stdout and stderr all redirected.
-- **Pipes:** stdout and stderr are read concurrently. Stdin is written and closed right after start.
+- **Priority:** unless it's `Normal`, `Process.PriorityClass` is lowered right after start, before the
+  job object is attached (D39). Failing for any reason other than "already exited" kills the process
+  and throws `TypstProcessStartException`.
+- **Pipes:** stdout and stderr are read concurrently, and stdin is written and closed right after start,
+  all on dedicated threads (D40). Process pipes are synchronous streams on every target framework, so
+  `ReadAsync` would block a thread-pool thread per pipe for the whole compile.
 - **Timeout:** a linked `CancellationTokenSource`. On timeout, the output cap or caller cancellation, the
-  runner kills the process tree (`Kill(true)` on `net8.0`; on `netstandard2.0`, the job object on
-  Windows or `Process.Kill()` elsewhere).
+  runner terminates the Windows job object first (one system call), then kills the process. Only
+  without a job (non-Windows) does it walk the tree with `Kill(true)` on `net8.0`; `netstandard2.0`
+  elsewhere uses `Process.Kill()`.
 - **Caller cancellation** throws `OperationCanceledException` after the kill. It's never returned as an
   outcome.
 - **Paged output limit:** for paged output, the total size of `out/` is checked after exit. If it's over
@@ -1036,6 +1044,8 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 - restore, build (warnings as errors), unit tests, integration tests
 - Typst installed with a pinned version (**0.15.1**, the declared minimum)
 - a second job with the latest Typst release, allowed to fail, as an early warning for format changes
+- test modules run one at a time, and `LimitsTests` runs `[NotInParallel]`: they time CPU-bound
+  compiles, which a 2-vCPU runner shared with other compiles can't do reliably
 
 ## 8. Decisions
 
@@ -1079,6 +1089,8 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D36 | Overload families have no optional parameters: each shape is a pair (no token / required `CancellationToken`); RS0026/RS0027 stay enabled | Suppress RS0026/RS0027 globally or per method | Optional defaults are compiled into callers, so later overloads become compatibility hazards; the pair pattern matches the BCL and keeps the analyzer useful for future overloads (decided in PR #1 review) |
 | D37 | Paged output size is checked from file lengths before any page is read | Read pages, then compare | A runaway compile can't exhaust memory before `MaxOutputBytes` applies |
 | D38 | Inputs are `TypstInputKey` / `TypstInput` / `TypstInputs`; values stay `string` and are always secret | `ImmutableDictionary<string, string>`; a `TypstInputValue` hierarchy (secret, computed); a per-input `IsSecret` flag | Validation lives on the key type and uniqueness and order on the set. Secrecy is a display policy separate from what kind of value it is, so it won't be a value subtype; values are usually customer data, so all stay redacted, and a per-input opt-out can be added later. Computed values, if added, are resolved by the builder at `Build()`, never inside a compiler, so the request stays plain, replayable data (decided in PR #1 review) |
+| D39 | Process priority: `CliTypstCompilerSettings.ProcessPriority` (default `Normal`), overridable per request with `TypstCompileOptions.ProcessPriority`; values `Normal`, `BelowNormal`, `Idle` | Default `BelowNormal`; compiler-only or request-only; above-normal values | `Normal` matches running `typst` from a shell, and hosts opt in with one line. Per-request overrides allow interactive and batch work through one compiler. Raising priority needs elevated rights on Unix. Named `ProcessPriority` to keep "priority" free for a future queue (decided in PR #1 review) |
+| D40 | Pipe I/O runs on dedicated threads, and the Windows job object is terminated before any tree walk | `ReadAsync` on pool threads; `Kill(entireProcessTree: true)` first | With every concurrency slot busy, blocked pool threads delayed the timeout's kill by up to 36 s, and the tree walk (a snapshot of every process) took seconds under load. Typstium never changes `ThreadPool` settings; they belong to the host (found in PR #1 review) |
 
 ## 9. To verify while planning
 

@@ -19,14 +19,14 @@ public class CliTypstCompilerTests
 
     private sealed class Harness : IDisposable
     {
-        public Harness(Func<ProcessSpec, ProcessOutcome> compile, bool html = true, TimeSpan delay = default, int maxConcurrency = 4)
+        public Harness(Func<ProcessSpec, ProcessOutcome> compile, bool html = true, TimeSpan delay = default, int maxConcurrency = 4, TypstProcessPriority processPriority = TypstProcessPriority.Normal)
         {
             Temp = new TemporaryDirectory("compiler");
             Runner = new FakeProcessRunner(spec => FakeProcessRunner.IsInfo(spec)
                 ? FakeProcessRunner.Exited(0, FakeProcessRunner.InfoJson("0.15.1", html))
                 : compile(spec)) { Delay = delay };
             TempRoot = Path.Combine(Temp.Path, "tmp");
-            var settings = CliTypstCompilerSettings.Default with { TempRoot = TempRoot, MaxConcurrency = maxConcurrency };
+            var settings = CliTypstCompilerSettings.Default with { TempRoot = TempRoot, MaxConcurrency = maxConcurrency, ProcessPriority = processPriority };
             Compiler = new CliTypstCompiler(new FixedExecutableResolver(Path.Combine(Temp.Path, "typst.exe")), settings, Runner);
         }
 
@@ -48,6 +48,21 @@ public class CliTypstCompilerTests
     /// <summary>The root as Typst prints it: \\?\-prefixed on Windows.</summary>
     private static string PrintedRoot(ProcessSpec spec) =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? @"\\?\" + spec.WorkingDirectory : spec.WorkingDirectory;
+
+    [Test]
+    [Arguments(null, TypstProcessPriority.BelowNormal)]
+    [Arguments(TypstProcessPriority.Idle, TypstProcessPriority.Idle)]
+    [Arguments(TypstProcessPriority.Normal, TypstProcessPriority.Normal)]
+    public async Task A_request_priority_overrides_the_compiler_priority(TypstProcessPriority? requested, TypstProcessPriority expected)
+    {
+        using var harness = new Harness(_ => FakeProcessRunner.Exited(0, Encoding.ASCII.GetString(Pdf)), processPriority: TypstProcessPriority.BelowNormal);
+        var request = TypstCompileRequest.ForMarkup("= Hi").ConfigureOptions(o => o with { ProcessPriority = requested }).Build();
+
+        await harness.Compiler.CompileAsync(request);
+
+        await Assert.That(harness.CompileSpecs.Single().Priority).IsEqualTo(expected);
+        await Assert.That(harness.Runner.Specs.Where(FakeProcessRunner.IsInfo).All(spec => spec.Priority == TypstProcessPriority.BelowNormal)).IsTrue();
+    }
 
     [Test]
     public async Task Successful_pdf_compile()

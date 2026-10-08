@@ -44,6 +44,8 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
                 throw new TypstProcessStartException(spec.Executable, exception);
             }
 
+            SetPriority(process, containment, spec);
+
             try
             {
                 containment.Attach(process);
@@ -183,6 +185,39 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
         catch (Exception)
         {
             // Never throw from the kill callback (it may run on a timer thread); the outcome is decided by the flags.
+        }
+    }
+
+    /// <summary>
+    /// Lowers the scheduling priority right after start; Typst runs a few milliseconds at normal priority first.
+    /// Lowering never needs elevated rights, so a failure other than "already exited" is unexpected.
+    /// </summary>
+    private static void SetPriority(Process process, IProcessContainment containment, ProcessSpec spec)
+    {
+        var priorityClass = spec.Priority switch
+        {
+            TypstProcessPriority.Normal => (ProcessPriorityClass?)null,
+            TypstProcessPriority.BelowNormal => ProcessPriorityClass.BelowNormal,
+            TypstProcessPriority.Idle => ProcessPriorityClass.Idle,
+            _ => throw new ArgumentOutOfRangeException(nameof(spec), spec.Priority, "Unknown process priority."),
+        };
+
+        if (priorityClass is not { } value)
+        {
+            return;
+        }
+
+        try
+        {
+            process.PriorityClass = value;
+        }
+        catch (Exception exception) when (exception is Win32Exception or InvalidOperationException or PlatformNotSupportedException)
+        {
+            if (!HasExited(process))
+            {
+                Kill(process, containment);
+                throw new TypstProcessStartException(spec.Executable, exception);
+            }
         }
     }
 

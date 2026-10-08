@@ -47,4 +47,14 @@ public class TypstCompileOptionsTests
         var fonts = TypstFontOptions.Default with { FontPaths = default };
         await Assert.That(fonts.FontPaths.IsDefault).IsFalse();
     }
+
+    [Test]
+    public async Task Process_priority_defaults_to_the_compiler_setting_and_rejects_unknown_values()
+    {
+        await Assert.That(TypstCompileOptions.Default.ProcessPriority).IsNull();
+        await Assert.That(TypstCompileOptions.Untrusted.ProcessPriority).IsNull();
+        await Assert.That(CliTypstCompilerSettings.Default.ProcessPriority).IsEqualTo(TypstProcessPriority.Normal);
+        await Assert.That(Assert.Throws<ArgumentOutOfRangeException>(() => _ = TypstCompileOptions.Default with { ProcessPriority = (TypstProcessPriority)42 })).IsNotNull();
+        await Assert.That(Assert.Throws<ArgumentOutOfRangeException>(() => _ = CliTypstCompilerSettings.Default with { ProcessPriority = (TypstProcessPriority)42 })).IsNotNull();
+    }
 }

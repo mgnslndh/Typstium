@@ -16,6 +16,7 @@ public sealed class CliTypstCompiler : ITypstCompiler
     private readonly TypstCliProfileFactory _profiles;
     private readonly WorkspaceFactory _workspaces;
     private readonly SemaphoreSlim _concurrency;
+    private readonly TypstProcessPriority _processPriority;
 
     /// <summary>Creates a compiler. Typst is located and probed on the first compile, not here.</summary>
     /// <param name="resolver">Finds the Typst executable.</param>
@@ -30,7 +31,8 @@ public sealed class CliTypstCompiler : ITypstCompiler
         _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
         ArgumentNullException.ThrowIfNull(settings);
         _runner = runner ?? throw new ArgumentNullException(nameof(runner));
-        _profiles = new TypstCliProfileFactory(runner);
+        _processPriority = settings.ProcessPriority;
+        _profiles = new TypstCliProfileFactory(runner, settings.ProcessPriority);
         _workspaces = new WorkspaceFactory(settings.TempRoot, settings.OrphanedWorkspaceAge);
         _concurrency = new SemaphoreSlim(settings.MaxConcurrency, settings.MaxConcurrency);
     }
@@ -77,7 +79,8 @@ public sealed class CliTypstCompiler : ITypstCompiler
                 request.Options.Timeout,
                 request.Options.MaxOutputBytes,
                 ProcessSpec.DefaultMaxStderrBytes,
-                request.Options.MemoryLimitBytes);
+                request.Options.MemoryLimitBytes,
+                request.Options.ProcessPriority ?? _processPriority);
 
             ProcessOutcome outcome;
             await _concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);

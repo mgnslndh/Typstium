@@ -17,4 +17,17 @@ public class ConcurrencyTests
         await Assert.That(results.All(result => result.IsSuccess)).IsTrue();
         await Assert.That(Directory.GetDirectories(temp.Path, "ws-*").Length).IsEqualTo(0);
     }
+
+    [Test]
+    [Arguments(TypstProcessPriority.BelowNormal)]
+    [Arguments(TypstProcessPriority.Idle)]
+    public async Task Compiles_at_a_lowered_process_priority(TypstProcessPriority priority)
+    {
+        using var temp = new TemporaryDirectory("it-priority");
+        var compiler = await TypstAvailability.CreateCompilerAsync(CliTypstCompilerSettings.Default with { TempRoot = temp.Path, ProcessPriority = priority });
+
+        var result = await compiler.CompileMarkupAsync("= Low priority");
+
+        await Assert.That(result.IsSuccess).IsTrue();
+    }
 }

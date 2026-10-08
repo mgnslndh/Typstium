@@ -10,6 +10,8 @@ Typstium.CliTypstCompilerSettings.MaxConcurrency.get -> int
 Typstium.CliTypstCompilerSettings.MaxConcurrency.init -> void
 Typstium.CliTypstCompilerSettings.OrphanedWorkspaceAge.get -> System.TimeSpan
 Typstium.CliTypstCompilerSettings.OrphanedWorkspaceAge.init -> void
+Typstium.CliTypstCompilerSettings.ProcessPriority.get -> Typstium.TypstProcessPriority
+Typstium.CliTypstCompilerSettings.ProcessPriority.init -> void
 Typstium.CliTypstCompilerSettings.TempRoot.get -> string!
 Typstium.CliTypstCompilerSettings.TempRoot.init -> void
 Typstium.DirectoryTemplateProvider
@@ -75,6 +77,8 @@ Typstium.TypstCompileOptions.MemoryLimitBytes.get -> long?
 Typstium.TypstCompileOptions.MemoryLimitBytes.init -> void
 Typstium.TypstCompileOptions.Packages.get -> Typstium.TypstPackageOptions!
 Typstium.TypstCompileOptions.Packages.init -> void
+Typstium.TypstCompileOptions.ProcessPriority.get -> Typstium.TypstProcessPriority?
+Typstium.TypstCompileOptions.ProcessPriority.init -> void
 Typstium.TypstCompileOptions.Timeout.get -> System.TimeSpan
 Typstium.TypstCompileOptions.Timeout.init -> void
 Typstium.TypstCompileOptions.TypstCompileOptions() -> void
@@ -360,6 +364,10 @@ Typstium.TypstProcessOutputException
 Typstium.TypstProcessOutputException.Description.get -> string!
 Typstium.TypstProcessOutputException.TypstProcessOutputException(string! description) -> void
 Typstium.TypstProcessOutputException.TypstProcessOutputException(string! description, System.Exception? innerException) -> void
+Typstium.TypstProcessPriority
+Typstium.TypstProcessPriority.BelowNormal = 1 -> Typstium.TypstProcessPriority
+Typstium.TypstProcessPriority.Idle = 2 -> Typstium.TypstProcessPriority
+Typstium.TypstProcessPriority.Normal = 0 -> Typstium.TypstProcessPriority
 Typstium.TypstProcessStartException
 Typstium.TypstProcessStartException.ExecutablePath.get -> string!
 Typstium.TypstProcessStartException.TypstProcessStartException(string! executablePath, System.Exception! innerException) -> void
