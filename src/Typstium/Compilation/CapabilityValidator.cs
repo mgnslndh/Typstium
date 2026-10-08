@@ -15,7 +15,8 @@ internal static class CapabilityValidator
             case TypstOutput.PdfOutput pdf:
                 foreach (var standard in pdf.Options.Standards)
                 {
-                    if (!capabilities.PdfStandards.Contains(standard))
+                    // Standards Typstium doesn't know may come from a newer Typst: pass them through.
+                    if (PdfStandard.KnownInTypst015.Contains(standard) && !capabilities.PdfStandards.Contains(standard))
                     {
                         throw new TypstFeatureNotSupportedException($"PDF standard '{standard}'", capabilities.Version, requiredVersion: null);
                     }

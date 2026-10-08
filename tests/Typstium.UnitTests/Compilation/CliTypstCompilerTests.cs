@@ -161,6 +161,51 @@ public class CliTypstCompilerTests
     }
 
     [Test]
+    public async Task Paged_output_over_the_limit_is_a_status_without_reading_pages()
+    {
+        using var harness = new Harness(spec =>
+        {
+            var pattern = spec.Arguments.ToValues().Single(value => value.IndexOf("{0p}", StringComparison.Ordinal) >= 0);
+            File.WriteAllBytes(pattern.Replace("{0p}", "1"), new byte[600]);
+            File.WriteAllBytes(pattern.Replace("{0p}", "2"), new byte[600]);
+            return FakeProcessRunner.Exited(0);
+        });
+        var options = TypstCompileOptions.Default with { MaxOutputBytes = 1000 };
+
+        var result = await harness.Compiler.CompileMarkupAsync("x", TypstOutput.Png(), options);
+
+        await Assert.That(result.Status).IsEqualTo(TypstCompileStatus.OutputLimitExceeded);
+        await Assert.That(result.Document).IsNull();
+        await Assert.That(result.Diagnostics.Last().Id.Value).IsEqualTo("TYPST9001");
+        await Assert.That(harness.NoWorkspacesLeft).IsTrue();
+    }
+
+    [Test]
+    public async Task Pdf_standards_unknown_to_typstium_are_passed_through_to_typst()
+    {
+        using var harness = new Harness(_ => FakeProcessRunner.Exited(0, "%PDF"));
+        var output = TypstOutput.Pdf(PdfStandard.FromCliValue("a-5"));
+
+        var result = await harness.Compiler.CompileMarkupAsync("x", output);
+
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(harness.CompileSpecs.Single().Arguments.ToValues()).Contains("a-5");
+    }
+
+    [Test]
+    public async Task Known_pdf_standards_the_profile_lacks_are_refused_before_typst_runs()
+    {
+        var capabilities = TestCapabilities.V015 with
+        {
+            PdfStandards = ImmutableHashSet.Create(PdfStandard.Pdf17),
+        };
+        var request = TypstCompileRequest.ForMarkup("x").WithOutput(TypstOutput.Pdf(PdfStandard.A2b)).Build();
+
+        var exception = Assert.Throws<TypstFeatureNotSupportedException>(() => Typstium.Compilation.CapabilityValidator.Validate(request, capabilities));
+        await Assert.That(exception!.Message).Contains("a-2b");
+    }
+
+    [Test]
     public async Task Html_needs_the_html_capability()
     {
         using var harness = new Harness(_ => FakeProcessRunner.Exited(0, "<html/>"), html: false);

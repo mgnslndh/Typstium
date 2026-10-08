@@ -28,8 +28,8 @@ internal static class OutcomeMapper
                 return OutputLimitExceeded(diagnostics, exceeded.LimitBytes, invocation);
 
             case ProcessOutcome.Exited { ExitCode: 0 } exited:
-                var document = DocumentCollector.Collect(request.Output, exited.StandardOutput, layout);
-                if (document is TypstDocument.Paged paged && paged.Pages.Sum(page => (long)page.Length) > request.Options.MaxOutputBytes)
+                var document = DocumentCollector.Collect(request.Output, exited.StandardOutput, layout, request.Options.MaxOutputBytes);
+                if (document is null)
                 {
                     return OutputLimitExceeded(diagnostics, request.Options.MaxOutputBytes, invocation);
                 }
