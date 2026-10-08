@@ -158,10 +158,11 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
     }
 
     /// <summary>
-    /// Kills the process and anything it started. The Windows job object goes first: terminating it is one
-    /// system call, while Process.Kill(entireProcessTree: true) snapshots every process on the machine, which
-    /// takes seconds on a saturated CPU and holds up the thread-pool thread running other compiles' timeouts.
-    /// Without a job (non-Windows), the runner walks the tree itself (not available on netstandard2.0).
+    /// Kills the process and anything it started. Runs on the timer or cancellation callback, so it only makes
+    /// single system calls: terminating the Windows job object and killing the process stop Typst at once.
+    /// On .NET 8+ the tree walk follows on a dedicated thread, as a backstop for children outside the job (started
+    /// before it was attached) or with no job at all (non-Windows); it snapshots every process on the machine,
+    /// which takes seconds under load and must not hold a thread-pool thread. netstandard2.0 has no tree walk.
     /// </summary>
     private static void Kill(Process process, IProcessContainment containment)
     {
@@ -176,16 +177,26 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
 
         try
         {
-#if NET8_0_OR_GREATER
-            process.Kill(entireProcessTree: !containment.TerminatesTree);
-#else
             process.Kill();
-#endif
         }
         catch (Exception)
         {
             // Never throw from the kill callback (it may run on a timer thread); the outcome is decided by the flags.
         }
+
+#if NET8_0_OR_GREATER
+        _ = DedicatedThread.Run(() =>
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (Exception)
+            {
+                // The process may be gone or disposed by now; nothing is left to kill then.
+            }
+        });
+#endif
     }
 
     /// <summary>

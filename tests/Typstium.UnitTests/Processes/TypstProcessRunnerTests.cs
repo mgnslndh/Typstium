@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using Typstium.Processes;
 using Typstium.UnitTests.Testing;
@@ -108,11 +109,41 @@ public class TypstProcessRunnerTests
         await Assert.That(containment.PriorityAtAttach).IsEqualTo(current.PriorityClass);
     }
 
+    // A child the process starts before it joins its containment (a Windows job) is outside it; the kill must
+    // still reach it, or it keeps the pipes open and the run waits for it to finish on its own.
+    [Test]
+    public async Task Timeout_kills_children_started_before_the_process_joined_its_containment()
+    {
+        if (RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.Ordinal))
+        {
+            Skip.Test("The netstandard2.0 build has no process-tree walk; Typst starts no child processes (follow-up).");
+        }
+
+        var runner = new TypstProcessRunner(limit => new DelayedAttachContainment(ProcessContainment.Create(limit)));
+        var stopwatch = Stopwatch.StartNew();
+
+        var outcome = await runner.RunAsync(ShellCommands.Spec(ShellCommands.Sleep30(), timeout: TimeSpan.FromSeconds(2)), CancellationToken.None);
+
+        await Assert.That(outcome is ProcessOutcome.TimedOut).IsTrue();
+        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(15));
+    }
+
+    private sealed class DelayedAttachContainment(IProcessContainment inner) : IProcessContainment
+    {
+        public void Attach(Process process)
+        {
+            Thread.Sleep(1000);
+            inner.Attach(process);
+        }
+
+        public void Terminate() => inner.Terminate();
+
+        public void Dispose() => inner.Dispose();
+    }
+
     private sealed class PriorityRecordingContainment : IProcessContainment
     {
         public ProcessPriorityClass? PriorityAtAttach { get; private set; }
-
-        public bool TerminatesTree => false;
 
         public void Attach(Process process) => PriorityAtAttach = process.PriorityClass;
 
@@ -127,8 +158,6 @@ public class TypstProcessRunnerTests
 
     private sealed class ExitedBeforeAttachContainment : IProcessContainment
     {
-        public bool TerminatesTree => false;
-
         public void Attach(Process process)
         {
             process.WaitForExit();

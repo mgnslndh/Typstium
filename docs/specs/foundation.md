@@ -828,9 +828,11 @@ Runner behavior:
   all on dedicated threads (D40). Process pipes are synchronous streams on every target framework, so
   `ReadAsync` would block a thread-pool thread per pipe for the whole compile.
 - **Timeout:** a linked `CancellationTokenSource`. On timeout, the output cap or caller cancellation, the
-  runner terminates the Windows job object first (one system call), then kills the process. Only
-  without a job (non-Windows) does it walk the tree with `Kill(true)` on `net8.0`; `netstandard2.0`
-  elsewhere uses `Process.Kill()`.
+  callback terminates the Windows job object and kills the process: single system calls that stop Typst
+  at once. On `net8.0` a tree walk (`Kill(true)`) follows on a dedicated thread, as a backstop for children
+  outside the job (started before it was attached) or with no job (non-Windows). `netstandard2.0` has no
+  tree walk, so there a child started between `Start()` and the job attach can outlive the kill and hold
+  the pipes until it exits. Typst starts no child processes, so this is accepted (follow-ups doc).
 - **Caller cancellation** throws `OperationCanceledException` after the kill. It's never returned as an
   outcome.
 - **Paged output limit:** for paged output, the total size of `out/` is checked after exit. If it's over
@@ -1101,7 +1103,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D37 | Paged output size is checked from file lengths before any page is read | Read pages, then compare | A runaway compile can't exhaust memory before `MaxOutputBytes` applies |
 | D38 | Inputs are `TypstInputKey` / `TypstInput` / `TypstInputs`; values stay `string` and are always secret | `ImmutableDictionary<string, string>`; a `TypstInputValue` hierarchy (secret, computed); a per-input `IsSecret` flag | Validation lives on the key type and uniqueness and order on the set. Secrecy is a display policy separate from what kind of value it is, so it won't be a value subtype; values are usually customer data, so all stay redacted, and a per-input opt-out can be added later. Computed values, if added, are resolved by the builder at `Build()`, never inside a compiler, so the request stays plain, replayable data (decided in PR #1 review) |
 | D39 | Process priority: `CliTypstCompilerSettings.ProcessPriority` (default `Normal`), overridable per request with `TypstCompileOptions.ProcessPriority`; values `Normal`, `BelowNormal`, `Idle` | Default `BelowNormal`; compiler-only or request-only; above-normal values | `Normal` matches running `typst` from a shell, and hosts opt in with one line. Per-request overrides allow interactive and batch work through one compiler. Raising priority needs elevated rights on Unix. Named `ProcessPriority` to keep "priority" free for a future queue (decided in PR #1 review) |
-| D40 | Pipe I/O runs on dedicated threads, and the Windows job object is terminated before any tree walk | `ReadAsync` on pool threads; `Kill(entireProcessTree: true)` first | With every concurrency slot busy, blocked pool threads delayed the timeout's kill by up to 36 s, and the tree walk (a snapshot of every process) took seconds under load. Typstium never changes `ThreadPool` settings; they belong to the host (found in PR #1 review) |
+| D40 | Pipe I/O runs on dedicated threads; the kill callback terminates the job object and the process, and the tree walk runs afterwards on a dedicated thread | `ReadAsync` on pool threads; `Kill(entireProcessTree: true)` on the callback; job only, no tree walk | With every concurrency slot busy, blocked pool threads delayed the timeout's kill by up to 36 s, and the tree walk (a snapshot of every process) took seconds under load. Typstium never changes `ThreadPool` settings; they belong to the host (found in PR #1 review) |
 | D41 | Timing tests in their own project, `Typstium.TimingTests`, run alone after the others; CI runs `build.ps1`, the same script as a local run | TUnit categories with filters; `[NotInParallel]` in the integration project with every test module serialized; CI steps in YAML only | A project makes the boundary visible and needs no filter expressions; everything else stays parallel. One script for CI and local runs can't drift apart, and a Cake build can replace its body later (decided in PR #1 review) |
 
 ## 9. To verify while planning
