@@ -15,18 +15,21 @@ public abstract record TypstSourceFile
     /// <param name="FullPath">Absolute path on disk; set only for file sources compiled in place.</param>
     public sealed record Project(TypstPath Path, string? FullPath) : TypstSourceFile
     {
+        /// <inheritdoc/>
         public override string DisplayPath => FullPath ?? Path.RootRelative;
     }
 
     /// <summary>A <c>TypstVirtualFile</c> from the request.</summary>
     public sealed record Virtual(TypstPath Path) : TypstSourceFile
     {
+        /// <inheritdoc/>
         public override string DisplayPath => Path.RootRelative;
     }
 
     /// <summary>A file inside a Typst package, e.g. spec <c>@preview/cmarker:0.1.10</c>, path <c>lib.typ</c>.</summary>
     public sealed record Package(string Spec, TypstPath Path) : TypstSourceFile
     {
+        /// <inheritdoc/>
         public override string DisplayPath => Spec + Path.RootRelative;
     }
 
@@ -37,8 +40,10 @@ public abstract record TypstSourceFile
         {
         }
 
+        /// <summary>The single instance.</summary>
         public static Markup Instance { get; } = new();
 
+        /// <inheritdoc/>
         public override string DisplayPath => "<markup>";
     }
 }
