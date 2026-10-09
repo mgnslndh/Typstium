@@ -15,7 +15,9 @@ param(
     [Parameter(Mandatory)] [string] $SourceDirectory,
     [int] $TopClasses = 10,
     # Skip the GitHub Actions job summary, e.g. in jobs whose coverage another job merges and reports.
-    [switch] $NoJobSummary
+    [switch] $NoJobSummary,
+    # Also write the counts as JSON (totals and per namespace), for comparing runs (build/Compare-Coverage.ps1).
+    [string] $SummaryPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -259,6 +261,16 @@ $tables = @(
     (New-Table "Top $TopClasses classes by missed lines" @('Class', 'Missed', 'Gap', 'Line', 'File') ($worstClasses | ForEach-Object {
         $missed = Get-Missed $_.Counts
         [pscustomobject]@{ Kind = 'Item'; Name = $_.Name; Cells = @([string]$missed, (Format-Gap $missed $totalMissed), (Format-Rate $_.Counts.CoveredLines $_.Counts.Lines), $_.File) } })))
+
+if ($SummaryPath) {
+    $toJson = { param($counts) [ordered]@{ coveredLines = $counts.CoveredLines; lines = $counts.Lines; coveredBranches = $counts.CoveredBranches; branches = $counts.Branches; coveredMethods = $counts.CoveredMethods; methods = $counts.Methods } }
+    $summary = [ordered]@{
+        totals = & $toJson $total
+        namespaces = @($byNamespace | Where-Object Kind -eq 'Group' | ForEach-Object { $entry = & $toJson $_.Counts; $entry.Insert(0, 'name', $_.Name); $entry })
+    }
+    New-Item -ItemType Directory -Force (Split-Path $SummaryPath) | Out-Null
+    $summary | ConvertTo-Json -Depth 4 | Set-Content -Path $SummaryPath -Encoding utf8
+}
 
 foreach ($table in $tables) {
     Write-Table $table

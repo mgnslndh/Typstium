@@ -42,14 +42,24 @@ jobs:
 
   # One coverage report for the run: code counts as covered when either platform ran it (Unix-only code on Ubuntu,
   # Windows-only code such as job objects on Windows). Runs only when both platforms passed.
+  # On pull requests it also compares with the merge base on the base branch: a sticky comment and an advisory
+  # "Coverage" check that fails when line coverage drops more than MAX_LINE_DECREASE percentage points.
   coverage:
     name: Coverage (Windows + Ubuntu)
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+      pull-requests: write
     env:
       DOTNET_NOLOGO: 'true'
+      MAX_LINE_DECREASE: '0.5'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -60,6 +70,23 @@ jobs:
           merge-multiple: true
       - run: ./build.ps1 -CoverageReportOnly
         shell: pwsh
+      # Every run keeps its summary; runs on the base branch are the baselines pull requests compare with.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: artifacts/coverage/summary.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Compare with the merge base
+        if: github.event_name == 'pull_request'
+        run: ./build/Publish-CoverageComparison.ps1 -MaxLineDecrease $env:MAX_LINE_DECREASE
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.base_ref }}
 
   latest-typst:
     name: Early warning / latest Typst

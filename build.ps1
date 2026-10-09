@@ -81,7 +81,11 @@ function Invoke-CoverageReport {
         return
     }
 
-    $reportArguments = @{ CoberturaPath = (Join-Path $report 'Cobertura.xml'); SourceDirectory = (Join-Path $PSScriptRoot 'src') }
+    $reportArguments = @{
+        CoberturaPath = (Join-Path $report 'Cobertura.xml')
+        SourceDirectory = (Join-Path $PSScriptRoot 'src')
+        SummaryPath = (Join-Path $CoverageDirectory 'summary.json')
+    }
     & (Join-Path $PSScriptRoot 'build/Write-CoverageReport.ps1') @reportArguments -NoJobSummary:$NoJobSummary
 }
 
