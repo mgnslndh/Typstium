@@ -546,7 +546,11 @@ public abstract class TypstTemplateFile
 - The main file is `<last-name-segment>.typ` if it exists, otherwise `main.typ`. If neither exists, the
   template is reported as invalid with an `InvalidOperationException` naming both candidates.
 - All files under the template folder belong to the bundle.
-- `Version` is a SHA-256 over the sorted (path, content) pairs.
+- `Version` is `sha256:` plus 64 hex digits over an unambiguous framing, so no two bundles share one:
+  the tag `typstium-template-v2\0`, the file count, then per file in ordinal path order the UTF-8 path
+  length, the path and the SHA-256 of its content (lengths are 8-byte little-endian). Content is hashed per
+  file because a custom `TypstTemplateFile` stream may have no known length. Custom providers can use any
+  version that changes whenever a file does, such as an ETag.
 
 **`EmbeddedResourceTemplateProvider(Assembly assembly, string resourcePrefix)`**
 - Manifest resource names turn folders into dots, which makes `logo.svg` in a folder ambiguous. So the

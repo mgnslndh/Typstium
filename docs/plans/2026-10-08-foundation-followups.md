@@ -59,12 +59,12 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 
 ## Open gates
 
-- External review (2026-10-08, `docs/Typstium-review.md`, to be deleted once its findings are fixed):
+- External review (2026-10-08): all five findings fixed in PR #1; the review document was deleted once they were.
   - ~~#1 [P1] quadratic trace-frame regex in the diagnostic parser~~ Fixed: hand-written linear parser (D42), with a 1 MB unit test and an end-to-end timing test that timed out on the old parser.
   - ~~#2 [P2] orphan cleanup can delete live workspaces of another compiler sharing `TempRoot`~~ Fixed: a `.lease` file held open while a scratch folder is in use, and the workspace prepared inside the concurrency slot (D44).
   - ~~#3 [P2] Windows path aliases (trailing dots and spaces) and reserved device names~~ Fixed: portable-name rules for virtual files, template bundles and template names, plus `CreateNew` in the sandbox (D43).
   - ~~#4 [P3] extended UNC (`\\?\UNC\`) diagnostic paths are neither mapped nor scrubbed~~ Fixed: `SourcePathMapper` converts verbatim forms to ordinary paths and scrubs `\\?\UNC\` roots; an integration test compiles on `\\localhost\<drive>$` (skipped where the admin share isn't reachable).
-  - #5 [P3] the template version hash framing is ambiguous when file contents contain NUL bytes.
+  - ~~#5 [P3] the template version hash framing is ambiguous when file contents contain NUL bytes~~ Fixed: length-prefixed framing with a format tag, file count and per-file content hashes (spec 4.9).
 
 - ~~CI has not run yet~~ Done in PR #1: green on windows-latest, ubuntu-latest and the latest-Typst job after fixing relative diagnostic paths on Linux (`setup-typst@v5` confirmed). macOS is still untested.
 - Decide record value-equality semantics across the public API before the first release. (The XML-docs pass is done in PR #1: every public member is documented, and with the CS1591 suppression removed, the build fails on any undocumented public member.)
