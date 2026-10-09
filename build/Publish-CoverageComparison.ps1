@@ -4,7 +4,8 @@
 # Baseline: the successful CI run of the merge-base commit; if that has no summary (never built, or the artifact
 # expired), the latest successful push run of the base branch, and the comment says so.
 # Needs: gh (GH_TOKEN with pull-requests: write, checks: write, actions: read), git history (fetch-depth: 0), and
-# the environment below.
+# the environment below. Pull requests from forks or from Dependabot run with a read-only token: they get the
+# comparison in the job summary only, without the comment and the check.
 [CmdletBinding()]
 param(
     [string] $Summary = 'artifacts/coverage/summary.json',
@@ -23,11 +24,9 @@ $work = Join-Path ([System.IO.Path]::GetTempPath()) 'typstium-coverage-compariso
 Remove-Item -Recurse -Force $work -ErrorAction SilentlyContinue
 New-Item -ItemType Directory $work | Out-Null
 
-# A pull request from a fork gets a read-only token: report in the log only.
-if ($env:HEAD_REPOSITORY -and $env:HEAD_REPOSITORY -ne $repository) {
-    Write-Host "::warning::Pull request from a fork ($env:HEAD_REPOSITORY): the token can't comment or create checks, so the coverage comparison is skipped."
-    exit 0
-}
+$readOnlyReason = $(if ($env:HEAD_REPOSITORY -and $env:HEAD_REPOSITORY -ne $repository) { "a pull request from a fork ($env:HEAD_REPOSITORY)" }
+    elseif ($env:PR_AUTHOR -eq 'dependabot[bot]') { 'a Dependabot pull request' }
+    else { $null })
 
 # Downloads a run's coverage summary; returns its path, or null when the run has none (or it expired).
 function Get-RunSummary([string] $RunId) {
@@ -70,6 +69,15 @@ if ($baseline) {
 & (Join-Path $PSScriptRoot 'Compare-Coverage.ps1') @compareArguments
 $verdict = Get-Content $result -Raw | ConvertFrom-Json
 
+if ($env:GITHUB_STEP_SUMMARY) {
+    Get-Content $markdown | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
+}
+
+if ($readOnlyReason) {
+    Write-Host "::notice::Coverage $($verdict.conclusion), $($verdict.title). This is $readOnlyReason, whose token is read-only, so the comparison is in the job summary only."
+    exit 0
+}
+
 # One sticky comment, found by the marker Compare-Coverage.ps1 puts first.
 $existing = gh api "repos/$repository/issues/$pullRequest/comments" --paginate --jq '.[] | select(.body | startswith("<!-- typstium-coverage -->")) | .id' | Select-Object -First 1
 if ($existing) {
@@ -89,10 +97,6 @@ gh api --method POST "repos/$repository/check-runs" `
     -f "output[title]=$($verdict.title)" -F "output[summary]=@$markdown" | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw 'Creating the Coverage check run failed.'
-}
-
-if ($env:GITHUB_STEP_SUMMARY) {
-    Get-Content $markdown | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
 }
 
 Write-Host "Coverage comparison posted: $($verdict.conclusion), $($verdict.title)"
