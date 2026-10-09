@@ -49,7 +49,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 - Task 19: minor (deferred): no tests for name.typ-over-main.typ precedence, nested template names, nested files via directory provider; hasher cancellation only via ReadAsync; provider ctors lack XML docs
 - Task 20: minor (deferred): memory-cap test accepts any non-success (should exclude TimedOut); release-notes test needs network on first run (CI opt-in/skip); executable lookup cached statically across tests
 - Task 20: minor (deferred): page-order test does not assert the three pages differ
-- Task 21: minor (deferred): (NoWarn comment obsolete — suppression removed) actions pinned only to major tags (see "Later": pin to SHAs with Dependabot)
+- Task 21: minor (deferred): (NoWarn comment obsolete — suppression removed) actions pinned only to major tags (done: pinned to SHAs, kept current by Dependabot)
 
 ## Parked after the final review
 
@@ -75,7 +75,7 @@ Deferred findings and execution rulings from the subagent-driven implementation 
 - Later: a per-input way to mark a value safe to log (keys stay visible; values are redacted today), if diagnosing compiles needs it (D38).
 - Later (only if it shows up): Unicode normalization in duplicate detection. macOS can treat composed and decomposed forms of a name (`é`) as the same file; `CreateNew` in the sandbox already turns such a collision into an error rather than an overwrite.
 - Later: a Cake build that replaces the body of `build.ps1` (same step order as CI; D41).
-- Next, as the first pull request after the foundation merges (Dependabot reads its config from `main` only, and private repositories get version updates on every plan):
+- ~~Next, as the first pull request after the foundation merges~~ Done in the Dependabot pull request (`chore/dependabot`); Dependabot reads its config from `main` only, and private repositories get version updates on every plan:
   - `.github/dependabot.yml` with weekly, grouped updates for three ecosystems: `github-actions`, `nuget` (it reads the central `Directory.Packages.props`) and `dotnet-sdk` (`global.json`).
   - Pin CI's actions to commit SHAs instead of major tags (Task 21 noted it), with the version in a comment on each line, so a moved or compromised tag can't change what runs; Dependabot keeps the pins current. The actions moved to their Node 24 majors in PR #1: checkout v7, setup-dotnet v6, upload-artifact v7, download-artifact v8, setup-typst v5.
   - Workflows triggered by Dependabot pull requests get a read-only token, so `build/Publish-CoverageComparison.ps1` must skip the comment and the check for them (as it already does for forks, keyed on the actor `dependabot[bot]`) and keep the comparison in the job summary.
