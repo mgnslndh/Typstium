@@ -11,6 +11,9 @@ public sealed record BuildParameters(
 {
     public DirectoryPath RawCoverageDirectory => CoverageDirectory.Combine("raw");
 
+    // Cake matches target names ignoring case, so --target=coveragereport selects the task too.
+    public bool IsCoverageReportTarget => string.Equals(Target, "CoverageReport", StringComparison.OrdinalIgnoreCase);
+
     public static BuildParameters Create(ICakeContext context, string target) => new(
         target,
         context.Argument("configuration", "Release"),
