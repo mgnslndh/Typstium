@@ -1,0 +1,40 @@
+using System.Text.RegularExpressions;
+
+namespace Build.Cake.Extensions.Coverage.Cobertura;
+
+// Each machine records absolute paths (D:\... on Windows, /home/runner/... on Ubuntu). Made repo-relative, the same
+// file from several machines is one file to ReportGenerator, so a line counts as covered when any run hit it,
+// instead of being counted once per machine.
+public static class CoberturaPathNormalizer
+{
+    private static readonly Regex FileName = new("filename=\"([^\"]*)\"", RegexOptions.Compiled);
+
+    public static string ToRepoRelativePath(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        var index = Math.Max(normalized.LastIndexOf("/src/", StringComparison.Ordinal), normalized.LastIndexOf("/tests/", StringComparison.Ordinal));
+        return index >= 0 ? normalized[(index + 1)..] : normalized;
+    }
+
+    public static string ToRepoRelative(string coberturaXml) =>
+        FileName.Replace(coberturaXml, match => $"filename=\"{ToRepoRelativePath(match.Groups[1].Value)}\"");
+
+    // Copies every *.cobertura.xml of the source folder into the target folder, normalized; returns how many.
+    public static int NormalizeFiles(string sourceDirectory, string targetDirectory)
+    {
+        var files = Directory.Exists(sourceDirectory) ? Directory.GetFiles(sourceDirectory, "*.cobertura.xml") : [];
+        if (files.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"No *.cobertura.xml files in {sourceDirectory}. Run the tests with --coverage first, or copy CI's coverage artifacts there.");
+        }
+
+        Directory.CreateDirectory(targetDirectory);
+        foreach (var file in files)
+        {
+            File.WriteAllText(Path.Combine(targetDirectory, Path.GetFileName(file)), ToRepoRelative(File.ReadAllText(file)));
+        }
+
+        return files.Length;
+    }
+}
