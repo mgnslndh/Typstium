@@ -1,0 +1,11 @@
+{
+  "action": "synchronize",
+  "number": 42,
+  "pull_request": {
+    "number": 42,
+    "head": { "ref": "chore/cake-sdk", "sha": "0123456789abcdef0123456789abcdef01234567", "repo": { "full_name": "mgnslndh/Typstium" } },
+    "base": { "ref": "main", "sha": "89abcdef0123456789abcdef0123456789abcdef", "repo": { "full_name": "mgnslndh/Typstium" } },
+    "user": { "login": "mgnslndh" }
+  },
+  "repository": { "full_name": "mgnslndh/Typstium" }
+}

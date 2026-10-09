@@ -1,0 +1,111 @@
+{
+  "totals": {
+    "coveredLines": 1992,
+    "lines": 2124,
+    "coveredBranches": 937,
+    "branches": 1074,
+    "coveredMethods": 569,
+    "methods": 620
+  },
+  "namespaces": [
+    {
+      "name": "Typstium",
+      "coveredLines": 970,
+      "lines": 1039,
+      "coveredBranches": 334,
+      "branches": 405,
+      "coveredMethods": 382,
+      "methods": 424
+    },
+    {
+      "name": "Typstium.Processes",
+      "coveredLines": 180,
+      "lines": 199,
+      "coveredBranches": 39,
+      "branches": 46,
+      "coveredMethods": 28,
+      "methods": 32
+    },
+    {
+      "name": "Typstium.Executable",
+      "coveredLines": 96,
+      "lines": 109,
+      "coveredBranches": 59,
+      "branches": 73,
+      "coveredMethods": 28,
+      "methods": 31
+    },
+    {
+      "name": "Typstium.Workspace",
+      "coveredLines": 152,
+      "lines": 162,
+      "coveredBranches": 71,
+      "branches": 82,
+      "coveredMethods": 29,
+      "methods": 29
+    },
+    {
+      "name": "Typstium.Utilities",
+      "coveredLines": 21,
+      "lines": 29,
+      "coveredBranches": 33,
+      "branches": 40,
+      "coveredMethods": 7,
+      "methods": 8
+    },
+    {
+      "name": "Typstium.Compilation",
+      "coveredLines": 68,
+      "lines": 73,
+      "coveredBranches": 60,
+      "branches": 70,
+      "coveredMethods": 10,
+      "methods": 10
+    },
+    {
+      "name": "Typstium.Capabilities",
+      "coveredLines": 86,
+      "lines": 89,
+      "coveredBranches": 25,
+      "branches": 30,
+      "coveredMethods": 19,
+      "methods": 19
+    },
+    {
+      "name": "Typstium.Interop.Windows",
+      "coveredLines": 6,
+      "lines": 9,
+      "coveredBranches": 3,
+      "branches": 6,
+      "coveredMethods": 2,
+      "methods": 3
+    },
+    {
+      "name": "Typstium.Diagnostics",
+      "coveredLines": 269,
+      "lines": 270,
+      "coveredBranches": 229,
+      "branches": 234,
+      "coveredMethods": 39,
+      "methods": 39
+    },
+    {
+      "name": "Typstium.CommandLine",
+      "coveredLines": 106,
+      "lines": 107,
+      "coveredBranches": 72,
+      "branches": 76,
+      "coveredMethods": 20,
+      "methods": 20
+    },
+    {
+      "name": "Typstium.Templates",
+      "coveredLines": 38,
+      "lines": 38,
+      "coveredBranches": 12,
+      "branches": 12,
+      "coveredMethods": 5,
+      "methods": 5
+    }
+  ]
+}

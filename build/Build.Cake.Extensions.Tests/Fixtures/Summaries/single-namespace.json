@@ -1,0 +1,4 @@
+{
+  "totals": { "coveredLines": 5, "lines": 10, "coveredBranches": 0, "branches": 0, "coveredMethods": 1, "methods": 2, "extra": 1 },
+  "namespaces": { "name": "Solo", "coveredLines": 5, "lines": 10, "coveredBranches": 0, "branches": 0, "coveredMethods": 1, "methods": 2 }
+}
