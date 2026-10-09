@@ -41,7 +41,7 @@ public static partial class Program
         var arguments = new ProcessArgumentBuilder();
         if (parameters.Coverage)
         {
-            settings.ResultsDirectory = parameters.RawCoverageDirectory;
+            settings.ResultsDirectory = parameters.CoverageFiles.Raw;
             arguments.Append("--coverage").Append("--coverage-output-format").Append("cobertura");
         }
 

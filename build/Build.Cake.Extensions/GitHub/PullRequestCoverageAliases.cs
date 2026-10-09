@@ -32,14 +32,25 @@ public static class PullRequestCoverageAliases
         var cli = new GitHubCli(context);
         var work = context.Environment.GetSpecialPath(SpecialPath.LocalTemp).Combine("coverage-comparison-" + Guid.NewGuid().ToString("N"));
         System.IO.Directory.CreateDirectory(work.FullPath);
+        try
+        {
+            return Publish(context, cli, pullRequest, settings, work);
+        }
+        finally
+        {
+            System.IO.Directory.Delete(work.FullPath, recursive: true);
+        }
+    }
 
+    private static CoverageComparison Publish(ICakeContext context, GitHubCli cli, PullRequestContext pullRequest, PullRequestCoverageSettings settings, DirectoryPath work)
+    {
         var (baseline, label) = FindBaseline(cli, pullRequest, settings, work);
         var comparison = CoverageComparer.Compare(CoverageSummary.Read(settings.SummaryPath.FullPath), baseline, label, settings.Comparison);
-        gitHubActions.Commands.SetStepSummary(comparison.Markdown);
+        StepSummary.TryAppend(context, comparison.Markdown);
 
         if (pullRequest.ReadOnlyReason is { } reason)
         {
-            gitHubActions.Commands.Notice($"Coverage {comparison.Conclusion}, {comparison.Title}. This is {reason}, whose token is read-only, so the comparison is in the job summary only.");
+            context.GitHubActions().Commands.Notice($"Coverage {comparison.Conclusion}, {comparison.Title}. This is {reason}, whose token is read-only, so the comparison is in the job summary only.");
             return comparison;
         }
 

@@ -10,7 +10,7 @@ Setup(context =>
     // A fresh coverage run starts empty; the CoverageReport target works on raw files someone put there.
     if (parameters.Coverage && !parameters.IsCoverageReportTarget)
     {
-        EnsureDirectoryDoesNotExist(parameters.CoverageDirectory, new EnsureDirectoryDoesNotExistSettings { Recursive = true, Force = true });
+        EnsureDirectoryDoesNotExist(parameters.CoverageFiles.Root, new EnsureDirectoryDoesNotExistSettings { Recursive = true, Force = true });
     }
 
     return parameters;

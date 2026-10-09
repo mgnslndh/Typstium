@@ -24,16 +24,16 @@ updates:
         patterns: ['System.*', 'Microsoft.Bcl.*']
       build-tooling:
         patterns: ['Polyfill', 'Microsoft.CodeAnalysis.*', 'ReportGenerator.Core']
-      # The build (build/): Cake.Sdk in global.json's msbuild-sdks and the Cake packages move together.
+      # The build (build/): Cake.Sdk in global.json's msbuild-sdks, the Cake packages and Spectre.Console move together.
+      # Spectre.Console is pre-1.0 and Cake.Cli is compiled against it; build/Build fails (NU1605) when Cake needs a
+      # newer one than Directory.Packages.props pins.
       cake:
-        patterns: ['Cake.*']
+        patterns: ['Cake.*', 'Spectre.Console*']
     ignore:
       - dependency-name: 'System.*'
         update-types: ['version-update:semver-major']
       - dependency-name: 'Microsoft.Bcl.*'
         update-types: ['version-update:semver-major']
-      # Spectre.Console is pre-1.0 and Cake.Cli is compiled against one version of it: it moves only with Cake.
-      - dependency-name: 'Spectre.Console*'
 
   # global.json: stays on the .NET 10 SDK band until moving is decided.
   - package-ecosystem: dotnet-sdk

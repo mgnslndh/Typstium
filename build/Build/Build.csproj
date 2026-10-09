@@ -7,11 +7,16 @@
 
   <ItemGroup>
     <PackageReference Include="Cake.BuildSystems.Module" />
+    <!-- Cake.Cli (through Cake.Sdk) depends on Spectre.Console, and Build.Cake.Extensions compiles against the version in
+         Directory.Packages.props. Referencing it here makes NuGet fail the build (NU1605, a downgrade) when a Cake
+         update needs a newer Spectre.Console than the one pinned, instead of silently running a different version. -->
+    <PackageReference Include="Spectre.Console" />
     <ProjectReference Include="../Build.Cake.Extensions/Build.Cake.Extensions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Build.Cake.Extensions.Coverage" />
+    <Using Include="Build.Cake.Extensions.Coverage.Cobertura" />
     <Using Include="Build.Cake.Extensions.Coverage.Comparison" />
     <Using Include="Build.Cake.Extensions.GitHub" />
   </ItemGroup>

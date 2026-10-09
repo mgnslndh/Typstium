@@ -11,14 +11,24 @@ namespace Build.Cake.Extensions.Coverage;
 // report: raw/ → relative/ (repo-relative paths) → report/Cobertura.xml, with ReportGenerator in process.
 internal static class CoverageMerger
 {
-    public static FilePath Merge(ICakeContext context, DirectoryPath coverageDirectory, IReadOnlyList<string> products)
+    public static FilePath Merge(ICakeContext context, CoverageReportSettings settings)
     {
-        var relative = coverageDirectory.Combine("relative");
-        var report = coverageDirectory.Combine("report");
+        var relative = settings.Files.Relative;
+        var report = settings.Files.Report;
+        var products = settings.Products;
         context.EnsureDirectoryDoesNotExist(relative, new EnsureDirectoryDoesNotExistSettings { Recursive = true, Force = true });
         context.EnsureDirectoryDoesNotExist(report, new EnsureDirectoryDoesNotExistSettings { Recursive = true, Force = true });
 
-        var count = CoberturaPathNormalizer.NormalizeFiles(coverageDirectory.Combine("raw").FullPath, relative.FullPath);
+        int count;
+        try
+        {
+            count = CoberturaPathNormalizer.NormalizeFiles(settings.Files.Raw.FullPath, relative.FullPath, settings.Sources);
+        }
+        catch (InvalidOperationException exception)
+        {
+            throw new CakeException($"{exception.Message} {settings.MissingCoverageHint}".TrimEnd());
+        }
+
         context.Information("Merging {0} coverage file(s) for {1}", count, string.Join(", ", products));
 
         var configuration = new ReportConfigurationBuilder().Create(new Dictionary<string, string>
@@ -36,6 +46,6 @@ internal static class CoverageMerger
             throw new CakeException($"ReportGenerator couldn't merge the coverage files in {relative.FullPath}.");
         }
 
-        return report.CombineWithFilePath("Cobertura.xml");
+        return settings.Files.MergedReport;
     }
 }

@@ -4,6 +4,9 @@ namespace Build.Cake.Extensions.Tests;
 // on Windows: reading normalizes line endings, so comparisons are about content, not the machine that wrote them.
 internal static class Fixture
 {
+    // The repository layout every fixture uses: code under src/ and tests/, one folder per product under src/.
+    public static Build.Cake.Extensions.Coverage.Cobertura.SourceLayout Layout { get; } = new(["src", "tests"], "src");
+
     public static string Path(params string[] parts) => System.IO.Path.Combine([AppContext.BaseDirectory, "Fixtures", .. parts]);
 
     public static string Read(params string[] parts) => File.ReadAllText(Path(parts)).ReplaceLineEndings("\n");
@@ -12,7 +15,7 @@ internal static class Fixture
     // fixture's src/<assembly>/ folders.
     public static Build.Cake.Extensions.Coverage.Reporting.CoverageReport BuildReport(string fixture)
     {
-        var classes = Build.Cake.Extensions.Coverage.Cobertura.CoberturaReader.Read(Read(fixture, "Cobertura.xml"));
+        var classes = Build.Cake.Extensions.Coverage.Cobertura.CoberturaReader.Read(Read(fixture, "Cobertura.xml"), Layout.ProductsFolder);
         var publicTypes = classes.Select(c => c.Assembly).Distinct(StringComparer.Ordinal)
             .ToDictionary(assembly => assembly, assembly => Build.Cake.Extensions.Coverage.Reporting.PublicApiCatalog.Read(Path(fixture, "src", assembly)));
         return Build.Cake.Extensions.Coverage.Reporting.CoverageReportBuilder.Build(classes, publicTypes, topClasses: 10);

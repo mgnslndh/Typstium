@@ -75,6 +75,8 @@ build/
       Reporting/                   PublicApiCatalog, NamespaceResolver, CoverageReportBuilder, CoverageTable
       Rendering/                   SpectreTableRenderer, MarkdownTableRenderer
       Comparison/                  CoverageComparer, CoverageComparisonOptions, CoverageComparison
+      Cobertura/SourceLayout.cs    the repository's code folders (src, tests) and products folder (src)
+      CoverageLayout.cs            raw/, relative/, report/ and summary.json under one root
       CoverageMerger.cs            ReportGenerator.Core in process (edge)
       CoverageReportSettings.cs    inputs of the report
       CoverageAliases.cs           ReportCoverage: section 6 end to end (edge)
@@ -84,6 +86,7 @@ build/
       PullRequestContext.cs        the event plus repository and base ref; whether the token is read-only
       WorkflowRun.cs               rows of `gh run list --json`
       GitHubJson.cs                `gh api` request bodies; finding the sticky comment
+      StepSummary.cs               appends to the job summary when GITHUB_STEP_SUMMARY exists (edge)
       PullRequestCoverageSettings.cs
       PullRequestCoverageAliases.cs PublishPullRequestCoverage: baseline lookup, sticky comment, check run (edge)
   Build.Cake.Extensions.Tests/
@@ -96,7 +99,9 @@ hold. The PowerShell scripts under `build/` are deleted at the end of the migrat
 
 ## 4. Boundaries
 
-- **`Build.Cake.Extensions` never mentions Typstium.** Everything specific to the repo arrives through options:
+- **`Build.Cake.Extensions` never mentions Typstium or this repository's layout.** Everything specific to the repo
+  arrives through options, including the folder layout (`SourceLayout`, `CoverageLayout`) and the hint shown when
+  there are no raw coverage files:
   - the comment marker
   - the footer text
   - the product list
@@ -403,10 +408,12 @@ their end-to-end test:
 - `Spectre.Console` and `Spectre.Console.Testing` (0.57.2, the version Cake.Cli ships)
 
 **`dependabot.yml`.** Add a `cake` group to the NuGet ecosystem with patterns `Cake.*` and `Spectre.Console*`, so
-Cake.Sdk (in `global.json` `msbuild-sdks`), Cake.Common and Spectre.Console move together.
+Cake.Sdk (in `global.json` `msbuild-sdks`), Cake.Common and Spectre.Console move together. ReportGenerator.Core
+joins the `build-tooling` group.
 
-Spectre.Console is pre-1.0, and Cake.Cli is compiled against 0.57.2. Independent Spectre.Console bumps are
-therefore ignored, and it moves only when Cake.Cli does. This ignore is removed if it proves noisy.
+Spectre.Console is pre-1.0, and Cake.Cli is compiled against 0.57.2. `build/Build` references it directly, so NuGet
+fails the build (NU1605, a package downgrade) when a Cake update needs a newer Spectre.Console than the pinned one.
+The skew can't pass silently.
 
 **`.gitattributes`.** Add `build.sh text eol=lf`.
 

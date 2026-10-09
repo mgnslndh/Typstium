@@ -5,7 +5,7 @@ namespace Build.Cake.Extensions.Tests.Coverage.Cobertura;
 
 public class CoberturaReaderTests
 {
-    private static IReadOnlyList<ClassCoverage> EdgeCases() => CoberturaReader.Read(Fixture.Read("EdgeCases", "Cobertura.xml"));
+    private static IReadOnlyList<ClassCoverage> EdgeCases() => CoberturaReader.Read(Fixture.Read("EdgeCases", "Cobertura.xml"), "src");
 
     [Test]
     public async Task Counts_lines_branches_and_called_methods()
@@ -35,6 +35,15 @@ public class CoberturaReaderTests
     }
 
     [Test]
+    public async Task Products_can_live_in_another_folder()
+    {
+        const string xml = """<coverage><packages><package name="P"><classes><class name="P.A" filename="/work/lib/P/Api/A.cs"><lines /></class></classes></package></packages></coverage>""";
+
+        await Assert.That(CoberturaReader.Read(xml, "lib").Single().File).IsEqualTo("Api/A.cs");
+        await Assert.That(CoberturaReader.Read(xml, "src").Single().File).IsEqualTo("A.cs");
+    }
+
+    [Test]
     public async Task A_class_without_lines_has_zero_counts()
     {
         await Assert.That(EdgeCases().Single(c => c.Name == "Alpha.Empty").Counts).IsEqualTo(CoverageCounts.Zero);
@@ -43,7 +52,7 @@ public class CoberturaReaderTests
     [Test]
     public async Task Reads_the_real_report()
     {
-        var classes = CoberturaReader.Read(Fixture.Read("Real", "Cobertura.xml"));
+        var classes = CoberturaReader.Read(Fixture.Read("Real", "Cobertura.xml"), "src");
         var summary = Build.Cake.Extensions.Coverage.Model.CoverageSummary.FromJson(Fixture.Read("Real", "expected", "summary.json"));
 
         await Assert.That(CoverageCounts.Sum(classes.Select(c => c.Counts))).IsEqualTo(summary.Totals);

@@ -9,7 +9,8 @@ public static class CoberturaReader
 {
     private static readonly Regex Condition = new(@"\((\d+)/(\d+)\)", RegexOptions.Compiled);
 
-    public static IReadOnlyList<ClassCoverage> Read(string coberturaXml)
+    // productsFolder holds one folder per assembly (src/<assembly>/); file names are made relative to it.
+    public static IReadOnlyList<ClassCoverage> Read(string coberturaXml, string productsFolder)
     {
         var document = XDocument.Parse(coberturaXml);
         var result = new List<ClassCoverage>();
@@ -18,7 +19,7 @@ public static class CoberturaReader
             var assembly = Attribute(package, "name");
             foreach (var type in package.Elements("classes").Elements("class"))
             {
-                result.Add(new ClassCoverage(assembly, Attribute(type, "name"), RelativeToProduct(Attribute(type, "filename"), assembly), Count(type)));
+                result.Add(new ClassCoverage(assembly, Attribute(type, "name"), RelativeToProduct(Attribute(type, "filename"), $"{productsFolder}/{assembly}/"), Count(type)));
             }
         }
 
@@ -50,10 +51,9 @@ public static class CoberturaReader
     }
 
     // Paths are absolute, or repo-relative (src/<assembly>/...) when merged from several machines.
-    private static string RelativeToProduct(string fileName, string assembly)
+    private static string RelativeToProduct(string fileName, string marker)
     {
         var file = fileName.Replace('\\', '/');
-        var marker = $"src/{assembly}/";
         if (file.StartsWith(marker, StringComparison.Ordinal))
         {
             return file[marker.Length..];
