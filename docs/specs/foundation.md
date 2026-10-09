@@ -1090,6 +1090,9 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 - a second job with the latest Typst release, allowed to fail, as an early warning for format changes
 - every job runs `./build.ps1`, the same script used locally: build, unit tests, integration tests,
   then the timing tests alone (D41)
+- the pinned-Typst jobs run `./build.ps1 -Coverage` (D45): coverage of the unit and integration tests,
+  merged across test projects and target frameworks, printed as a table per namespace of each project
+  under `src/` (line, branch, method; assembly subtotals and a total) and written to the job summary
 
 ## 8. Decisions
 
@@ -1139,6 +1142,7 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 | D42 | The human-format diagnostic parser matches lines by hand, without regular expressions, in time linear in stderr size | Regexes with match timeouts; `RegexOptions.NonBacktracking` | A template controls what stderr contains, and the old trace-frame pattern backtracked quadratically: seconds for one 20,000-character line, hours at the 1 MB cap, on the host after Typst had exited. `NonBacktracking` needs .NET 7+, and timeouts throw mid-parse and need a fallback per pattern. The library's remaining regexes are linear (anchored single quantifiers or non-overlapping classes); only `SourcePathMapper.PackagePath` sees stderr (found in the 2026-10-08 review) |
 | D43 | Portable names for files Typstium writes and for template names, on every platform; `TypstPath` stays permissive; the sandbox writes with `CreateNew` | Validate only on Windows; validate in `TypstPath`; trust the name rules alone | Windows aliases trailing dots and spaces and reserves device names, so two accepted virtual files could become one (found in the 2026-10-08 review). Checking everywhere keeps requests portable, as rejecting case-only duplicates already does. `TypstPath` also reads back paths Typst prints, which on Linux may use those names. `CreateNew` turns any alias the rules miss (8.3 short names) into an error instead of a silent overwrite |
 | D44 | Scratch folders hold a `.lease` file open with `FileShare.None`, and the cleaner deletes only folders whose lease it can open; the `MaxConcurrency` slot is taken before the workspace is prepared | Age only; a PID file; preparing workspaces before the queue | `TempRoot` is shared machine-wide by default, and age can't tell another compiler's live folder (infinite timeout, long queue) from an abandoned one (found in the 2026-10-08 review). A held lock dies with its process, unlike a PID file, which can be reused. Preparing inside the slot keeps a long queue from holding one copied template per waiting request |
+| D45 | Coverage with the coverage extension TUnit already brings (Cobertura), merged with ReportGenerator run through `dnx`; unit and integration tests only; products are the projects under `src/`; opt-in with `build.ps1 -Coverage`, used by CI | Coverlet; a tool manifest; coverage of the timing tests; always on | No new package in the test projects, and `dnx` needs only the .NET 10 SDK `global.json` already requires. Instrumentation would distort the timing tests' wall-clock bounds and they add little coverage. Deriving products from `src/` keeps test infrastructure out and new products in without editing the script (decided in PR #1 review) |
 
 ## 9. To verify while planning
 

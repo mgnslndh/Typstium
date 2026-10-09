@@ -29,8 +29,9 @@ jobs:
         with:
           typst-version: ${{ matrix.typst }}
       - run: typst --version
-      # The same steps as a local run: build, unit, integration, then the timing tests alone.
-      - run: ./build.ps1
+      # The same steps as a local run: build, unit, integration, then the timing tests alone. -Coverage adds a
+      # coverage table (unit + integration tests) to the log and to this job's summary.
+      - run: ./build.ps1 -Coverage
         shell: pwsh
 
   latest-typst:
