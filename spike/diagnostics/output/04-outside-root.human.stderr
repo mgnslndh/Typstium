@@ -1,0 +1,9 @@
+error: path `"../secret.txt"` would escape the project root
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\04-outside-root.typ:1:6
+  │
+1 │ #read("../secret.txt")
+  │       ^^^^^^^^^^^^^^^
+  │
+  = hint: cannot access files outside of the project sandbox
+  = hint: you can adjust the project root with the `--root` argument
+

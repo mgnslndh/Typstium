@@ -1,0 +1,26 @@
+# Introduction
+
+{{ product | md }} {{ version | md }} was released on {{ date | md }}. {{ summary | md }}
+
+![Fjordlight logo](/logo.png)
+
+{{~ for section in sections ~}}
+
+# {{ section.title | md }}
+{{~ for group in section.groups ~}}
+
+## {{ group.title | md }}
+
+{{~ for item in group.items ~}}
+- {{ item.text | md }}{{ if item.issue }} ([#{{ item.issue }}](https://example.com/issues/{{ item.issue }})){{ end }}
+{{~ end ~}}
+{{~ end ~}}
+{{~ end ~}}
+
+# Contributors
+
+| Name | Changes |
+|------|--------:|
+{{~ for c in contributors ~}}
+| {{ c.name | md }} | {{ c.changes }} |
+{{~ end ~}}

@@ -1,0 +1,4 @@
+parallel=1  200 compiles in 10410 ms  => 19 docs/s
+parallel=4  200 compiles in 4670 ms  => 42 docs/s
+parallel=8  200 compiles in 3537 ms  => 56 docs/s
+parallel=16  200 compiles in 3175 ms  => 62 docs/s

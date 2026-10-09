@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / Typst ${{ matrix.typst }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        typst: ['0.15.1']
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_NOLOGO: 'true'
+      TYPSTIUM_REQUIRE_TYPST: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: typst-community/setup-typst@v5
+        with:
+          typst-version: ${{ matrix.typst }}
+      - run: typst --version
+      # The same steps as a local run: build, unit, integration, then the timing tests alone. -Coverage prints this
+      # platform's coverage tables to the log; the coverage job below merges both platforms for the job summary.
+      - run: ./build.ps1 -Coverage -NoJobSummary
+        shell: pwsh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.os }}
+          path: artifacts/coverage/raw/*.cobertura.xml
+          if-no-files-found: error
+          retention-days: 7
+
+  # One coverage report for the run: code counts as covered when either platform ran it (Unix-only code on Ubuntu,
+  # Windows-only code such as job objects on Windows). Runs only when both platforms passed.
+  # On pull requests it also compares with the merge base on the base branch: a sticky comment and an advisory
+  # "Coverage" check that fails when line coverage drops more than MAX_LINE_DECREASE percentage points.
+  coverage:
+    name: Coverage (Windows + Ubuntu)
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+      pull-requests: write
+    env:
+      DOTNET_NOLOGO: 'true'
+      MAX_LINE_DECREASE: '0.5'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-*
+          path: artifacts/coverage/raw
+          merge-multiple: true
+      - run: ./build.ps1 -CoverageReportOnly
+        shell: pwsh
+      # Every run keeps its summary; runs on the base branch are the baselines pull requests compare with.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-summary
+          path: artifacts/coverage/summary.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Compare with the merge base
+        if: github.event_name == 'pull_request'
+        run: ./build/Publish-CoverageComparison.ps1 -MaxLineDecrease $env:MAX_LINE_DECREASE
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.base_ref }}
+
+  latest-typst:
+    name: Early warning / latest Typst
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      DOTNET_NOLOGO: 'true'
+      TYPSTIUM_REQUIRE_TYPST: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: typst-community/setup-typst@v5
+        with:
+          typst-version: latest
+      - run: typst --version
+      # The same steps as a local run: build, unit, integration, then the timing tests alone.
+      - run: ./build.ps1
+        shell: pwsh

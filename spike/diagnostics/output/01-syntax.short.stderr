@@ -1,0 +1,4 @@
+\\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:3:9: error: unclosed delimiter
+\\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:3:14: error: expected comma
+\\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:5:4: error: expected comma
+\\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:5:10: error: expected identifier

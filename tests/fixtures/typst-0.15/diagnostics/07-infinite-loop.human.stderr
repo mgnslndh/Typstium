@@ -1,0 +1,6 @@
+error: condition is always true
+  ┌─ {ROOT}\07-infinite-loop.typ:1:7
+  │
+1 │ #while true {}
+  │        ^^^^
+

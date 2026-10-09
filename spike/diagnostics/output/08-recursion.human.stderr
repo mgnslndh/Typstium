@@ -1,0 +1,9 @@
+error: maximum function call depth exceeded
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\08-recursion.typ:1:12
+  │
+1 │ #let f(n) = f(n + 1)
+  │             ^^^^^^^^
+
+  while calling `f` at \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\08-recursion.typ:2:1
+    f(0)
+

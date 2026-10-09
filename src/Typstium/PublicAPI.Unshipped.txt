@@ -1,0 +1,881 @@
+#nullable enable
+Typstium.CliTypstCompiler
+Typstium.CliTypstCompiler.CliTypstCompiler(Typstium.ITypstExecutableResolver! resolver, Typstium.CliTypstCompilerSettings! settings) -> void
+Typstium.CliTypstCompiler.CompileAsync(Typstium.TypstCompileRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+Typstium.CliTypstCompilerSettings
+Typstium.CliTypstCompilerSettings.<Clone>$() -> Typstium.CliTypstCompilerSettings!
+Typstium.CliTypstCompilerSettings.CliTypstCompilerSettings() -> void
+Typstium.CliTypstCompilerSettings.Equals(Typstium.CliTypstCompilerSettings? other) -> bool
+Typstium.CliTypstCompilerSettings.MaxConcurrency.get -> int
+Typstium.CliTypstCompilerSettings.MaxConcurrency.init -> void
+Typstium.CliTypstCompilerSettings.OrphanedWorkspaceAge.get -> System.TimeSpan
+Typstium.CliTypstCompilerSettings.OrphanedWorkspaceAge.init -> void
+Typstium.CliTypstCompilerSettings.ProcessPriority.get -> Typstium.TypstProcessPriority
+Typstium.CliTypstCompilerSettings.ProcessPriority.init -> void
+Typstium.CliTypstCompilerSettings.TempRoot.get -> string!
+Typstium.CliTypstCompilerSettings.TempRoot.init -> void
+Typstium.DirectoryTemplateProvider
+Typstium.DirectoryTemplateProvider.DirectoryTemplateProvider(string! rootDirectory) -> void
+Typstium.DirectoryTemplateProvider.GetTemplateAsync(Typstium.TypstTemplateName! name, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Typstium.TypstTemplate?>
+Typstium.DirectoryTemplateProvider.RootDirectory.get -> string!
+Typstium.EmbeddedResourceTemplateProvider
+Typstium.EmbeddedResourceTemplateProvider.EmbeddedResourceTemplateProvider(System.Reflection.Assembly! assembly, string! resourcePrefix) -> void
+Typstium.EmbeddedResourceTemplateProvider.GetTemplateAsync(Typstium.TypstTemplateName! name, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Typstium.TypstTemplate?>
+Typstium.ITemplateProvider
+Typstium.ITemplateProvider.GetTemplateAsync(Typstium.TypstTemplateName! name, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Typstium.TypstTemplate?>
+Typstium.ITypstCompiler
+Typstium.ITypstCompiler.CompileAsync(Typstium.TypstCompileRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+Typstium.ITypstExecutableLocator
+Typstium.ITypstExecutableLocator.LocateAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Typstium.TypstLocatorResult!>
+Typstium.ITypstExecutableLocator.Name.get -> string!
+Typstium.ITypstExecutableResolver
+Typstium.ITypstExecutableResolver.ResolveAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Typstium.TypstExecutable!>
+Typstium.PdfStandard
+Typstium.PdfStandard.CliValue.get -> string!
+Typstium.PdfStandard.Equals(Typstium.PdfStandard? other) -> bool
+Typstium.TypstArgument
+Typstium.TypstArgument.Equals(Typstium.TypstArgument? other) -> bool
+Typstium.TypstArgument.IsSecret.get -> bool
+Typstium.TypstArgument.Value.get -> string!
+Typstium.TypstArguments
+Typstium.TypstArguments.Add(string! value) -> Typstium.TypstArguments!
+Typstium.TypstArguments.AddRange(Typstium.TypstArguments! arguments) -> Typstium.TypstArguments!
+Typstium.TypstArguments.AddSecret(string! value) -> Typstium.TypstArguments!
+Typstium.TypstArguments.AddSwitch(string! name, string! value) -> Typstium.TypstArguments!
+Typstium.TypstArguments.AddSwitchSecret(string! name, string! value) -> Typstium.TypstArguments!
+Typstium.TypstArguments.Count.get -> int
+Typstium.TypstArguments.Equals(Typstium.TypstArguments? other) -> bool
+Typstium.TypstArguments.GetEnumerator() -> System.Collections.Generic.IEnumerator<Typstium.TypstArgument!>!
+Typstium.TypstArguments.IndexOf(string! value) -> int
+Typstium.TypstArguments.Insert(int index, Typstium.TypstArgument! argument) -> Typstium.TypstArguments!
+Typstium.TypstArguments.RemoveAt(int index) -> Typstium.TypstArguments!
+Typstium.TypstArguments.Render() -> string!
+Typstium.TypstArguments.RenderSafe() -> string!
+Typstium.TypstArguments.SetItem(int index, Typstium.TypstArgument! argument) -> Typstium.TypstArguments!
+Typstium.TypstArguments.this[int index].get -> Typstium.TypstArgument!
+Typstium.TypstCompileException
+Typstium.TypstCompileException.Result.get -> Typstium.TypstCompileResult!
+Typstium.TypstCompileException.TypstCompileException(Typstium.TypstCompileResult! result) -> void
+Typstium.TypstCompileOptions
+Typstium.TypstCompileOptions.<Clone>$() -> Typstium.TypstCompileOptions!
+Typstium.TypstCompileOptions.ArgumentCustomization.get -> System.Func<Typstium.TypstArguments!, Typstium.TypstArguments!>?
+Typstium.TypstCompileOptions.ArgumentCustomization.init -> void
+Typstium.TypstCompileOptions.CreationTimestamp.get -> Typstium.TypstCreationTimestamp!
+Typstium.TypstCompileOptions.CreationTimestamp.init -> void
+Typstium.TypstCompileOptions.Equals(Typstium.TypstCompileOptions? other) -> bool
+Typstium.TypstCompileOptions.ExtraArguments.get -> Typstium.TypstArguments!
+Typstium.TypstCompileOptions.ExtraArguments.init -> void
+Typstium.TypstCompileOptions.ExtraGlobalArguments.get -> Typstium.TypstArguments!
+Typstium.TypstCompileOptions.ExtraGlobalArguments.init -> void
+Typstium.TypstCompileOptions.Fonts.get -> Typstium.TypstFontOptions!
+Typstium.TypstCompileOptions.Fonts.init -> void
+Typstium.TypstCompileOptions.Jobs.get -> int?
+Typstium.TypstCompileOptions.Jobs.init -> void
+Typstium.TypstCompileOptions.MaxOutputBytes.get -> long
+Typstium.TypstCompileOptions.MaxOutputBytes.init -> void
+Typstium.TypstCompileOptions.MemoryLimitBytes.get -> long?
+Typstium.TypstCompileOptions.MemoryLimitBytes.init -> void
+Typstium.TypstCompileOptions.Packages.get -> Typstium.TypstPackageOptions!
+Typstium.TypstCompileOptions.Packages.init -> void
+Typstium.TypstCompileOptions.ProcessPriority.get -> Typstium.TypstProcessPriority?
+Typstium.TypstCompileOptions.ProcessPriority.init -> void
+Typstium.TypstCompileOptions.Timeout.get -> System.TimeSpan
+Typstium.TypstCompileOptions.Timeout.init -> void
+Typstium.TypstCompileOptions.TypstCompileOptions() -> void
+Typstium.TypstCompileRequest
+Typstium.TypstCompileRequest.<Clone>$() -> Typstium.TypstCompileRequest!
+Typstium.TypstCompileRequest.Equals(Typstium.TypstCompileRequest? other) -> bool
+Typstium.TypstCompileRequest.Inputs.get -> Typstium.TypstInputs!
+Typstium.TypstCompileRequest.Inputs.init -> void
+Typstium.TypstCompileRequest.Options.get -> Typstium.TypstCompileOptions!
+Typstium.TypstCompileRequest.Options.init -> void
+Typstium.TypstCompileRequest.Output.get -> Typstium.TypstOutput!
+Typstium.TypstCompileRequest.Output.init -> void
+Typstium.TypstCompileRequest.Source.get -> Typstium.TypstSource!
+Typstium.TypstCompileRequest.Source.init -> void
+Typstium.TypstCompileRequest.TypstCompileRequest(Typstium.TypstSource! source) -> void
+Typstium.TypstCompileRequestBuilder
+Typstium.TypstCompileRequestBuilder.Build() -> Typstium.TypstCompileRequest!
+Typstium.TypstCompileRequestBuilder.ConfigureOptions(System.Func<Typstium.TypstCompileOptions!, Typstium.TypstCompileOptions!>! configure) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.ToPdf(params Typstium.PdfStandard![]! standards) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.ToPng(int ppi = 144) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.ToSvg() -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithFile(Typstium.TypstVirtualFile! file) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithFile(string! path, System.ReadOnlyMemory<byte> content) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithInput(Typstium.TypstInput! input) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithInput(string! key, string! value) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithJson<T>(string! path, T value) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithJson<T>(string! path, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithJson<T>(string! path, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithJsonInput<T>(string! key, T value) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithJsonInput<T>(string! key, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithJsonInput<T>(string! key, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithOptions(Typstium.TypstCompileOptions! options) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithOutput(Typstium.TypstOutput! output) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileRequestBuilder.WithText(string! path, string! text) -> Typstium.TypstCompileRequestBuilder!
+Typstium.TypstCompileResult
+Typstium.TypstCompileResult.Diagnostics.get -> System.Collections.Immutable.ImmutableArray<Typstium.TypstDiagnostic!>
+Typstium.TypstCompileResult.Document.get -> Typstium.TypstDocument?
+Typstium.TypstCompileResult.EnsureSuccess() -> Typstium.TypstCompileResult!
+Typstium.TypstCompileResult.Errors.get -> System.Collections.Generic.IEnumerable<Typstium.TypstDiagnostic!>!
+Typstium.TypstCompileResult.Invocation.get -> Typstium.TypstInvocation!
+Typstium.TypstCompileResult.IsSuccess.get -> bool
+Typstium.TypstCompileResult.Status.get -> Typstium.TypstCompileStatus
+Typstium.TypstCompileResult.Warnings.get -> System.Collections.Generic.IEnumerable<Typstium.TypstDiagnostic!>!
+Typstium.TypstCompileStatus
+Typstium.TypstCompileStatus.Failed = 1 -> Typstium.TypstCompileStatus
+Typstium.TypstCompileStatus.OutputLimitExceeded = 3 -> Typstium.TypstCompileStatus
+Typstium.TypstCompileStatus.Succeeded = 0 -> Typstium.TypstCompileStatus
+Typstium.TypstCompileStatus.TimedOut = 2 -> Typstium.TypstCompileStatus
+Typstium.TypstCompiler
+Typstium.TypstCompilerExtensions
+Typstium.TypstCreationTimestamp
+Typstium.TypstCreationTimestamp.FixedTimestamp
+Typstium.TypstCreationTimestamp.FixedTimestamp.Deconstruct(out System.DateTimeOffset Value) -> void
+Typstium.TypstCreationTimestamp.FixedTimestamp.Equals(Typstium.TypstCreationTimestamp.FixedTimestamp? other) -> bool
+Typstium.TypstCreationTimestamp.FixedTimestamp.FixedTimestamp(System.DateTimeOffset Value) -> void
+Typstium.TypstCreationTimestamp.FixedTimestamp.Value.get -> System.DateTimeOffset
+Typstium.TypstCreationTimestamp.FixedTimestamp.Value.init -> void
+Typstium.TypstCreationTimestamp.InheritTimestamp
+Typstium.TypstCreationTimestamp.InheritTimestamp.Equals(Typstium.TypstCreationTimestamp.InheritTimestamp? other) -> bool
+Typstium.TypstCreationTimestamp.InheritTimestamp.InheritTimestamp() -> void
+Typstium.TypstCreationTimestamp.NowTimestamp
+Typstium.TypstCreationTimestamp.NowTimestamp.Equals(Typstium.TypstCreationTimestamp.NowTimestamp? other) -> bool
+Typstium.TypstCreationTimestamp.NowTimestamp.NowTimestamp() -> void
+Typstium.TypstCreationTimestamp.TypstCreationTimestamp(Typstium.TypstCreationTimestamp! original) -> void
+Typstium.TypstDiagnostic
+Typstium.TypstDiagnostic.<Clone>$() -> Typstium.TypstDiagnostic!
+Typstium.TypstDiagnostic.Equals(Typstium.TypstDiagnostic? other) -> bool
+Typstium.TypstDiagnostic.Hints.get -> System.Collections.Immutable.ImmutableArray<string!>
+Typstium.TypstDiagnostic.Id.get -> Typstium.TypstDiagnosticId!
+Typstium.TypstDiagnostic.Location.get -> Typstium.TypstLocation?
+Typstium.TypstDiagnostic.Message.get -> string!
+Typstium.TypstDiagnostic.Severity.get -> Typstium.TypstDiagnosticSeverity
+Typstium.TypstDiagnostic.Trace.get -> System.Collections.Immutable.ImmutableArray<Typstium.TypstTraceFrame!>
+Typstium.TypstDiagnostic.TypstDiagnostic(Typstium.TypstDiagnosticId! id, Typstium.TypstDiagnosticSeverity severity, string! message, Typstium.TypstLocation? location, System.Collections.Immutable.ImmutableArray<string!> hints, System.Collections.Immutable.ImmutableArray<Typstium.TypstTraceFrame!> trace) -> void
+Typstium.TypstDiagnostic.WithHints(System.Collections.Generic.IEnumerable<string!>! additionalHints) -> Typstium.TypstDiagnostic!
+Typstium.TypstDiagnosticId
+Typstium.TypstDiagnosticId.Equals(Typstium.TypstDiagnosticId? other) -> bool
+Typstium.TypstDiagnosticId.Number.get -> int
+Typstium.TypstDiagnosticId.Value.get -> string!
+Typstium.TypstDiagnosticSeverity
+Typstium.TypstDiagnosticSeverity.Error = 0 -> Typstium.TypstDiagnosticSeverity
+Typstium.TypstDiagnosticSeverity.Warning = 1 -> Typstium.TypstDiagnosticSeverity
+Typstium.TypstDocument
+Typstium.TypstDocument.Paged
+Typstium.TypstDocument.Paged.Equals(Typstium.TypstDocument.Paged? other) -> bool
+Typstium.TypstDocument.Paged.Pages.get -> System.Collections.Immutable.ImmutableArray<System.ReadOnlyMemory<byte>>
+Typstium.TypstDocument.Paged.SaveAsync(string! pathPattern, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+Typstium.TypstDocument.SingleFile
+Typstium.TypstDocument.SingleFile.Content.get -> System.ReadOnlyMemory<byte>
+Typstium.TypstDocument.SingleFile.Equals(Typstium.TypstDocument.SingleFile? other) -> bool
+Typstium.TypstDocument.SingleFile.SaveAsync(string! path, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Typstium.TypstDocument.SingleFile.WriteToAsync(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Typstium.TypstDocument.TypstDocument(Typstium.TypstDocument! original) -> void
+Typstium.TypstException
+Typstium.TypstException.TypstException(string! message) -> void
+Typstium.TypstException.TypstException(string! message, System.Exception? innerException) -> void
+Typstium.TypstExecutable
+Typstium.TypstExecutable.<Clone>$() -> Typstium.TypstExecutable!
+Typstium.TypstExecutable.Deconstruct(out string! Path, out string! FoundBy) -> void
+Typstium.TypstExecutable.Equals(Typstium.TypstExecutable? other) -> bool
+Typstium.TypstExecutable.FoundBy.get -> string!
+Typstium.TypstExecutable.FoundBy.init -> void
+Typstium.TypstExecutable.Path.get -> string!
+Typstium.TypstExecutable.Path.init -> void
+Typstium.TypstExecutable.TypstExecutable(string! Path, string! FoundBy) -> void
+Typstium.TypstExecutableLocators
+Typstium.TypstExecutableNotFoundException
+Typstium.TypstExecutableNotFoundException.Searches.get -> System.Collections.Immutable.ImmutableArray<Typstium.TypstLocatorSearch!>
+Typstium.TypstExecutableNotFoundException.TypstExecutableNotFoundException(System.Collections.Immutable.ImmutableArray<Typstium.TypstLocatorSearch!> searches) -> void
+Typstium.TypstExecutableResolver
+Typstium.TypstExecutableResolver.ResolveAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Typstium.TypstExecutable!>
+Typstium.TypstExecutableResolver.TypstExecutableResolver(System.Collections.Generic.IEnumerable<Typstium.ITypstExecutableLocator!>! locators) -> void
+Typstium.TypstFeatureNotSupportedException
+Typstium.TypstFeatureNotSupportedException.Feature.get -> string!
+Typstium.TypstFeatureNotSupportedException.InstalledVersion.get -> Typstium.TypstVersion
+Typstium.TypstFeatureNotSupportedException.RequiredVersion.get -> Typstium.TypstVersion?
+Typstium.TypstFeatureNotSupportedException.TypstFeatureNotSupportedException(string! feature, Typstium.TypstVersion installedVersion, Typstium.TypstVersion? requiredVersion) -> void
+Typstium.TypstFileCompileRequestBuilder
+Typstium.TypstFileCompileRequestBuilder.Build() -> Typstium.TypstCompileRequest!
+Typstium.TypstFileCompileRequestBuilder.ConfigureOptions(System.Func<Typstium.TypstCompileOptions!, Typstium.TypstCompileOptions!>! configure) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.ToPdf(params Typstium.PdfStandard![]! standards) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.ToPng(int ppi = 144) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.ToSvg() -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithInput(Typstium.TypstInput! input) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithInput(string! key, string! value) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithJsonInput<T>(string! key, T value) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithJsonInput<T>(string! key, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithJsonInput<T>(string! key, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithOptions(Typstium.TypstCompileOptions! options) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFileCompileRequestBuilder.WithOutput(Typstium.TypstOutput! output) -> Typstium.TypstFileCompileRequestBuilder!
+Typstium.TypstFontOptions
+Typstium.TypstFontOptions.<Clone>$() -> Typstium.TypstFontOptions!
+Typstium.TypstFontOptions.Equals(Typstium.TypstFontOptions? other) -> bool
+Typstium.TypstFontOptions.FontPaths.get -> System.Collections.Immutable.ImmutableArray<string!>
+Typstium.TypstFontOptions.FontPaths.init -> void
+Typstium.TypstFontOptions.IncludeEmbeddedFonts.get -> bool
+Typstium.TypstFontOptions.IncludeEmbeddedFonts.init -> void
+Typstium.TypstFontOptions.IncludeSystemFonts.get -> bool
+Typstium.TypstFontOptions.IncludeSystemFonts.init -> void
+Typstium.TypstFontOptions.TypstFontOptions() -> void
+Typstium.TypstInput
+Typstium.TypstInput.Equals(Typstium.TypstInput? other) -> bool
+Typstium.TypstInput.Key.get -> Typstium.TypstInputKey!
+Typstium.TypstInput.Value.get -> string!
+Typstium.TypstInputKey
+Typstium.TypstInputKey.Equals(Typstium.TypstInputKey? other) -> bool
+Typstium.TypstInputKey.Value.get -> string!
+Typstium.TypstInputs
+Typstium.TypstInputs.ContainsKey(Typstium.TypstInputKey! key) -> bool
+Typstium.TypstInputs.Count.get -> int
+Typstium.TypstInputs.Equals(Typstium.TypstInputs? other) -> bool
+Typstium.TypstInputs.GetEnumerator() -> System.Collections.Generic.IEnumerator<Typstium.TypstInput!>!
+Typstium.TypstInputs.Remove(Typstium.TypstInputKey! key) -> Typstium.TypstInputs!
+Typstium.TypstInputs.Set(Typstium.TypstInput! input) -> Typstium.TypstInputs!
+Typstium.TypstInputs.TryGetValue(Typstium.TypstInputKey! key, out string? value) -> bool
+Typstium.TypstInputs.TryGetValue(string! key, out string? value) -> bool
+Typstium.TypstInputs.this[Typstium.TypstInputKey! key].get -> string!
+Typstium.TypstInputs.this[string! key].get -> string!
+Typstium.TypstInvocation
+Typstium.TypstInvocation.<Clone>$() -> Typstium.TypstInvocation!
+Typstium.TypstInvocation.CommandLine.get -> string!
+Typstium.TypstInvocation.CommandLine.init -> void
+Typstium.TypstInvocation.Deconstruct(out string! ExecutablePath, out string! ExecutableFoundBy, out Typstium.TypstVersion TypstVersion, out string! CommandLine, out System.TimeSpan ProcessDuration, out System.TimeSpan TotalDuration) -> void
+Typstium.TypstInvocation.Equals(Typstium.TypstInvocation? other) -> bool
+Typstium.TypstInvocation.ExecutableFoundBy.get -> string!
+Typstium.TypstInvocation.ExecutableFoundBy.init -> void
+Typstium.TypstInvocation.ExecutablePath.get -> string!
+Typstium.TypstInvocation.ExecutablePath.init -> void
+Typstium.TypstInvocation.ProcessDuration.get -> System.TimeSpan
+Typstium.TypstInvocation.ProcessDuration.init -> void
+Typstium.TypstInvocation.TotalDuration.get -> System.TimeSpan
+Typstium.TypstInvocation.TotalDuration.init -> void
+Typstium.TypstInvocation.TypstInvocation(string! ExecutablePath, string! ExecutableFoundBy, Typstium.TypstVersion TypstVersion, string! CommandLine, System.TimeSpan ProcessDuration, System.TimeSpan TotalDuration) -> void
+Typstium.TypstInvocation.TypstVersion.get -> Typstium.TypstVersion
+Typstium.TypstInvocation.TypstVersion.init -> void
+Typstium.TypstInvocationException
+Typstium.TypstInvocationException.CommandLine.get -> string!
+Typstium.TypstInvocationException.ExitCode.get -> int
+Typstium.TypstInvocationException.StandardError.get -> string!
+Typstium.TypstInvocationException.TypstInvocationException(string! commandLine, int exitCode, string! standardError) -> void
+Typstium.TypstLocation
+Typstium.TypstLocation.<Clone>$() -> Typstium.TypstLocation!
+Typstium.TypstLocation.Deconstruct(out Typstium.TypstSourceFile! File, out Typstium.TypstPosition Start, out Typstium.TypstPosition? End) -> void
+Typstium.TypstLocation.End.get -> Typstium.TypstPosition?
+Typstium.TypstLocation.End.init -> void
+Typstium.TypstLocation.Equals(Typstium.TypstLocation? other) -> bool
+Typstium.TypstLocation.File.get -> Typstium.TypstSourceFile!
+Typstium.TypstLocation.File.init -> void
+Typstium.TypstLocation.Start.get -> Typstium.TypstPosition
+Typstium.TypstLocation.Start.init -> void
+Typstium.TypstLocation.TypstLocation(Typstium.TypstSourceFile! File, Typstium.TypstPosition Start, Typstium.TypstPosition? End) -> void
+Typstium.TypstLocatorResult
+Typstium.TypstLocatorResult.FoundResult
+Typstium.TypstLocatorResult.FoundResult.Equals(Typstium.TypstLocatorResult.FoundResult? other) -> bool
+Typstium.TypstLocatorResult.FoundResult.Path.get -> string!
+Typstium.TypstLocatorResult.NotFoundResult
+Typstium.TypstLocatorResult.NotFoundResult.Equals(Typstium.TypstLocatorResult.NotFoundResult? other) -> bool
+Typstium.TypstLocatorResult.NotFoundResult.SearchedLocations.get -> System.Collections.Immutable.ImmutableArray<string!>
+Typstium.TypstLocatorResult.TypstLocatorResult(Typstium.TypstLocatorResult! original) -> void
+Typstium.TypstLocatorSearch
+Typstium.TypstLocatorSearch.<Clone>$() -> Typstium.TypstLocatorSearch!
+Typstium.TypstLocatorSearch.Deconstruct(out string! LocatorName, out System.Collections.Immutable.ImmutableArray<string!> SearchedLocations) -> void
+Typstium.TypstLocatorSearch.Equals(Typstium.TypstLocatorSearch? other) -> bool
+Typstium.TypstLocatorSearch.LocatorName.get -> string!
+Typstium.TypstLocatorSearch.LocatorName.init -> void
+Typstium.TypstLocatorSearch.SearchedLocations.get -> System.Collections.Immutable.ImmutableArray<string!>
+Typstium.TypstLocatorSearch.SearchedLocations.init -> void
+Typstium.TypstLocatorSearch.TypstLocatorSearch(string! LocatorName, System.Collections.Immutable.ImmutableArray<string!> SearchedLocations) -> void
+Typstium.TypstNetworkAccess
+Typstium.TypstNetworkAccess.Allowed = 1 -> Typstium.TypstNetworkAccess
+Typstium.TypstNetworkAccess.Blocked = 0 -> Typstium.TypstNetworkAccess
+Typstium.TypstOutput
+Typstium.TypstOutput.HtmlOutput
+Typstium.TypstOutput.HtmlOutput.Equals(Typstium.TypstOutput.HtmlOutput? other) -> bool
+Typstium.TypstOutput.PdfOutput
+Typstium.TypstOutput.PdfOutput.Equals(Typstium.TypstOutput.PdfOutput? other) -> bool
+Typstium.TypstOutput.PdfOutput.Options.get -> Typstium.TypstPdfOptions!
+Typstium.TypstOutput.PngOutput
+Typstium.TypstOutput.PngOutput.Equals(Typstium.TypstOutput.PngOutput? other) -> bool
+Typstium.TypstOutput.PngOutput.Pages.get -> Typstium.TypstPageSelection!
+Typstium.TypstOutput.PngOutput.Ppi.get -> int
+Typstium.TypstOutput.SvgOutput
+Typstium.TypstOutput.SvgOutput.Equals(Typstium.TypstOutput.SvgOutput? other) -> bool
+Typstium.TypstOutput.SvgOutput.Pages.get -> Typstium.TypstPageSelection!
+Typstium.TypstOutput.TypstOutput(Typstium.TypstOutput! original) -> void
+Typstium.TypstOutputFormat
+Typstium.TypstOutputFormat.Html = 3 -> Typstium.TypstOutputFormat
+Typstium.TypstOutputFormat.Pdf = 0 -> Typstium.TypstOutputFormat
+Typstium.TypstOutputFormat.Png = 1 -> Typstium.TypstOutputFormat
+Typstium.TypstOutputFormat.Svg = 2 -> Typstium.TypstOutputFormat
+Typstium.TypstPackageOptions
+Typstium.TypstPackageOptions.<Clone>$() -> Typstium.TypstPackageOptions!
+Typstium.TypstPackageOptions.Equals(Typstium.TypstPackageOptions? other) -> bool
+Typstium.TypstPackageOptions.NetworkAccess.get -> Typstium.TypstNetworkAccess
+Typstium.TypstPackageOptions.NetworkAccess.init -> void
+Typstium.TypstPackageOptions.PackageCachePath.get -> string?
+Typstium.TypstPackageOptions.PackageCachePath.init -> void
+Typstium.TypstPackageOptions.PackagePath.get -> string?
+Typstium.TypstPackageOptions.PackagePath.init -> void
+Typstium.TypstPackageOptions.TypstPackageOptions() -> void
+Typstium.TypstPageRange
+Typstium.TypstPageRange.<Clone>$() -> Typstium.TypstPageRange!
+Typstium.TypstPageRange.Equals(Typstium.TypstPageRange? other) -> bool
+Typstium.TypstPageRange.First.get -> int
+Typstium.TypstPageRange.Last.get -> int?
+Typstium.TypstPageSelection
+Typstium.TypstPageSelection.<Clone>$() -> Typstium.TypstPageSelection!
+Typstium.TypstPageSelection.Equals(Typstium.TypstPageSelection? other) -> bool
+Typstium.TypstPageSelection.IsAll.get -> bool
+Typstium.TypstPageSelection.Ranges.get -> System.Collections.Immutable.ImmutableArray<Typstium.TypstPageRange!>
+Typstium.TypstPath
+Typstium.TypstPath.Equals(Typstium.TypstPath? other) -> bool
+Typstium.TypstPath.FileName.get -> string!
+Typstium.TypstPath.RootRelative.get -> string!
+Typstium.TypstPath.Segments.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Typstium.TypstPath.Value.get -> string!
+Typstium.TypstPdfOptions
+Typstium.TypstPdfOptions.<Clone>$() -> Typstium.TypstPdfOptions!
+Typstium.TypstPdfOptions.Equals(Typstium.TypstPdfOptions? other) -> bool
+Typstium.TypstPdfOptions.Pages.get -> Typstium.TypstPageSelection!
+Typstium.TypstPdfOptions.Pages.init -> void
+Typstium.TypstPdfOptions.Standards.get -> System.Collections.Immutable.ImmutableArray<Typstium.PdfStandard!>
+Typstium.TypstPdfOptions.Standards.init -> void
+Typstium.TypstPdfOptions.Tagged.get -> bool
+Typstium.TypstPdfOptions.Tagged.init -> void
+Typstium.TypstPdfOptions.TypstPdfOptions() -> void
+Typstium.TypstPosition
+Typstium.TypstPosition.Column.get -> int
+Typstium.TypstPosition.Column.init -> void
+Typstium.TypstPosition.Deconstruct(out int Line, out int Column) -> void
+Typstium.TypstPosition.Equals(Typstium.TypstPosition other) -> bool
+Typstium.TypstPosition.Line.get -> int
+Typstium.TypstPosition.Line.init -> void
+Typstium.TypstPosition.TypstPosition() -> void
+Typstium.TypstPosition.TypstPosition(int Line, int Column) -> void
+Typstium.TypstProcessCrashedException
+Typstium.TypstProcessCrashedException.ExitCode.get -> int
+Typstium.TypstProcessCrashedException.StandardError.get -> string!
+Typstium.TypstProcessCrashedException.TypstProcessCrashedException(int exitCode, string! standardError) -> void
+Typstium.TypstProcessException
+Typstium.TypstProcessException.TypstProcessException(string! message, System.Exception? innerException) -> void
+Typstium.TypstProcessOutputException
+Typstium.TypstProcessOutputException.Description.get -> string!
+Typstium.TypstProcessOutputException.TypstProcessOutputException(string! description) -> void
+Typstium.TypstProcessOutputException.TypstProcessOutputException(string! description, System.Exception? innerException) -> void
+Typstium.TypstProcessPriority
+Typstium.TypstProcessPriority.BelowNormal = 1 -> Typstium.TypstProcessPriority
+Typstium.TypstProcessPriority.Idle = 2 -> Typstium.TypstProcessPriority
+Typstium.TypstProcessPriority.Normal = 0 -> Typstium.TypstProcessPriority
+Typstium.TypstProcessStartException
+Typstium.TypstProcessStartException.ExecutablePath.get -> string!
+Typstium.TypstProcessStartException.TypstProcessStartException(string! executablePath, System.Exception! innerException) -> void
+Typstium.TypstSource
+Typstium.TypstSource.FileSource
+Typstium.TypstSource.FileSource.Equals(Typstium.TypstSource.FileSource? other) -> bool
+Typstium.TypstSource.FileSource.Path.get -> string!
+Typstium.TypstSource.FileSource.Root.get -> string?
+Typstium.TypstSource.MarkupSource
+Typstium.TypstSource.MarkupSource.Equals(Typstium.TypstSource.MarkupSource? other) -> bool
+Typstium.TypstSource.MarkupSource.Files.get -> System.Collections.Immutable.ImmutableArray<Typstium.TypstVirtualFile!>
+Typstium.TypstSource.MarkupSource.Text.get -> string!
+Typstium.TypstSource.TemplateSource
+Typstium.TypstSource.TemplateSource.Equals(Typstium.TypstSource.TemplateSource? other) -> bool
+Typstium.TypstSource.TemplateSource.Files.get -> System.Collections.Immutable.ImmutableArray<Typstium.TypstVirtualFile!>
+Typstium.TypstSource.TemplateSource.Name.get -> Typstium.TypstTemplateName!
+Typstium.TypstSource.TemplateSource.Provider.get -> Typstium.ITemplateProvider!
+Typstium.TypstSource.TypstSource(Typstium.TypstSource! original) -> void
+Typstium.TypstSourceFile
+Typstium.TypstSourceFile.Markup
+Typstium.TypstSourceFile.Markup.Equals(Typstium.TypstSourceFile.Markup? other) -> bool
+Typstium.TypstSourceFile.Package
+Typstium.TypstSourceFile.Package.Deconstruct(out string! Spec, out Typstium.TypstPath! Path) -> void
+Typstium.TypstSourceFile.Package.Equals(Typstium.TypstSourceFile.Package? other) -> bool
+Typstium.TypstSourceFile.Package.Package(string! Spec, Typstium.TypstPath! Path) -> void
+Typstium.TypstSourceFile.Package.Path.get -> Typstium.TypstPath!
+Typstium.TypstSourceFile.Package.Path.init -> void
+Typstium.TypstSourceFile.Package.Spec.get -> string!
+Typstium.TypstSourceFile.Package.Spec.init -> void
+Typstium.TypstSourceFile.Project
+Typstium.TypstSourceFile.Project.Deconstruct(out Typstium.TypstPath! Path, out string? FullPath) -> void
+Typstium.TypstSourceFile.Project.Equals(Typstium.TypstSourceFile.Project? other) -> bool
+Typstium.TypstSourceFile.Project.FullPath.get -> string?
+Typstium.TypstSourceFile.Project.FullPath.init -> void
+Typstium.TypstSourceFile.Project.Path.get -> Typstium.TypstPath!
+Typstium.TypstSourceFile.Project.Path.init -> void
+Typstium.TypstSourceFile.Project.Project(Typstium.TypstPath! Path, string? FullPath) -> void
+Typstium.TypstSourceFile.TypstSourceFile(Typstium.TypstSourceFile! original) -> void
+Typstium.TypstSourceFile.Virtual
+Typstium.TypstSourceFile.Virtual.Deconstruct(out Typstium.TypstPath! Path) -> void
+Typstium.TypstSourceFile.Virtual.Equals(Typstium.TypstSourceFile.Virtual? other) -> bool
+Typstium.TypstSourceFile.Virtual.Path.get -> Typstium.TypstPath!
+Typstium.TypstSourceFile.Virtual.Path.init -> void
+Typstium.TypstSourceFile.Virtual.Virtual(Typstium.TypstPath! Path) -> void
+Typstium.TypstTemplate
+Typstium.TypstTemplate.Files.get -> System.Collections.Generic.IReadOnlyList<Typstium.TypstTemplateFile!>!
+Typstium.TypstTemplate.MainFile.get -> Typstium.TypstPath!
+Typstium.TypstTemplate.Name.get -> Typstium.TypstTemplateName!
+Typstium.TypstTemplate.TypstTemplate(Typstium.TypstTemplateName! name, Typstium.TypstPath! mainFile, Typstium.TypstTemplateVersion! version, System.Collections.Generic.IReadOnlyList<Typstium.TypstTemplateFile!>! files) -> void
+Typstium.TypstTemplate.Version.get -> Typstium.TypstTemplateVersion!
+Typstium.TypstTemplateFile
+Typstium.TypstTemplateFile.Path.get -> Typstium.TypstPath!
+Typstium.TypstTemplateFile.TypstTemplateFile(Typstium.TypstPath! path) -> void
+Typstium.TypstTemplateName
+Typstium.TypstTemplateName.Equals(Typstium.TypstTemplateName? other) -> bool
+Typstium.TypstTemplateName.LastSegment.get -> string!
+Typstium.TypstTemplateName.Value.get -> string!
+Typstium.TypstTemplateVersion
+Typstium.TypstTemplateVersion.Equals(Typstium.TypstTemplateVersion? other) -> bool
+Typstium.TypstTemplateVersion.TypstTemplateVersion(string! value) -> void
+Typstium.TypstTemplateVersion.Value.get -> string!
+Typstium.TypstTraceFrame
+Typstium.TypstTraceFrame.<Clone>$() -> Typstium.TypstTraceFrame!
+Typstium.TypstTraceFrame.Deconstruct(out string! Message, out Typstium.TypstLocation? Location) -> void
+Typstium.TypstTraceFrame.Equals(Typstium.TypstTraceFrame? other) -> bool
+Typstium.TypstTraceFrame.Location.get -> Typstium.TypstLocation?
+Typstium.TypstTraceFrame.Location.init -> void
+Typstium.TypstTraceFrame.Message.get -> string!
+Typstium.TypstTraceFrame.Message.init -> void
+Typstium.TypstTraceFrame.TypstTraceFrame(string! Message, Typstium.TypstLocation? Location) -> void
+Typstium.TypstVersion
+Typstium.TypstVersion.CompareTo(Typstium.TypstVersion other) -> int
+Typstium.TypstVersion.Deconstruct(out int Major, out int Minor, out int Patch) -> void
+Typstium.TypstVersion.Equals(Typstium.TypstVersion other) -> bool
+Typstium.TypstVersion.Major.get -> int
+Typstium.TypstVersion.Major.init -> void
+Typstium.TypstVersion.Minor.get -> int
+Typstium.TypstVersion.Minor.init -> void
+Typstium.TypstVersion.Patch.get -> int
+Typstium.TypstVersion.Patch.init -> void
+Typstium.TypstVersion.TypstVersion() -> void
+Typstium.TypstVersion.TypstVersion(int Major, int Minor, int Patch) -> void
+Typstium.TypstVirtualFile
+Typstium.TypstVirtualFile.<Clone>$() -> Typstium.TypstVirtualFile!
+Typstium.TypstVirtualFile.Content.get -> System.ReadOnlyMemory<byte>
+Typstium.TypstVirtualFile.Equals(Typstium.TypstVirtualFile? other) -> bool
+Typstium.TypstVirtualFile.Path.get -> Typstium.TypstPath!
+abstract Typstium.TypstCreationTimestamp.<Clone>$() -> Typstium.TypstCreationTimestamp!
+abstract Typstium.TypstDocument.<Clone>$() -> Typstium.TypstDocument!
+abstract Typstium.TypstDocument.Format.get -> Typstium.TypstOutputFormat
+abstract Typstium.TypstLocatorResult.<Clone>$() -> Typstium.TypstLocatorResult!
+abstract Typstium.TypstOutput.<Clone>$() -> Typstium.TypstOutput!
+abstract Typstium.TypstOutput.Format.get -> Typstium.TypstOutputFormat
+abstract Typstium.TypstSource.<Clone>$() -> Typstium.TypstSource!
+abstract Typstium.TypstSourceFile.<Clone>$() -> Typstium.TypstSourceFile!
+abstract Typstium.TypstSourceFile.DisplayPath.get -> string!
+abstract Typstium.TypstTemplateFile.OpenReadAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.IO.Stream!>
+override Typstium.CliTypstCompilerSettings.Equals(object? obj) -> bool
+override Typstium.CliTypstCompilerSettings.GetHashCode() -> int
+override Typstium.CliTypstCompilerSettings.ToString() -> string!
+override Typstium.PdfStandard.Equals(object? obj) -> bool
+override Typstium.PdfStandard.GetHashCode() -> int
+override Typstium.PdfStandard.ToString() -> string!
+override Typstium.TypstArgument.Equals(object? obj) -> bool
+override Typstium.TypstArgument.GetHashCode() -> int
+override Typstium.TypstArgument.ToString() -> string!
+override Typstium.TypstArguments.Equals(object? obj) -> bool
+override Typstium.TypstArguments.GetHashCode() -> int
+override Typstium.TypstArguments.ToString() -> string!
+override Typstium.TypstCompileOptions.Equals(object? obj) -> bool
+override Typstium.TypstCompileOptions.GetHashCode() -> int
+override Typstium.TypstCompileOptions.ToString() -> string!
+override Typstium.TypstCompileRequest.Equals(object? obj) -> bool
+override Typstium.TypstCompileRequest.GetHashCode() -> int
+override Typstium.TypstCompileRequest.ToString() -> string!
+override Typstium.TypstCreationTimestamp.Equals(object? obj) -> bool
+override Typstium.TypstCreationTimestamp.FixedTimestamp.Equals(object? obj) -> bool
+override Typstium.TypstCreationTimestamp.FixedTimestamp.GetHashCode() -> int
+override Typstium.TypstCreationTimestamp.FixedTimestamp.ToString() -> string!
+override Typstium.TypstCreationTimestamp.GetHashCode() -> int
+override Typstium.TypstCreationTimestamp.InheritTimestamp.Equals(object? obj) -> bool
+override Typstium.TypstCreationTimestamp.InheritTimestamp.GetHashCode() -> int
+override Typstium.TypstCreationTimestamp.InheritTimestamp.ToString() -> string!
+override Typstium.TypstCreationTimestamp.NowTimestamp.Equals(object? obj) -> bool
+override Typstium.TypstCreationTimestamp.NowTimestamp.GetHashCode() -> int
+override Typstium.TypstCreationTimestamp.NowTimestamp.ToString() -> string!
+override Typstium.TypstCreationTimestamp.ToString() -> string!
+override Typstium.TypstDiagnostic.Equals(object? obj) -> bool
+override Typstium.TypstDiagnostic.GetHashCode() -> int
+override Typstium.TypstDiagnostic.ToString() -> string!
+override Typstium.TypstDiagnosticId.Equals(object? obj) -> bool
+override Typstium.TypstDiagnosticId.GetHashCode() -> int
+override Typstium.TypstDiagnosticId.ToString() -> string!
+override Typstium.TypstDocument.Equals(object? obj) -> bool
+override Typstium.TypstDocument.GetHashCode() -> int
+override Typstium.TypstDocument.Paged.Equals(object? obj) -> bool
+override Typstium.TypstDocument.Paged.Format.get -> Typstium.TypstOutputFormat
+override Typstium.TypstDocument.Paged.GetHashCode() -> int
+override Typstium.TypstDocument.Paged.ToString() -> string!
+override Typstium.TypstDocument.SingleFile.Equals(object? obj) -> bool
+override Typstium.TypstDocument.SingleFile.Format.get -> Typstium.TypstOutputFormat
+override Typstium.TypstDocument.SingleFile.GetHashCode() -> int
+override Typstium.TypstDocument.SingleFile.ToString() -> string!
+override Typstium.TypstDocument.ToString() -> string!
+override Typstium.TypstExecutable.Equals(object? obj) -> bool
+override Typstium.TypstExecutable.GetHashCode() -> int
+override Typstium.TypstExecutable.ToString() -> string!
+override Typstium.TypstFontOptions.Equals(object? obj) -> bool
+override Typstium.TypstFontOptions.GetHashCode() -> int
+override Typstium.TypstFontOptions.ToString() -> string!
+override Typstium.TypstInput.Equals(object? obj) -> bool
+override Typstium.TypstInput.GetHashCode() -> int
+override Typstium.TypstInput.ToString() -> string!
+override Typstium.TypstInputKey.Equals(object? obj) -> bool
+override Typstium.TypstInputKey.GetHashCode() -> int
+override Typstium.TypstInputKey.ToString() -> string!
+override Typstium.TypstInputs.Equals(object? obj) -> bool
+override Typstium.TypstInputs.GetHashCode() -> int
+override Typstium.TypstInputs.ToString() -> string!
+override Typstium.TypstInvocation.Equals(object? obj) -> bool
+override Typstium.TypstInvocation.GetHashCode() -> int
+override Typstium.TypstInvocation.ToString() -> string!
+override Typstium.TypstLocation.Equals(object? obj) -> bool
+override Typstium.TypstLocation.GetHashCode() -> int
+override Typstium.TypstLocation.ToString() -> string!
+override Typstium.TypstLocatorResult.Equals(object? obj) -> bool
+override Typstium.TypstLocatorResult.FoundResult.Equals(object? obj) -> bool
+override Typstium.TypstLocatorResult.FoundResult.GetHashCode() -> int
+override Typstium.TypstLocatorResult.FoundResult.ToString() -> string!
+override Typstium.TypstLocatorResult.GetHashCode() -> int
+override Typstium.TypstLocatorResult.NotFoundResult.Equals(object? obj) -> bool
+override Typstium.TypstLocatorResult.NotFoundResult.GetHashCode() -> int
+override Typstium.TypstLocatorResult.NotFoundResult.ToString() -> string!
+override Typstium.TypstLocatorResult.ToString() -> string!
+override Typstium.TypstLocatorSearch.Equals(object? obj) -> bool
+override Typstium.TypstLocatorSearch.GetHashCode() -> int
+override Typstium.TypstLocatorSearch.ToString() -> string!
+override Typstium.TypstOutput.Equals(object? obj) -> bool
+override Typstium.TypstOutput.GetHashCode() -> int
+override Typstium.TypstOutput.HtmlOutput.Equals(object? obj) -> bool
+override Typstium.TypstOutput.HtmlOutput.Format.get -> Typstium.TypstOutputFormat
+override Typstium.TypstOutput.HtmlOutput.GetHashCode() -> int
+override Typstium.TypstOutput.HtmlOutput.ToString() -> string!
+override Typstium.TypstOutput.PdfOutput.Equals(object? obj) -> bool
+override Typstium.TypstOutput.PdfOutput.Format.get -> Typstium.TypstOutputFormat
+override Typstium.TypstOutput.PdfOutput.GetHashCode() -> int
+override Typstium.TypstOutput.PdfOutput.ToString() -> string!
+override Typstium.TypstOutput.PngOutput.Equals(object? obj) -> bool
+override Typstium.TypstOutput.PngOutput.Format.get -> Typstium.TypstOutputFormat
+override Typstium.TypstOutput.PngOutput.GetHashCode() -> int
+override Typstium.TypstOutput.PngOutput.ToString() -> string!
+override Typstium.TypstOutput.SvgOutput.Equals(object? obj) -> bool
+override Typstium.TypstOutput.SvgOutput.Format.get -> Typstium.TypstOutputFormat
+override Typstium.TypstOutput.SvgOutput.GetHashCode() -> int
+override Typstium.TypstOutput.SvgOutput.ToString() -> string!
+override Typstium.TypstOutput.ToString() -> string!
+override Typstium.TypstPackageOptions.Equals(object? obj) -> bool
+override Typstium.TypstPackageOptions.GetHashCode() -> int
+override Typstium.TypstPackageOptions.ToString() -> string!
+override Typstium.TypstPageRange.Equals(object? obj) -> bool
+override Typstium.TypstPageRange.GetHashCode() -> int
+override Typstium.TypstPageRange.ToString() -> string!
+override Typstium.TypstPageSelection.Equals(object? obj) -> bool
+override Typstium.TypstPageSelection.GetHashCode() -> int
+override Typstium.TypstPageSelection.ToString() -> string!
+override Typstium.TypstPath.Equals(object? obj) -> bool
+override Typstium.TypstPath.GetHashCode() -> int
+override Typstium.TypstPath.ToString() -> string!
+override Typstium.TypstPdfOptions.Equals(object? obj) -> bool
+override Typstium.TypstPdfOptions.GetHashCode() -> int
+override Typstium.TypstPdfOptions.ToString() -> string!
+override Typstium.TypstPosition.GetHashCode() -> int
+override Typstium.TypstPosition.ToString() -> string!
+override Typstium.TypstSource.Equals(object? obj) -> bool
+override Typstium.TypstSource.FileSource.Equals(object? obj) -> bool
+override Typstium.TypstSource.FileSource.GetHashCode() -> int
+override Typstium.TypstSource.FileSource.ToString() -> string!
+override Typstium.TypstSource.GetHashCode() -> int
+override Typstium.TypstSource.MarkupSource.Equals(object? obj) -> bool
+override Typstium.TypstSource.MarkupSource.GetHashCode() -> int
+override Typstium.TypstSource.MarkupSource.ToString() -> string!
+override Typstium.TypstSource.TemplateSource.Equals(object? obj) -> bool
+override Typstium.TypstSource.TemplateSource.GetHashCode() -> int
+override Typstium.TypstSource.TemplateSource.ToString() -> string!
+override Typstium.TypstSource.ToString() -> string!
+override Typstium.TypstSourceFile.Equals(object? obj) -> bool
+override Typstium.TypstSourceFile.GetHashCode() -> int
+override Typstium.TypstSourceFile.Markup.DisplayPath.get -> string!
+override Typstium.TypstSourceFile.Markup.Equals(object? obj) -> bool
+override Typstium.TypstSourceFile.Markup.GetHashCode() -> int
+override Typstium.TypstSourceFile.Markup.ToString() -> string!
+override Typstium.TypstSourceFile.Package.DisplayPath.get -> string!
+override Typstium.TypstSourceFile.Package.Equals(object? obj) -> bool
+override Typstium.TypstSourceFile.Package.GetHashCode() -> int
+override Typstium.TypstSourceFile.Package.ToString() -> string!
+override Typstium.TypstSourceFile.Project.DisplayPath.get -> string!
+override Typstium.TypstSourceFile.Project.Equals(object? obj) -> bool
+override Typstium.TypstSourceFile.Project.GetHashCode() -> int
+override Typstium.TypstSourceFile.Project.ToString() -> string!
+override Typstium.TypstSourceFile.ToString() -> string!
+override Typstium.TypstSourceFile.Virtual.DisplayPath.get -> string!
+override Typstium.TypstSourceFile.Virtual.Equals(object? obj) -> bool
+override Typstium.TypstSourceFile.Virtual.GetHashCode() -> int
+override Typstium.TypstSourceFile.Virtual.ToString() -> string!
+override Typstium.TypstTemplateName.Equals(object? obj) -> bool
+override Typstium.TypstTemplateName.GetHashCode() -> int
+override Typstium.TypstTemplateName.ToString() -> string!
+override Typstium.TypstTemplateVersion.Equals(object? obj) -> bool
+override Typstium.TypstTemplateVersion.GetHashCode() -> int
+override Typstium.TypstTemplateVersion.ToString() -> string!
+override Typstium.TypstTraceFrame.Equals(object? obj) -> bool
+override Typstium.TypstTraceFrame.GetHashCode() -> int
+override Typstium.TypstTraceFrame.ToString() -> string!
+override Typstium.TypstVersion.GetHashCode() -> int
+override Typstium.TypstVersion.ToString() -> string!
+override Typstium.TypstVirtualFile.Equals(object? obj) -> bool
+override Typstium.TypstVirtualFile.GetHashCode() -> int
+override Typstium.TypstVirtualFile.ToString() -> string!
+override sealed Typstium.TypstCreationTimestamp.FixedTimestamp.Equals(Typstium.TypstCreationTimestamp? other) -> bool
+override sealed Typstium.TypstCreationTimestamp.InheritTimestamp.Equals(Typstium.TypstCreationTimestamp? other) -> bool
+override sealed Typstium.TypstCreationTimestamp.NowTimestamp.Equals(Typstium.TypstCreationTimestamp? other) -> bool
+override sealed Typstium.TypstDocument.Paged.Equals(Typstium.TypstDocument? other) -> bool
+override sealed Typstium.TypstDocument.SingleFile.Equals(Typstium.TypstDocument? other) -> bool
+override sealed Typstium.TypstLocatorResult.FoundResult.Equals(Typstium.TypstLocatorResult? other) -> bool
+override sealed Typstium.TypstLocatorResult.NotFoundResult.Equals(Typstium.TypstLocatorResult? other) -> bool
+override sealed Typstium.TypstOutput.HtmlOutput.Equals(Typstium.TypstOutput? other) -> bool
+override sealed Typstium.TypstOutput.PdfOutput.Equals(Typstium.TypstOutput? other) -> bool
+override sealed Typstium.TypstOutput.PngOutput.Equals(Typstium.TypstOutput? other) -> bool
+override sealed Typstium.TypstOutput.SvgOutput.Equals(Typstium.TypstOutput? other) -> bool
+override sealed Typstium.TypstSource.FileSource.Equals(Typstium.TypstSource? other) -> bool
+override sealed Typstium.TypstSource.MarkupSource.Equals(Typstium.TypstSource? other) -> bool
+override sealed Typstium.TypstSource.TemplateSource.Equals(Typstium.TypstSource? other) -> bool
+override sealed Typstium.TypstSourceFile.Markup.Equals(Typstium.TypstSourceFile? other) -> bool
+override sealed Typstium.TypstSourceFile.Package.Equals(Typstium.TypstSourceFile? other) -> bool
+override sealed Typstium.TypstSourceFile.Project.Equals(Typstium.TypstSourceFile? other) -> bool
+override sealed Typstium.TypstSourceFile.Virtual.Equals(Typstium.TypstSourceFile? other) -> bool
+static Typstium.CliTypstCompilerSettings.Default.get -> Typstium.CliTypstCompilerSettings!
+static Typstium.CliTypstCompilerSettings.operator !=(Typstium.CliTypstCompilerSettings? left, Typstium.CliTypstCompilerSettings? right) -> bool
+static Typstium.CliTypstCompilerSettings.operator ==(Typstium.CliTypstCompilerSettings? left, Typstium.CliTypstCompilerSettings? right) -> bool
+static Typstium.PdfStandard.A1a.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A1b.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A2a.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A2b.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A2u.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A3a.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A3b.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A3u.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A4.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A4e.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.A4f.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.FromCliValue(string! value) -> Typstium.PdfStandard!
+static Typstium.PdfStandard.Pdf14.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.Pdf15.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.Pdf16.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.Pdf17.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.Pdf20.get -> Typstium.PdfStandard!
+static Typstium.PdfStandard.UA1.get -> Typstium.PdfStandard!
+static Typstium.TypstArgument.Plain(string! value) -> Typstium.TypstArgument!
+static Typstium.TypstArgument.Secret(string! value) -> Typstium.TypstArgument!
+static Typstium.TypstArguments.Empty.get -> Typstium.TypstArguments!
+static Typstium.TypstArguments.Of(params string![]! values) -> Typstium.TypstArguments!
+static Typstium.TypstCompileOptions.Default.get -> Typstium.TypstCompileOptions!
+static Typstium.TypstCompileOptions.Untrusted.get -> Typstium.TypstCompileOptions!
+static Typstium.TypstCompileOptions.operator !=(Typstium.TypstCompileOptions? left, Typstium.TypstCompileOptions? right) -> bool
+static Typstium.TypstCompileOptions.operator ==(Typstium.TypstCompileOptions? left, Typstium.TypstCompileOptions? right) -> bool
+static Typstium.TypstCompileRequest.ForFile(string! path) -> Typstium.TypstFileCompileRequestBuilder!
+static Typstium.TypstCompileRequest.ForFile(string! path, string! root) -> Typstium.TypstFileCompileRequestBuilder!
+static Typstium.TypstCompileRequest.ForMarkup(string! markup) -> Typstium.TypstCompileRequestBuilder!
+static Typstium.TypstCompileRequest.ForTemplate(Typstium.ITemplateProvider! provider, Typstium.TypstTemplateName! templateName) -> Typstium.TypstCompileRequestBuilder!
+static Typstium.TypstCompileRequest.ForTemplate(Typstium.ITemplateProvider! provider, string! templateName) -> Typstium.TypstCompileRequestBuilder!
+static Typstium.TypstCompileRequest.operator !=(Typstium.TypstCompileRequest? left, Typstium.TypstCompileRequest? right) -> bool
+static Typstium.TypstCompileRequest.operator ==(Typstium.TypstCompileRequest? left, Typstium.TypstCompileRequest? right) -> bool
+static Typstium.TypstCompileResult.CreateSucceeded(Typstium.TypstDocument! document, System.Collections.Immutable.ImmutableArray<Typstium.TypstDiagnostic!> diagnostics, Typstium.TypstInvocation! invocation) -> Typstium.TypstCompileResult!
+static Typstium.TypstCompileResult.CreateUnsuccessful(Typstium.TypstCompileStatus status, System.Collections.Immutable.ImmutableArray<Typstium.TypstDiagnostic!> diagnostics, Typstium.TypstInvocation! invocation) -> Typstium.TypstCompileResult!
+static Typstium.TypstCompiler.CreateDefault() -> Typstium.ITypstCompiler!
+static Typstium.TypstCompiler.CreateDefault(Typstium.CliTypstCompilerSettings! settings) -> Typstium.ITypstCompiler!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstCompileRequestBuilder! builder) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstCompileRequestBuilder! builder, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstFileCompileRequestBuilder! builder) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstFileCompileRequestBuilder! builder, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstSource! source) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstSource! source, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstSource! source, Typstium.TypstOutput! output) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstSource! source, Typstium.TypstOutput! output, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstSource! source, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileAsync(this Typstium.ITypstCompiler! compiler, Typstium.TypstSource! source, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileFileAsync(this Typstium.ITypstCompiler! compiler, string! path) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileFileAsync(this Typstium.ITypstCompiler! compiler, string! path, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileFileAsync(this Typstium.ITypstCompiler! compiler, string! path, Typstium.TypstOutput! output) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileFileAsync(this Typstium.ITypstCompiler! compiler, string! path, Typstium.TypstOutput! output, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileFileAsync(this Typstium.ITypstCompiler! compiler, string! path, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileFileAsync(this Typstium.ITypstCompiler! compiler, string! path, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileMarkupAsync(this Typstium.ITypstCompiler! compiler, string! markup) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileMarkupAsync(this Typstium.ITypstCompiler! compiler, string! markup, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileMarkupAsync(this Typstium.ITypstCompiler! compiler, string! markup, Typstium.TypstOutput! output) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileMarkupAsync(this Typstium.ITypstCompiler! compiler, string! markup, Typstium.TypstOutput! output, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileMarkupAsync(this Typstium.ITypstCompiler! compiler, string! markup, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileMarkupAsync(this Typstium.ITypstCompiler! compiler, string! markup, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileTemplateAsync(this Typstium.ITypstCompiler! compiler, Typstium.ITemplateProvider! provider, string! templateName) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileTemplateAsync(this Typstium.ITypstCompiler! compiler, Typstium.ITemplateProvider! provider, string! templateName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileTemplateAsync(this Typstium.ITypstCompiler! compiler, Typstium.ITemplateProvider! provider, string! templateName, Typstium.TypstOutput! output) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileTemplateAsync(this Typstium.ITypstCompiler! compiler, Typstium.ITemplateProvider! provider, string! templateName, Typstium.TypstOutput! output, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileTemplateAsync(this Typstium.ITypstCompiler! compiler, Typstium.ITemplateProvider! provider, string! templateName, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCompilerExtensions.CompileTemplateAsync(this Typstium.ITypstCompiler! compiler, Typstium.ITemplateProvider! provider, string! templateName, Typstium.TypstOutput! output, Typstium.TypstCompileOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Typstium.TypstCreationTimestamp.Fixed(System.DateTimeOffset value) -> Typstium.TypstCreationTimestamp!
+static Typstium.TypstCreationTimestamp.FixedTimestamp.operator !=(Typstium.TypstCreationTimestamp.FixedTimestamp? left, Typstium.TypstCreationTimestamp.FixedTimestamp? right) -> bool
+static Typstium.TypstCreationTimestamp.FixedTimestamp.operator ==(Typstium.TypstCreationTimestamp.FixedTimestamp? left, Typstium.TypstCreationTimestamp.FixedTimestamp? right) -> bool
+static Typstium.TypstCreationTimestamp.Inherit.get -> Typstium.TypstCreationTimestamp!
+static Typstium.TypstCreationTimestamp.InheritTimestamp.operator !=(Typstium.TypstCreationTimestamp.InheritTimestamp? left, Typstium.TypstCreationTimestamp.InheritTimestamp? right) -> bool
+static Typstium.TypstCreationTimestamp.InheritTimestamp.operator ==(Typstium.TypstCreationTimestamp.InheritTimestamp? left, Typstium.TypstCreationTimestamp.InheritTimestamp? right) -> bool
+static Typstium.TypstCreationTimestamp.Now.get -> Typstium.TypstCreationTimestamp!
+static Typstium.TypstCreationTimestamp.NowTimestamp.operator !=(Typstium.TypstCreationTimestamp.NowTimestamp? left, Typstium.TypstCreationTimestamp.NowTimestamp? right) -> bool
+static Typstium.TypstCreationTimestamp.NowTimestamp.operator ==(Typstium.TypstCreationTimestamp.NowTimestamp? left, Typstium.TypstCreationTimestamp.NowTimestamp? right) -> bool
+static Typstium.TypstCreationTimestamp.operator !=(Typstium.TypstCreationTimestamp? left, Typstium.TypstCreationTimestamp? right) -> bool
+static Typstium.TypstCreationTimestamp.operator ==(Typstium.TypstCreationTimestamp? left, Typstium.TypstCreationTimestamp? right) -> bool
+static Typstium.TypstDiagnostic.operator !=(Typstium.TypstDiagnostic? left, Typstium.TypstDiagnostic? right) -> bool
+static Typstium.TypstDiagnostic.operator ==(Typstium.TypstDiagnostic? left, Typstium.TypstDiagnostic? right) -> bool
+static Typstium.TypstDiagnosticId.Parse(string! value) -> Typstium.TypstDiagnosticId!
+static Typstium.TypstDocument.CreatePaged(Typstium.TypstOutputFormat format, System.Collections.Immutable.ImmutableArray<System.ReadOnlyMemory<byte>> pages) -> Typstium.TypstDocument!
+static Typstium.TypstDocument.CreateSingleFile(Typstium.TypstOutputFormat format, System.ReadOnlyMemory<byte> content) -> Typstium.TypstDocument!
+static Typstium.TypstDocument.Paged.operator !=(Typstium.TypstDocument.Paged? left, Typstium.TypstDocument.Paged? right) -> bool
+static Typstium.TypstDocument.Paged.operator ==(Typstium.TypstDocument.Paged? left, Typstium.TypstDocument.Paged? right) -> bool
+static Typstium.TypstDocument.SingleFile.operator !=(Typstium.TypstDocument.SingleFile? left, Typstium.TypstDocument.SingleFile? right) -> bool
+static Typstium.TypstDocument.SingleFile.operator ==(Typstium.TypstDocument.SingleFile? left, Typstium.TypstDocument.SingleFile? right) -> bool
+static Typstium.TypstDocument.operator !=(Typstium.TypstDocument? left, Typstium.TypstDocument? right) -> bool
+static Typstium.TypstDocument.operator ==(Typstium.TypstDocument? left, Typstium.TypstDocument? right) -> bool
+static Typstium.TypstExecutable.operator !=(Typstium.TypstExecutable? left, Typstium.TypstExecutable? right) -> bool
+static Typstium.TypstExecutable.operator ==(Typstium.TypstExecutable? left, Typstium.TypstExecutable? right) -> bool
+static Typstium.TypstExecutableLocators.BundledRuntime() -> Typstium.ITypstExecutableLocator!
+static Typstium.TypstExecutableLocators.EnvironmentVariable() -> Typstium.ITypstExecutableLocator!
+static Typstium.TypstExecutableLocators.EnvironmentVariable(string! name) -> Typstium.ITypstExecutableLocator!
+static Typstium.TypstExecutableLocators.ExplicitPath(string! path) -> Typstium.ITypstExecutableLocator!
+static Typstium.TypstExecutableLocators.SearchPath() -> Typstium.ITypstExecutableLocator!
+static Typstium.TypstExecutableLocators.WellKnownLocations() -> Typstium.ITypstExecutableLocator!
+static Typstium.TypstExecutableLocators.WinGet() -> Typstium.ITypstExecutableLocator!
+static Typstium.TypstExecutableResolver.CreateDefault() -> Typstium.TypstExecutableResolver!
+static Typstium.TypstExecutableResolver.CreateDefault(string! explicitPath) -> Typstium.TypstExecutableResolver!
+static Typstium.TypstFontOptions.Default.get -> Typstium.TypstFontOptions!
+static Typstium.TypstFontOptions.operator !=(Typstium.TypstFontOptions? left, Typstium.TypstFontOptions? right) -> bool
+static Typstium.TypstFontOptions.operator ==(Typstium.TypstFontOptions? left, Typstium.TypstFontOptions? right) -> bool
+static Typstium.TypstInput.FromJson<T>(Typstium.TypstInputKey! key, T value) -> Typstium.TypstInput!
+static Typstium.TypstInput.FromJson<T>(Typstium.TypstInputKey! key, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstInput!
+static Typstium.TypstInput.FromJson<T>(Typstium.TypstInputKey! key, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Typstium.TypstInput!
+static Typstium.TypstInput.FromText(Typstium.TypstInputKey! key, string! value) -> Typstium.TypstInput!
+static Typstium.TypstInputKey.Parse(string! value) -> Typstium.TypstInputKey!
+static Typstium.TypstInputKey.TryParse(string? value, out Typstium.TypstInputKey? key) -> bool
+static Typstium.TypstInputKey.operator !=(Typstium.TypstInputKey? left, Typstium.TypstInputKey? right) -> bool
+static Typstium.TypstInputKey.operator ==(Typstium.TypstInputKey? left, Typstium.TypstInputKey? right) -> bool
+static Typstium.TypstInputs.Empty.get -> Typstium.TypstInputs!
+static Typstium.TypstInputs.Of(params Typstium.TypstInput![]! inputs) -> Typstium.TypstInputs!
+static Typstium.TypstInvocation.operator !=(Typstium.TypstInvocation? left, Typstium.TypstInvocation? right) -> bool
+static Typstium.TypstInvocation.operator ==(Typstium.TypstInvocation? left, Typstium.TypstInvocation? right) -> bool
+static Typstium.TypstLocation.operator !=(Typstium.TypstLocation? left, Typstium.TypstLocation? right) -> bool
+static Typstium.TypstLocation.operator ==(Typstium.TypstLocation? left, Typstium.TypstLocation? right) -> bool
+static Typstium.TypstLocatorResult.Found(string! path) -> Typstium.TypstLocatorResult!
+static Typstium.TypstLocatorResult.FoundResult.operator !=(Typstium.TypstLocatorResult.FoundResult? left, Typstium.TypstLocatorResult.FoundResult? right) -> bool
+static Typstium.TypstLocatorResult.FoundResult.operator ==(Typstium.TypstLocatorResult.FoundResult? left, Typstium.TypstLocatorResult.FoundResult? right) -> bool
+static Typstium.TypstLocatorResult.NotFound(System.Collections.Generic.IEnumerable<string!>! searchedLocations) -> Typstium.TypstLocatorResult!
+static Typstium.TypstLocatorResult.NotFoundResult.operator !=(Typstium.TypstLocatorResult.NotFoundResult? left, Typstium.TypstLocatorResult.NotFoundResult? right) -> bool
+static Typstium.TypstLocatorResult.NotFoundResult.operator ==(Typstium.TypstLocatorResult.NotFoundResult? left, Typstium.TypstLocatorResult.NotFoundResult? right) -> bool
+static Typstium.TypstLocatorResult.operator !=(Typstium.TypstLocatorResult? left, Typstium.TypstLocatorResult? right) -> bool
+static Typstium.TypstLocatorResult.operator ==(Typstium.TypstLocatorResult? left, Typstium.TypstLocatorResult? right) -> bool
+static Typstium.TypstLocatorSearch.operator !=(Typstium.TypstLocatorSearch? left, Typstium.TypstLocatorSearch? right) -> bool
+static Typstium.TypstLocatorSearch.operator ==(Typstium.TypstLocatorSearch? left, Typstium.TypstLocatorSearch? right) -> bool
+static Typstium.TypstOutput.Html() -> Typstium.TypstOutput!
+static Typstium.TypstOutput.HtmlOutput.operator !=(Typstium.TypstOutput.HtmlOutput? left, Typstium.TypstOutput.HtmlOutput? right) -> bool
+static Typstium.TypstOutput.HtmlOutput.operator ==(Typstium.TypstOutput.HtmlOutput? left, Typstium.TypstOutput.HtmlOutput? right) -> bool
+static Typstium.TypstOutput.Pdf() -> Typstium.TypstOutput!
+static Typstium.TypstOutput.Pdf(Typstium.TypstPdfOptions! options) -> Typstium.TypstOutput!
+static Typstium.TypstOutput.Pdf(params Typstium.PdfStandard![]! standards) -> Typstium.TypstOutput!
+static Typstium.TypstOutput.PdfOutput.operator !=(Typstium.TypstOutput.PdfOutput? left, Typstium.TypstOutput.PdfOutput? right) -> bool
+static Typstium.TypstOutput.PdfOutput.operator ==(Typstium.TypstOutput.PdfOutput? left, Typstium.TypstOutput.PdfOutput? right) -> bool
+static Typstium.TypstOutput.Png() -> Typstium.TypstOutput!
+static Typstium.TypstOutput.Png(int ppi) -> Typstium.TypstOutput!
+static Typstium.TypstOutput.Png(int ppi, Typstium.TypstPageSelection! pages) -> Typstium.TypstOutput!
+static Typstium.TypstOutput.PngOutput.operator !=(Typstium.TypstOutput.PngOutput? left, Typstium.TypstOutput.PngOutput? right) -> bool
+static Typstium.TypstOutput.PngOutput.operator ==(Typstium.TypstOutput.PngOutput? left, Typstium.TypstOutput.PngOutput? right) -> bool
+static Typstium.TypstOutput.Svg() -> Typstium.TypstOutput!
+static Typstium.TypstOutput.Svg(Typstium.TypstPageSelection! pages) -> Typstium.TypstOutput!
+static Typstium.TypstOutput.SvgOutput.operator !=(Typstium.TypstOutput.SvgOutput? left, Typstium.TypstOutput.SvgOutput? right) -> bool
+static Typstium.TypstOutput.SvgOutput.operator ==(Typstium.TypstOutput.SvgOutput? left, Typstium.TypstOutput.SvgOutput? right) -> bool
+static Typstium.TypstOutput.operator !=(Typstium.TypstOutput? left, Typstium.TypstOutput? right) -> bool
+static Typstium.TypstOutput.operator ==(Typstium.TypstOutput? left, Typstium.TypstOutput? right) -> bool
+static Typstium.TypstPackageOptions.Default.get -> Typstium.TypstPackageOptions!
+static Typstium.TypstPackageOptions.operator !=(Typstium.TypstPackageOptions? left, Typstium.TypstPackageOptions? right) -> bool
+static Typstium.TypstPackageOptions.operator ==(Typstium.TypstPackageOptions? left, Typstium.TypstPackageOptions? right) -> bool
+static Typstium.TypstPageRange.Between(int first, int last) -> Typstium.TypstPageRange!
+static Typstium.TypstPageRange.From(int first) -> Typstium.TypstPageRange!
+static Typstium.TypstPageRange.Single(int page) -> Typstium.TypstPageRange!
+static Typstium.TypstPageRange.operator !=(Typstium.TypstPageRange? left, Typstium.TypstPageRange? right) -> bool
+static Typstium.TypstPageRange.operator ==(Typstium.TypstPageRange? left, Typstium.TypstPageRange? right) -> bool
+static Typstium.TypstPageSelection.All.get -> Typstium.TypstPageSelection!
+static Typstium.TypstPageSelection.Of(params Typstium.TypstPageRange![]! ranges) -> Typstium.TypstPageSelection!
+static Typstium.TypstPageSelection.operator !=(Typstium.TypstPageSelection? left, Typstium.TypstPageSelection? right) -> bool
+static Typstium.TypstPageSelection.operator ==(Typstium.TypstPageSelection? left, Typstium.TypstPageSelection? right) -> bool
+static Typstium.TypstPath.Parse(string! value) -> Typstium.TypstPath!
+static Typstium.TypstPath.TryParse(string? value, out Typstium.TypstPath? path) -> bool
+static Typstium.TypstPath.operator !=(Typstium.TypstPath? left, Typstium.TypstPath? right) -> bool
+static Typstium.TypstPath.operator ==(Typstium.TypstPath? left, Typstium.TypstPath? right) -> bool
+static Typstium.TypstPdfOptions.Default.get -> Typstium.TypstPdfOptions!
+static Typstium.TypstPdfOptions.operator !=(Typstium.TypstPdfOptions? left, Typstium.TypstPdfOptions? right) -> bool
+static Typstium.TypstPdfOptions.operator ==(Typstium.TypstPdfOptions? left, Typstium.TypstPdfOptions? right) -> bool
+static Typstium.TypstPosition.operator !=(Typstium.TypstPosition left, Typstium.TypstPosition right) -> bool
+static Typstium.TypstPosition.operator ==(Typstium.TypstPosition left, Typstium.TypstPosition right) -> bool
+static Typstium.TypstSource.File(string! path) -> Typstium.TypstSource!
+static Typstium.TypstSource.File(string! path, string! root) -> Typstium.TypstSource!
+static Typstium.TypstSource.FileSource.operator !=(Typstium.TypstSource.FileSource? left, Typstium.TypstSource.FileSource? right) -> bool
+static Typstium.TypstSource.FileSource.operator ==(Typstium.TypstSource.FileSource? left, Typstium.TypstSource.FileSource? right) -> bool
+static Typstium.TypstSource.Markup(string! markup) -> Typstium.TypstSource!
+static Typstium.TypstSource.Markup(string! markup, System.Collections.Immutable.ImmutableArray<Typstium.TypstVirtualFile!> files) -> Typstium.TypstSource!
+static Typstium.TypstSource.MarkupSource.operator !=(Typstium.TypstSource.MarkupSource? left, Typstium.TypstSource.MarkupSource? right) -> bool
+static Typstium.TypstSource.MarkupSource.operator ==(Typstium.TypstSource.MarkupSource? left, Typstium.TypstSource.MarkupSource? right) -> bool
+static Typstium.TypstSource.Template(Typstium.ITemplateProvider! provider, Typstium.TypstTemplateName! name) -> Typstium.TypstSource!
+static Typstium.TypstSource.Template(Typstium.ITemplateProvider! provider, Typstium.TypstTemplateName! name, System.Collections.Immutable.ImmutableArray<Typstium.TypstVirtualFile!> files) -> Typstium.TypstSource!
+static Typstium.TypstSource.TemplateSource.operator !=(Typstium.TypstSource.TemplateSource? left, Typstium.TypstSource.TemplateSource? right) -> bool
+static Typstium.TypstSource.TemplateSource.operator ==(Typstium.TypstSource.TemplateSource? left, Typstium.TypstSource.TemplateSource? right) -> bool
+static Typstium.TypstSource.operator !=(Typstium.TypstSource? left, Typstium.TypstSource? right) -> bool
+static Typstium.TypstSource.operator ==(Typstium.TypstSource? left, Typstium.TypstSource? right) -> bool
+static Typstium.TypstSourceFile.Markup.Instance.get -> Typstium.TypstSourceFile.Markup!
+static Typstium.TypstSourceFile.Markup.operator !=(Typstium.TypstSourceFile.Markup? left, Typstium.TypstSourceFile.Markup? right) -> bool
+static Typstium.TypstSourceFile.Markup.operator ==(Typstium.TypstSourceFile.Markup? left, Typstium.TypstSourceFile.Markup? right) -> bool
+static Typstium.TypstSourceFile.Package.operator !=(Typstium.TypstSourceFile.Package? left, Typstium.TypstSourceFile.Package? right) -> bool
+static Typstium.TypstSourceFile.Package.operator ==(Typstium.TypstSourceFile.Package? left, Typstium.TypstSourceFile.Package? right) -> bool
+static Typstium.TypstSourceFile.Project.operator !=(Typstium.TypstSourceFile.Project? left, Typstium.TypstSourceFile.Project? right) -> bool
+static Typstium.TypstSourceFile.Project.operator ==(Typstium.TypstSourceFile.Project? left, Typstium.TypstSourceFile.Project? right) -> bool
+static Typstium.TypstSourceFile.Virtual.operator !=(Typstium.TypstSourceFile.Virtual? left, Typstium.TypstSourceFile.Virtual? right) -> bool
+static Typstium.TypstSourceFile.Virtual.operator ==(Typstium.TypstSourceFile.Virtual? left, Typstium.TypstSourceFile.Virtual? right) -> bool
+static Typstium.TypstSourceFile.operator !=(Typstium.TypstSourceFile? left, Typstium.TypstSourceFile? right) -> bool
+static Typstium.TypstSourceFile.operator ==(Typstium.TypstSourceFile? left, Typstium.TypstSourceFile? right) -> bool
+static Typstium.TypstTemplateFile.FromBytes(Typstium.TypstPath! path, System.ReadOnlyMemory<byte> content) -> Typstium.TypstTemplateFile!
+static Typstium.TypstTemplateFile.FromFile(Typstium.TypstPath! path, string! physicalPath) -> Typstium.TypstTemplateFile!
+static Typstium.TypstTemplateName.Parse(string! value) -> Typstium.TypstTemplateName!
+static Typstium.TypstTemplateName.TryParse(string? value, out Typstium.TypstTemplateName? name) -> bool
+static Typstium.TypstTraceFrame.operator !=(Typstium.TypstTraceFrame? left, Typstium.TypstTraceFrame? right) -> bool
+static Typstium.TypstTraceFrame.operator ==(Typstium.TypstTraceFrame? left, Typstium.TypstTraceFrame? right) -> bool
+static Typstium.TypstVersion.Parse(string! value) -> Typstium.TypstVersion
+static Typstium.TypstVersion.TryParse(string? value, out Typstium.TypstVersion version) -> bool
+static Typstium.TypstVersion.operator !=(Typstium.TypstVersion left, Typstium.TypstVersion right) -> bool
+static Typstium.TypstVersion.operator <(Typstium.TypstVersion left, Typstium.TypstVersion right) -> bool
+static Typstium.TypstVersion.operator <=(Typstium.TypstVersion left, Typstium.TypstVersion right) -> bool
+static Typstium.TypstVersion.operator ==(Typstium.TypstVersion left, Typstium.TypstVersion right) -> bool
+static Typstium.TypstVersion.operator >(Typstium.TypstVersion left, Typstium.TypstVersion right) -> bool
+static Typstium.TypstVersion.operator >=(Typstium.TypstVersion left, Typstium.TypstVersion right) -> bool
+static Typstium.TypstVirtualFile.FromBytes(Typstium.TypstPath! path, System.ReadOnlyMemory<byte> content) -> Typstium.TypstVirtualFile!
+static Typstium.TypstVirtualFile.FromJson<T>(Typstium.TypstPath! path, T value) -> Typstium.TypstVirtualFile!
+static Typstium.TypstVirtualFile.FromJson<T>(Typstium.TypstPath! path, T value, System.Text.Json.JsonSerializerOptions! options) -> Typstium.TypstVirtualFile!
+static Typstium.TypstVirtualFile.FromJson<T>(Typstium.TypstPath! path, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Typstium.TypstVirtualFile!
+static Typstium.TypstVirtualFile.FromStreamAsync(Typstium.TypstPath! path, System.IO.Stream! stream, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstVirtualFile!>!
+static Typstium.TypstVirtualFile.FromText(Typstium.TypstPath! path, string! text) -> Typstium.TypstVirtualFile!
+static Typstium.TypstVirtualFile.operator !=(Typstium.TypstVirtualFile? left, Typstium.TypstVirtualFile? right) -> bool
+static Typstium.TypstVirtualFile.operator ==(Typstium.TypstVirtualFile? left, Typstium.TypstVirtualFile? right) -> bool
+virtual Typstium.TypstCreationTimestamp.EqualityContract.get -> System.Type!
+virtual Typstium.TypstCreationTimestamp.Equals(Typstium.TypstCreationTimestamp? other) -> bool
+virtual Typstium.TypstCreationTimestamp.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Typstium.TypstDocument.EqualityContract.get -> System.Type!
+virtual Typstium.TypstDocument.Equals(Typstium.TypstDocument? other) -> bool
+virtual Typstium.TypstDocument.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Typstium.TypstLocatorResult.EqualityContract.get -> System.Type!
+virtual Typstium.TypstLocatorResult.Equals(Typstium.TypstLocatorResult? other) -> bool
+virtual Typstium.TypstLocatorResult.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Typstium.TypstOutput.EqualityContract.get -> System.Type!
+virtual Typstium.TypstOutput.Equals(Typstium.TypstOutput? other) -> bool
+virtual Typstium.TypstOutput.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Typstium.TypstSource.EqualityContract.get -> System.Type!
+virtual Typstium.TypstSource.Equals(Typstium.TypstSource? other) -> bool
+virtual Typstium.TypstSource.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual Typstium.TypstSourceFile.EqualityContract.get -> System.Type!
+virtual Typstium.TypstSourceFile.Equals(Typstium.TypstSourceFile? other) -> bool
+virtual Typstium.TypstSourceFile.PrintMembers(System.Text.StringBuilder! builder) -> bool
+~override Typstium.TypstPosition.Equals(object obj) -> bool
+~override Typstium.TypstVersion.Equals(object obj) -> bool

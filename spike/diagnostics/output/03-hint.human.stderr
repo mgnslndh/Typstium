@@ -1,0 +1,8 @@
+error: unknown variable: a-b
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\03-hint.typ:3:2
+  │
+3 │ #{a-b}
+  │   ^^^
+  │
+  = hint: if you meant to use subtraction, try adding spaces around the minus sign: `a - b`
+

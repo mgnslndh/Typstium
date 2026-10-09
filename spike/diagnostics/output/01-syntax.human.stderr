@@ -1,0 +1,24 @@
+error: unclosed delimiter
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:3:9
+  │
+3 │ #let x = (1, 2
+  │          ^
+
+error: expected comma
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:3:14
+  │
+3 │ #let x = (1, 2
+  │               ^
+
+error: expected comma
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:5:4
+  │
+5 │ Some text.
+  │     ^
+
+error: expected identifier
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\01-syntax.typ:5:10
+  │
+5 │ Some text.
+  │           ^
+

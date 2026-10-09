@@ -1,0 +1,6 @@
+error: condition is always true
+  ┌─ \\?\C:\Dev\GitHub\mgnslndh\Typstium\spike\diagnostics\root\07-infinite-loop.typ:1:7
+  │
+1 │ #while true {}
+  │        ^^^^
+
