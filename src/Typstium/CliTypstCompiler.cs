@@ -63,8 +63,8 @@ public sealed class CliTypstCompiler : ITypstCompiler
         var profile = await _profiles.GetProfileAsync(executable, cancellationToken).ConfigureAwait(false);
         CapabilityValidator.Validate(request, profile.Capabilities);
 
-        // The slot covers preparing the workspace too, so a long queue holds no scratch folders: at most
-        // MaxConcurrency exist at once, and none of them ages while waiting.
+        // The slot covers preparing the workspace too, so a queued request holds no scratch folder and none ages
+        // while waiting. Folders exist only for running compiles and, briefly, ones finishing up.
         await _concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);
         var holdsSlot = true;
         IWorkspace? workspace = null;
