@@ -3,6 +3,7 @@
 *.ps1 text eol=crlf
 # Run directly on Linux and macOS through its shebang, which a CR would break.
 build.ps1 text eol=lf
+build.sh text eol=lf
 *.otf binary
 *.ttf binary
 *.png binary

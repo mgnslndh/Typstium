@@ -10,4 +10,10 @@
     <ProjectReference Include="../Build.Cake.Extensions/Build.Cake.Extensions.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Build.Cake.Extensions.Coverage" />
+    <Using Include="Build.Cake.Extensions.Coverage.Comparison" />
+    <Using Include="Build.Cake.Extensions.GitHub" />
+  </ItemGroup>
+
 </Project>
