@@ -1091,11 +1091,15 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 - every job runs `./build.ps1`, the same script used locally: build, unit tests, integration tests,
   then the timing tests alone (D41)
 - the pinned-Typst jobs run `./build.ps1 -Coverage` (D45): coverage of the unit and integration tests,
-  merged across test projects and target frameworks, printed as a table per namespace of each project
-  under `src/` and written to the job summary. Rows are sorted by missed (uncovered) lines, so the biggest
-  contributor to the gap comes first; columns are Missed, Gap (the row's share of all uncovered lines), and
-  Line, Branch and Method coverage, where a method counts once any of its lines ran (whole-method coverage
-  would mostly repeat the Line column). Assembly subtotals and a total close the table
+  merged across test projects and target frameworks by ReportGenerator, then printed by
+  `build/Write-CoverageReport.ps1` and written to the job summary as four tables of the projects under
+  `src/`: by **visibility** (public API against internal; public types are the bare type lines of the
+  `PublicAPI.*.txt` files, which the analyzer keeps complete), by **namespace**, by **area** (top-level
+  folder, so a feature's public and internal types share a row), and the **top 10 classes** by missed lines
+  with their files. Rows are sorted by missed (uncovered) lines, so the biggest contributor to the gap comes
+  first; columns are Missed, Gap (the row's share of all missed lines), and Line, Branch and Method coverage,
+  where a method counts once any of its lines ran (whole-method coverage would mostly repeat the Line
+  column). Assembly subtotals and a total close each grouped table
 
 ## 8. Decisions
 

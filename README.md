@@ -40,5 +40,5 @@ dotnet test   # integration tests are skipped when Typst isn't installed
 ```
 
 To run exactly what CI runs (build, unit, integration, then the timing tests alone), use `./build.ps1`
-(PowerShell 7). Add `-Coverage` for a code-coverage table of the unit and integration tests, per namespace
-of each project under `src/`, as CI prints it.
+(PowerShell 7). Add `-Coverage` for code-coverage tables of the unit and integration tests (by visibility,
+namespace and area, plus the classes with the most missed lines), as CI prints them.
