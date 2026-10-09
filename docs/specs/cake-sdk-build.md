@@ -76,10 +76,16 @@ build/
       Rendering/                   SpectreTableRenderer, MarkdownTableRenderer
       Comparison/                  CoverageComparer, CoverageComparisonOptions, CoverageComparison
       CoverageMerger.cs            ReportGenerator.Core in process (edge)
+      CoverageReportSettings.cs    inputs of the report
+      CoverageAliases.cs           ReportCoverage: section 6 end to end (edge)
     GitHub/
       GitHubCli.cs                 `gh`/`git` through Cake's process runner (edge)
-      PullRequestContext.cs        PR number, head SHA, head repository, author, base ref, repository
-      PullRequestCoverage.cs       baseline lookup, sticky comment, check run (edge)
+      PullRequestEvent.cs          number, head SHA, head repository, author from the event payload
+      PullRequestContext.cs        the event plus repository and base ref; whether the token is read-only
+      WorkflowRun.cs               rows of `gh run list --json`
+      GitHubJson.cs                `gh api` request bodies; finding the sticky comment
+      PullRequestCoverageSettings.cs
+      PullRequestCoverageAliases.cs PublishPullRequestCoverage: baseline lookup, sticky comment, check run (edge)
   Build.Cake.Extensions.Tests/
     Build.Cake.Extensions.Tests.csproj   TUnit, Spectre.Console.Testing
     Fixtures/                      Cobertura and summary inputs; expected outputs (golden files)
@@ -223,6 +229,8 @@ missed lines.
   - the legend
 
   The heading text is a parameter, because "unit and integration tests" is Typstium-specific.
+- Markdown always uses `
+` line endings, whatever the platform.
 - The job summary is written only on GitHub Actions (`GitHubActions.IsRunningOnGitHubActions`) and not with
   `--no-job-summary`.
 
@@ -260,18 +268,21 @@ Markdown)`. Its rules and output are unchanged from `Compare-Coverage.ps1`:
   - 🟢 / 🔴 / ⚪ markers, and ✅ / ❌ for the verdict.
   - 0 lines counts as 100%.
 - The comment starts with `options.Marker`, used to find the sticky comment, and ends with `options.Footer`.
-- **Name comparisons** (tie-breaks and the union of namespace names) use `StringComparer.OrdinalIgnoreCase`, matching
-  `Sort-Object`'s case-insensitive default closely enough for namespace names. The golden files decide.
+- **Name comparisons.** Ordering (tie-breaks, the sorted union of namespace names) uses
+  `StringComparer.InvariantCultureIgnoreCase`, closest to `Sort-Object`. Lookups use `StringComparer.OrdinalIgnoreCase`,
+  like PowerShell hashtables. The golden files decide.
 
-`PullRequestCoverage` is the edge. Its behavior is unchanged from `Publish-CoverageComparison.ps1`.
+`PublishPullRequestCoverage` is the edge. Its behavior is unchanged from `Publish-CoverageComparison.ps1`, except
+where noted.
 
 1. **Context.**
    - From Cake: `GitHubActions.Environment.Workflow.Repository` and `.BaseRef`.
-   - From the workflow's environment (`EnvironmentVariable`): `PR_NUMBER`, `HEAD_SHA`, `HEAD_REPOSITORY` and
-     `PR_AUTHOR`. Cake doesn't expose these: its `Workflow.Sha` is the merge commit, not the head.
-   - A missing required value fails the task with a clear message.
-2. **Read-only token.** A pull request from a fork, or one authored by `dependabot[bot]`, has a read-only token. In
-   that case:
+   - From the event payload at `GitHubActions.Environment.Workflow.EventPath` (`GITHUB_EVENT_PATH`):
+     `pull_request.number`, `.head.sha`, `.head.repo.full_name` and `.user.login`. Cake's `Workflow.Sha` is the merge
+     commit, not the head, so the payload is the source. `ci.yml` no longer passes these as environment variables.
+   - Outside a GitHub Actions `pull_request` run, the task fails with a clear message.
+2. **Read-only token.** A pull request from a fork, from a fork that was since deleted (`head.repo` is `null`), or one
+   authored by `dependabot[bot]` has a read-only token. In that case:
    - the comparison goes to the step summary
    - `GitHubActions.Commands.Notice(…)` reports the result
    - the task ends successfully
@@ -287,7 +298,9 @@ Markdown)`. Its rules and output are unchanged from `Compare-Coverage.ps1`:
    - A completed `Coverage` check run on the head SHA with the conclusion, the title and the Markdown as its
      summary.
    - Failures from `gh` fail the task.
-   - `gh` reads the comment body from a temporary file (`-F body=@file`), as today.
+   - Request bodies (comment, check run) are JSON built in C# and passed with `gh api --input <file>`, so Markdown
+     never goes through command-line quoting. Existing comments are listed with `gh api --paginate --slurp` and
+     searched in C#.
 
 `GitHubCli` wraps `gh` and `git` through Cake's process runner (`StartProcess` with redirected output). It returns
 stdout and throws `CakeException` on non-zero exits, except for calls documented as allowed to fail
@@ -376,8 +389,8 @@ their end-to-end test:
 - Coverage job:
   - `./build.sh --target=CoverageReport`
   - then, on pull requests, `./build.sh --target=CoverageComparison --max-line-decrease=$MAX_LINE_DECREASE`, with
-    `GH_TOKEN`, `PR_NUMBER`, `HEAD_SHA`, `HEAD_REPOSITORY` and `PR_AUTHOR`. `BASE_REF` is dropped: Cake reads
-    `GITHUB_BASE_REF`.
+    only `GH_TOKEN`. The pull request's details come from the event payload, and the repository and base branch from
+    `GITHUB_REPOSITORY` and `GITHUB_BASE_REF`.
 - Latest-Typst job: `./build.sh`.
 - Unchanged: artifact names and paths, permissions, pinned action SHAs.
 - The comments in `ci.yml` are updated to the new commands.

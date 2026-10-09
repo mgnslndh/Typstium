@@ -1,0 +1,13 @@
+<Project Sdk="Cake.Sdk">
+
+  <PropertyGroup>
+    <!-- Every path in the build is relative to the repository root, wherever the bootstrap is run from. -->
+    <RunWorkingDirectory>$(MSBuildProjectDirectory)/../..</RunWorkingDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cake.BuildSystems.Module" />
+    <ProjectReference Include="../Build.Cake.Extensions/Build.Cake.Extensions.csproj" />
+  </ItemGroup>
+
+</Project>

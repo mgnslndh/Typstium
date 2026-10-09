@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Cake.Common" />
+    <PackageReference Include="ReportGenerator.Core" />
+    <PackageReference Include="Spectre.Console" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Build.Cake.Extensions.Tests" />
+  </ItemGroup>
+
+</Project>
