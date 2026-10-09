@@ -7,11 +7,17 @@
 # -Coverage collects code coverage from the unit and integration tests (not the timing tests: instrumentation
 # would distort their timings), merges every test project and target framework with ReportGenerator, and once all
 # tests have passed prints coverage tables for the products under src/ (build/Write-CoverageReport.ps1). On GitHub
-# Actions the tables also go to the job summary.
+# Actions the tables also go to the job summary, unless -NoJobSummary.
+#
+# -CoverageReportOnly skips build and tests and only merges and reports the raw coverage files already in
+# artifacts/coverage/raw/, e.g. from several machines: CI's coverage job merges Windows and Ubuntu this way, so code
+# counts as covered when any platform ran it.
 [CmdletBinding()]
 param(
     [string] $Configuration = 'Release',
-    [switch] $Coverage
+    [switch] $Coverage,
+    [switch] $CoverageReportOnly,
+    [switch] $NoJobSummary
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,17 +46,48 @@ function Get-CoverageArguments {
     return @('--results-directory', (Join-Path $CoverageDirectory 'raw'), '--', '--coverage', '--coverage-output-format', 'cobertura')
 }
 
+# Copies the raw files with every source path made repo-relative (src/Typstium/X.cs). Each machine records absolute
+# paths (D:\... on Windows, /home/runner/... on Ubuntu); without this, ReportGenerator would see one file per
+# machine and count its lines twice, instead of merging them so a line counts as covered when any run hit it.
+function ConvertTo-RepoRelativeCoverage([string] $Source, [string] $Target) {
+    New-Item -ItemType Directory -Force $Target | Out-Null
+    foreach ($file in Get-ChildItem -Path $Source -Filter *.cobertura.xml) {
+        $text = [System.IO.File]::ReadAllText($file.FullName)
+        $text = [regex]::Replace($text, 'filename="([^"]*)"', {
+            param($match)
+            $path = $match.Groups[1].Value -replace '\\', '/'
+            $index = [Math]::Max($path.LastIndexOf('/src/'), $path.LastIndexOf('/tests/'))
+            'filename="{0}"' -f $(if ($index -ge 0) { $path.Substring($index + 1) } else { $path })
+        })
+        [System.IO.File]::WriteAllText((Join-Path $Target $file.Name), $text)
+    }
+}
+
 function Invoke-CoverageReport {
     # The products are the projects under src/; anything under tests/ never counts.
     $products = Get-ChildItem -Path src -Filter *.csproj -Recurse | ForEach-Object { $_.BaseName }
     $filters = ($products | ForEach-Object { "+$_" }) -join ';'
+    $relative = Join-Path $CoverageDirectory 'relative'
     $report = Join-Path $CoverageDirectory 'report'
-    dnx $ReportGenerator --yes -- "-reports:$(Join-Path $CoverageDirectory 'raw/*.cobertura.xml')" "-targetdir:$report" '-reporttypes:Cobertura' "-assemblyfilters:$filters" '-verbosity:Warning'
+    foreach ($folder in $relative, $report) {
+        if (Test-Path $folder) {
+            Remove-Item -Recurse -Force $folder
+        }
+    }
+
+    ConvertTo-RepoRelativeCoverage (Join-Path $CoverageDirectory 'raw') $relative
+    dnx $ReportGenerator --yes -- "-reports:$(Join-Path $relative '*.cobertura.xml')" "-targetdir:$report" '-reporttypes:Cobertura' "-assemblyfilters:$filters" '-verbosity:Warning'
     if ($LASTEXITCODE -ne 0) {
         return
     }
 
-    & (Join-Path $PSScriptRoot 'build/Write-CoverageReport.ps1') -CoberturaPath (Join-Path $report 'Cobertura.xml') -SourceDirectory (Join-Path $PSScriptRoot 'src')
+    $reportArguments = @{ CoberturaPath = (Join-Path $report 'Cobertura.xml'); SourceDirectory = (Join-Path $PSScriptRoot 'src') }
+    & (Join-Path $PSScriptRoot 'build/Write-CoverageReport.ps1') @reportArguments -NoJobSummary:$NoJobSummary
+}
+
+if ($CoverageReportOnly) {
+    Invoke-Step 'Code coverage (merged raw files)' { Invoke-CoverageReport }
+    exit 0
 }
 
 if ($Coverage -and (Test-Path $CoverageDirectory)) {

@@ -29,9 +29,36 @@ jobs:
         with:
           typst-version: ${{ matrix.typst }}
       - run: typst --version
-      # The same steps as a local run: build, unit, integration, then the timing tests alone. -Coverage adds a
-      # coverage table (unit + integration tests) to the log and to this job's summary.
-      - run: ./build.ps1 -Coverage
+      # The same steps as a local run: build, unit, integration, then the timing tests alone. -Coverage prints this
+      # platform's coverage tables to the log; the coverage job below merges both platforms for the job summary.
+      - run: ./build.ps1 -Coverage -NoJobSummary
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}
+          path: artifacts/coverage/raw/*.cobertura.xml
+          if-no-files-found: error
+          retention-days: 7
+
+  # One coverage report for the run: code counts as covered when either platform ran it (Unix-only code on Ubuntu,
+  # Windows-only code such as job objects on Windows). Runs only when both platforms passed.
+  coverage:
+    name: Coverage (Windows + Ubuntu)
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: artifacts/coverage/raw
+          merge-multiple: true
+      - run: ./build.ps1 -CoverageReportOnly
         shell: pwsh
 
   latest-typst:

@@ -1092,9 +1092,13 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
 - a second job with the latest Typst release, allowed to fail, as an early warning for format changes
 - every job runs `./build.ps1`, the same script used locally: build, unit tests, integration tests,
   then the timing tests alone (D41)
-- the pinned-Typst jobs run `./build.ps1 -Coverage` (D45): coverage of the unit and integration tests,
-  merged across test projects and target frameworks by ReportGenerator, then printed by
-  `build/Write-CoverageReport.ps1` and written to the job summary as four tables of the projects under
+- the pinned-Typst jobs run `./build.ps1 -Coverage -NoJobSummary` (D45) and upload their raw coverage files;
+  a `coverage` job (after both pass) downloads them and runs `./build.ps1 -CoverageReportOnly`, so code counts
+  as covered when either platform ran it. Source paths are made repo-relative first, so the same file from
+  Windows and Ubuntu merges instead of counting twice. Coverage is of the unit and integration tests, merged
+  across test projects, target frameworks and platforms by ReportGenerator, then printed by
+  `build/Write-CoverageReport.ps1` (each platform's own tables stay in its job log) and written to the coverage
+  job's summary as four tables of the projects under
   `src/`: by **visibility** (public API against internal; public types are the bare type lines of the
   `PublicAPI.*.txt` files, which the analyzer keeps complete), by **namespace**, by **area** (top-level
   folder, so a feature's public and internal types share a row), and the **top 10 classes** by missed lines

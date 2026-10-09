@@ -13,7 +13,9 @@ param(
     [Parameter(Mandatory)] [string] $CoberturaPath,
     # Holds one folder per product (src/<assembly>/), with its PublicAPI.*.txt files.
     [Parameter(Mandatory)] [string] $SourceDirectory,
-    [int] $TopClasses = 10
+    [int] $TopClasses = 10,
+    # Skip the GitHub Actions job summary, e.g. in jobs whose coverage another job merges and reports.
+    [switch] $NoJobSummary
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,8 +65,10 @@ function Read-CoverageClasses([string] $Path) {
             }
 
             $file = $class.GetAttribute('filename') -replace '\\', '/'
-            $marker = "/src/$assembly/"
-            $relative = $(if ($file.Contains($marker)) { $file.Substring($file.IndexOf($marker) + $marker.Length) } else { Split-Path $file -Leaf })
+            # Paths are absolute, or repo-relative (src/<assembly>/...) when merged from several machines.
+            $marker = "src/$assembly/"
+            $index = $(if ($file.StartsWith($marker)) { 0 } else { $file.IndexOf('/' + $marker) + 1 })
+            $relative = $(if ($index -gt 0 -or $file.StartsWith($marker)) { $file.Substring($index + $marker.Length) } else { Split-Path $file -Leaf })
             [pscustomobject]@{ Assembly = $assembly; Name = $class.GetAttribute('name'); File = $relative; Counts = $counts }
         }
     }
@@ -265,7 +269,7 @@ Write-Host ''
 Write-Host $legend
 Write-Host ''
 
-if ($env:GITHUB_STEP_SUMMARY) {
+if ($env:GITHUB_STEP_SUMMARY -and -not $NoJobSummary) {
     $markdown = [System.Text.StringBuilder]::new()
     [void]$markdown.AppendLine('### Code coverage (unit and integration tests)')
     [void]$markdown.AppendLine()
