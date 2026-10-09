@@ -311,9 +311,9 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 3. **v1.x:** source generators for typed templates, `Typstium.Tool`.
 4. **v2:** Rust sidecar and `ServerTypstCompiler`, if the spike's measurements call for it.
 5. **Later:** `Typstium.Verify`, an in-process native or WASM backend, `Typstium.Extensions.FileProviders`.
-6. **Later, build infrastructure:** orchestrate CI with Cake (Frosting or the Cake SDK), using
-   `Cake.Download.Module` to fetch and checksum-verify Typst release assets for the runtime packages and to
-   vendor Typst packages such as cmarker.
+6. **Later, build infrastructure:** orchestrate CI with Cake (done: the Cake SDK build), fetching and
+   checksum-verifying Typst release assets for the runtime packages (see the runtime packages spec) and
+   vendoring Typst packages such as cmarker.
 
 **Open questions**
 

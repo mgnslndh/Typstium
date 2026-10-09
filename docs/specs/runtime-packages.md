@@ -52,8 +52,9 @@ manual install, and the compiler should find it without configuration. This spec
 | D13 | Pinning | Committed lock file `build/typst-runtimes.json`; only `UpdateTypstRuntimes` talks to the GitHub API | Digests fetched at pack time; committed binaries | Reproducible packs; a re-uploaded asset fails the build; upgrades are reviewable diffs |
 | D14 | Package version | Typst's version (`0.15.1`); a fourth part only for a repack of the same Typst version | Own semver | The package is Typst's binary; its version should say which one |
 | D15 | Binary location in the package | `tools/typst/<rid>/` | `runtimes/<rid>/native/` | NuGet's native asset handling is unreliable for executables and on .NET Framework. `tools/` also serves Cake's `#tool` |
-| D16 | Task names | `UpdateTypstRuntimes`, `DownloadTypstRuntimes`, `PackTypstRuntimes` | `Fetch…`, `PackRuntimes` | Consistent names; "download" matches `Cake.Download.Module` |
+| D16 | Task names | `UpdateTypstRuntimes`, `DownloadTypstRuntimes`, `PackTypstRuntimes` | `Fetch…`, `PackRuntimes` | Consistent names that say what each task does |
 | D17 | Where targets tests get packages | Fixture runtime packages with a stub executable | The real packages | Fast, offline and runnable on every OS; real packages are tested end to end (section 10) |
+| D18 | Downloading and extracting assets | Own small downloader in `Build.Cake.Extensions` (`HttpClient`, streaming SHA-256, https-only redirects, retries, stall timeout; ideas taken from Cake.Download.Module's `HttpDownloader`), SharpCompress for xz, the BCL for zip and tar; only `typst[.exe]` and `LICENSE` are extracted, by name, to paths the build chooses | Cake.Download.Module | The module makes tools runnable on the build machine: host platform only, registered with Cake's tool locator, no xz (it may not take dependencies). Packaging fetches seven platforms' files. The build project may take dependencies; core and the runtime packages gain none |
 
 ## 3. Packages
 
@@ -280,7 +281,7 @@ reviewed.
 - `UpdateTypstRuntimes --typst-version=<v>`: reads the release from the GitHub API (with `GITHUB_TOKEN` when
   set), fails if any of the seven assets is missing, and rewrites the lock file from each asset's `digest`.
   The only task that uses the API.
-- `DownloadTypstRuntimes`: downloads each asset with `Cake.Download.Module` into
+- `DownloadTypstRuntimes`: downloads each asset (D18) into
   `artifacts/cache/typst/<version>/`, reusing files whose digest already matches; verifies SHA256 against the
   lock file (mismatch → build fails); extracts the single `typst[.exe]` and Typst's `LICENSE`. Then runs the
   host RID's binary with `--version` and compares it with the lock file's `typst`.
@@ -412,9 +413,10 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 
 ## 11. Related work
 
-- **`Cake.Typstium`** must be able to get its binary either from the runtime packages
-  (`#tool nuget:?package=Typstium.Runtime.<rid>`, reading `tools/typst/<rid>/`) or through
-  `Cake.Download.Module` from Typst's releases. Its own spec decides the details.
+- **`Cake.Typstium`** gets its binary from the runtime packages
+  (`#tool nuget:?package=Typstium.Runtime.<rid>`, reading `tools/typst/<rid>/`), so it needs no xz support.
+  Downloading from Typst's releases through Cake.Download.Module becomes an option only if the module gains
+  xz. Its own spec decides the details.
 - **`Typstium.Build`** needs a binary for the build machine, which may differ from the target's
   (build on Windows, deploy to Linux). Whether it reuses the RID packages, and how it chooses the host RID,
   needs investigation.
@@ -426,7 +428,7 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 | # | Risk | Mitigation |
 |---|---|---|
 | R1 | Older .NET versions report the emulated architecture from `OSArchitecture`, so the native RID is wrong under emulation | Harmless for D11 (the emulated binary runs); measured on real hardware in the RS41 jobs |
-| R2 | `tar.xz` extraction in the Cake build: .NET has no xz decoder | The plan checks what `Cake.Download.Module` supports; otherwise SharpCompress in the build project only |
+| R2 | `tar.xz` extraction in the Cake build: .NET has no xz decoder | SharpCompress in `Build.Cake.Extensions` only (D18) |
 | R3 | A publish folder reused after switching directories keeps stale binaries (publish folders aren't cleaned) | The manifest is always rewritten (D7), so it points at the current binaries; stale ones are unused. Documented: publish to a clean folder |
 | R4 | Seven packages of 14–22 MB each strain restore on slow feeds | Documented; `Runtime.All` is opt-in |
 | R5 | packages.config imports only direct references' `build/` folders | Supported only with direct references (RS18) |
