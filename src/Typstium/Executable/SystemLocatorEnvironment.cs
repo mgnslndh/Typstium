@@ -10,31 +10,30 @@ internal sealed class SystemLocatorEnvironment : ILocatorEnvironment
 
     public string BaseDirectory => AppContext.BaseDirectory;
 
-    public string RuntimeIdentifier
+    public string RuntimeIdentifier =>
+        RuntimeIdentifierFor(IsWindows, RuntimeInformation.IsOSPlatform(OSPlatform.OSX), RuntimeInformation.OSArchitecture);
+
+    public string? HomeDirectory =>
+        HomeDirectoryFrom(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.GetEnvironmentVariable("HOME"));
+
+    /// <summary>The NuGet runtime identifier, e.g. win-x64 or osx-arm64, which names the bundled runtime's folder.</summary>
+    internal static string RuntimeIdentifierFor(bool isWindows, bool isMacOS, Architecture architecture)
     {
-        get
+        var os = isWindows ? "win" : isMacOS ? "osx" : "linux";
+        var name = architecture switch
         {
-            var os = IsWindows ? "win" : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "osx" : "linux";
-            var architecture = RuntimeInformation.OSArchitecture switch
-            {
-                Architecture.X64 => "x64",
-                Architecture.Arm64 => "arm64",
-                Architecture.Arm => "arm",
-                Architecture.X86 => "x86",
-                var other => other.ToString().ToLowerInvariant(),
-            };
-            return os + "-" + architecture;
-        }
+            Architecture.X64 => "x64",
+            Architecture.Arm64 => "arm64",
+            Architecture.Arm => "arm",
+            Architecture.X86 => "x86",
+            var other => other.ToString().ToLowerInvariant(),
+        };
+        return os + "-" + name;
     }
 
-    public string? HomeDirectory
-    {
-        get
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            return string.IsNullOrEmpty(home) ? Environment.GetEnvironmentVariable("HOME") : home;
-        }
-    }
+    /// <summary>The user profile folder, or $HOME when .NET can't tell (some containers and service accounts).</summary>
+    internal static string? HomeDirectoryFrom(string? userProfile, string? homeVariable) =>
+        string.IsNullOrEmpty(userProfile) ? homeVariable : userProfile;
 
     public string? GetVariable(string name) => Environment.GetEnvironmentVariable(name);
 

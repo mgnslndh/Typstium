@@ -33,6 +33,41 @@ public class SystemLocatorEnvironmentTests
         await Assert.That(Environment.EnumerateDirectories(temp.Combine("missing"), "*")).IsEmpty();
     }
 
+    // Runtime packages ship typst/<rid>/ folders named by NuGet runtime identifiers; a wrong name means the bundled
+    // Typst is never found, e.g. on Apple silicon (osx-arm64) or ARM Linux servers.
+    [Test]
+    [Arguments(true, false, System.Runtime.InteropServices.Architecture.X64, "win-x64")]
+    [Arguments(true, false, System.Runtime.InteropServices.Architecture.X86, "win-x86")]
+    [Arguments(true, false, System.Runtime.InteropServices.Architecture.Arm64, "win-arm64")]
+    [Arguments(false, true, System.Runtime.InteropServices.Architecture.Arm64, "osx-arm64")]
+    [Arguments(false, true, System.Runtime.InteropServices.Architecture.X64, "osx-x64")]
+    [Arguments(false, false, System.Runtime.InteropServices.Architecture.X64, "linux-x64")]
+    [Arguments(false, false, System.Runtime.InteropServices.Architecture.Arm64, "linux-arm64")]
+    [Arguments(false, false, System.Runtime.InteropServices.Architecture.Arm, "linux-arm")]
+    public async Task Runtime_identifiers_follow_nuget_naming(bool isWindows, bool isMacOS, System.Runtime.InteropServices.Architecture architecture, string expected)
+    {
+        await Assert.That(SystemLocatorEnvironment.RuntimeIdentifierFor(isWindows, isMacOS, architecture)).IsEqualTo(expected);
+    }
+
+#if NET8_0_OR_GREATER
+    [Test]
+    public async Task Architectures_without_a_known_name_use_their_lowercase_enum_name()
+    {
+        await Assert.That(SystemLocatorEnvironment.RuntimeIdentifierFor(false, false, System.Runtime.InteropServices.Architecture.S390x)).IsEqualTo("linux-s390x");
+    }
+#endif
+
+    [Test]
+    [Arguments(@"C:\Users\asa", null, @"C:\Users\asa")]
+    [Arguments("/home/asa", "/home/other", "/home/asa")]
+    [Arguments("", "/home/asa", "/home/asa")]
+    [Arguments(null, "/home/asa", "/home/asa")]
+    [Arguments("", null, null)]
+    public async Task The_home_directory_falls_back_to_HOME_when_the_profile_is_unknown(string? userProfile, string? homeVariable, string? expected)
+    {
+        await Assert.That(SystemLocatorEnvironment.HomeDirectoryFrom(userProfile, homeVariable)).IsEqualTo(expected);
+    }
+
     // The bundled-runtime locator looks in typst/<rid>/, named after NuGet runtime identifiers.
     [Test]
     public async Task The_runtime_identifier_is_shaped_like_a_nuget_rid()
