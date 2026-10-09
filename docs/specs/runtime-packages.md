@@ -43,7 +43,7 @@ manual install, and the compiler should find it without configuration. This spec
 | D4 | Selecting binaries | Filter by `RuntimeIdentifier`; copy every referenced RID when none is set | Always copy all; a selector package | Lean single-RID publishes, and builds without a RID keep working (option B in brainstorming) |
 | D5 | Output folder | `TypstiumRuntimeDirectory`, a pattern relative to the output folder, default `typst/{rid}` | A fixed folder only | Avoids collisions such as an app's own `typst/` template folder |
 | D6 | Telling the app about a custom folder | A manifest file, `typstium.runtime.json`, next to the app | `runtimeconfig.json` (no .NET Framework); assembly attribute (`GetEntryAssembly()` is null on IIS, the test host under `dotnet test`); no custom folder | The same mechanism on every host; deployed with the binaries |
-| D7 | When the manifest is written | Only when `TypstiumRuntimeDirectory` isn't the default | Always | A default build looks exactly like today. See risk R3 |
+| D7 | When the manifest is written | Always, whenever at least one runtime is copied | Only when `TypstiumRuntimeDirectory` isn't the default | A reused publish folder can't keep a stale manifest that overrides the default layout (decided in spec review). The conventional folders remain for binaries copied by hand |
 | D8 | Flat layout | No separate setting; a pattern without `{rid}` gives it for single-RID builds | `TypstiumRuntimeLayout=Flat` | The pattern covers it; a pattern without `{rid}` and two RIDs is an error |
 | D9 | Manifest access in the locator | Typed: `ILocatorEnvironment.ReadRuntimeManifest(directory)` returning `RuntimeManifestResult`; validation in pure `RuntimeManifest.Parse` | `ReadAllText(path)` | Least capability; the security rules sit in one pure function that's easy to test exhaustively |
 | D10 | Manifest authority | A manifest, when present, is authoritative: conventional folders aren't searched | Manifest first, then conventional folders | A stale `typst/` folder from an earlier deploy can't win |
@@ -157,7 +157,7 @@ the publish copy, single-file exclusion, and flow to referencing projects throug
 Libraries and test projects copy too. That's what lets packages.config apps get the binary through a
 library, and test projects are libraries.
 
-**Manifest.** When `TypstiumRuntimeDirectory` isn't `typst/{rid}`, a target writes
+**Manifest.** Whenever at least one runtime is selected, a target writes
 `$(IntermediateOutputPath)typstium.runtime.json` (only when its content changes) and adds it as a content
 item with the same copy and single-file settings:
 
@@ -205,8 +205,8 @@ runtime `EnsureExecutable` remains the fallback (RS12).
    - `Loaded` → authoritative (D10): for each candidate RID in the manifest, the first executable that
      exists gets `EnsureExecutable` and is `Found`. None → `NotFound` listing the manifest and each path tried.
    - `Missing` → next directory.
-2. No manifest in either place → `typst/<rid>/` then `bin/typst/<rid>/`, for each candidate RID (today's
-   behavior, extended with the fallbacks).
+2. No manifest in either place (binaries copied by hand, or built by an older core) → `typst/<rid>/` then
+   `bin/typst/<rid>/`, for each candidate RID (today's behavior, extended with the fallbacks).
 
 **Types**
 
@@ -361,7 +361,7 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 |---|---|---|---|---|
 | RS29 | Copy turned off, or on build only, or on publish only | Per the switches in section 4 | v1 | T |
 | RS30 | `TypstiumRuntimeIdentifiers` overrides the selection | Exactly the listed runtimes; `TYPSTIUM0004` for unknown ones | v1 | T |
-| RS31 | Custom `TypstiumRuntimeDirectory` | Binaries in the pattern's folders, manifest written, locator finds them; `TYPSTIUM0003` for invalid patterns | v1 | T, U, E |
+| RS31 | Custom `TypstiumRuntimeDirectory` | Binaries in the pattern's folders, the manifest points at them, locator finds them; `TYPSTIUM0003` for invalid patterns | v1 | T, U, E |
 | RS32 | Flat layout (no `<rid>` folder) | Covered by RS31 with a pattern without `{rid}`; `TYPSTIUM0002` with two RIDs | v1 | T |
 | RS33 | Design-time builds (Visual Studio, Rider) | Nothing copied | v1 | T |
 | RS34 | Incremental build and `Clean` | No copy when unchanged; `Clean` removes binaries and manifest | v1 | T |
@@ -427,6 +427,6 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 |---|---|---|
 | R1 | Older .NET versions report the emulated architecture from `OSArchitecture`, so the native RID is wrong under emulation | Harmless for D11 (the emulated binary runs); measured on real hardware in the RS41 jobs |
 | R2 | `tar.xz` extraction in the Cake build: .NET has no xz decoder | The plan checks what `Cake.Download.Module` supports; otherwise SharpCompress in the build project only |
-| R3 | A publish folder reused after switching from a custom directory back to the default keeps a stale manifest, which stays authoritative | `IncrementalClean` handles the output folder but not publish folders. Option: always write the manifest (reverses D7). To decide in review |
+| R3 | A publish folder reused after switching directories keeps stale binaries (publish folders aren't cleaned) | The manifest is always rewritten (D7), so it points at the current binaries; stale ones are unused. Documented: publish to a clean folder |
 | R4 | Seven packages of 14–22 MB each strain restore on slow feeds | Documented; `Runtime.All` is opt-in |
 | R5 | packages.config imports only direct references' `build/` folders | Supported only with direct references (RS18) |
