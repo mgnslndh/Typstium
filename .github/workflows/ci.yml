@@ -21,8 +21,8 @@ jobs:
       DOTNET_NOLOGO: 'true'
       TYPSTIUM_REQUIRE_TYPST: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - uses: typst-community/setup-typst@v5
@@ -33,7 +33,7 @@ jobs:
       # platform's coverage tables to the log; the coverage job below merges both platforms for the job summary.
       - run: ./build.ps1 -Coverage -NoJobSummary
         shell: pwsh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.os }}
           path: artifacts/coverage/raw/*.cobertura.xml
@@ -57,13 +57,13 @@ jobs:
       DOTNET_NOLOGO: 'true'
       MAX_LINE_DECREASE: '0.5'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           path: artifacts/coverage/raw
@@ -71,7 +71,7 @@ jobs:
       - run: ./build.ps1 -CoverageReportOnly
         shell: pwsh
       # Every run keeps its summary; runs on the base branch are the baselines pull requests compare with.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coverage-summary
           path: artifacts/coverage/summary.json
@@ -96,8 +96,8 @@ jobs:
       DOTNET_NOLOGO: 'true'
       TYPSTIUM_REQUIRE_TYPST: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - uses: typst-community/setup-typst@v5
