@@ -56,7 +56,7 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
                 // children spawned before Attach would be outside the job (Typst does not spawn children).
                 if (!HasExited(process))
                 {
-                    Kill(process, containment);
+                    Kill(process, containment, deferTreeWalk: false);
                     throw new TypstProcessStartException(spec.Executable, exception);
                 }
             }
@@ -69,7 +69,7 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
 
             using var outputLimit = new CancellationTokenSource();
             using var kill = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token, outputLimit.Token);
-            using var registration = kill.Token.Register(() => Kill(process, containment));
+            using var registration = kill.Token.Register(() => Kill(process, containment, deferTreeWalk: true));
 
             // Pipe I/O blocks, so it runs on dedicated threads: on pool threads, a full set of concurrent compiles
             // starves the pool and the timeout's kill callback fires late (see StreamReading).
@@ -164,8 +164,10 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
     /// and takes seconds under load. It is the kill where there is no job (non-Windows), and the backstop for children
     /// outside the job (started before it was attached). It kills the parent itself, and must: on Unix a child whose
     /// parent died is re-parented and can no longer be found. netstandard2.0 has no tree walk and kills the process.
+    /// On a failed start (<paramref name="deferTreeWalk"/> false) the tree walk runs right away instead: the caller
+    /// disposes the process as soon as this returns, and a deferred walk would then find nothing to kill.
     /// </summary>
-    private static void Kill(Process process, IProcessContainment containment)
+    private static void Kill(Process process, IProcessContainment containment, bool deferTreeWalk)
     {
         try
         {
@@ -177,7 +179,7 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
         }
 
 #if NET8_0_OR_GREATER
-        _ = DedicatedThread.Run(() =>
+        void KillTree()
         {
             try
             {
@@ -187,7 +189,16 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
             {
                 // The process may be gone or disposed by now; nothing is left to kill then.
             }
-        });
+        }
+
+        if (deferTreeWalk)
+        {
+            _ = DedicatedThread.Run(KillTree);
+        }
+        else
+        {
+            KillTree();
+        }
 #else
         try
         {
@@ -227,7 +238,7 @@ internal sealed class TypstProcessRunner : ITypstProcessRunner
         {
             if (!HasExited(process))
             {
-                Kill(process, containment);
+                Kill(process, containment, deferTreeWalk: false);
                 throw new TypstProcessStartException(spec.Executable, exception);
             }
         }

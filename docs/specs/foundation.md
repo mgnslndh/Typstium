@@ -860,7 +860,9 @@ Runner behavior:
   callback terminates the Windows job object, one system call that stops Typst at once. On `net8.0` the tree
   walk (`Kill(true)`) then runs on a dedicated thread: it's the kill where there's no job (non-Windows) and the
   backstop for children outside the job (started before it was attached). It kills the parent itself, since
-  on Unix a child whose parent has died is re-parented and can't be found. `netstandard2.0` has no tree walk
+  on Unix a child whose parent has died is re-parented and can't be found. When a start fails (the job can't be attached
+  or the priority can't be lowered) the tree walk runs at once instead: the runner disposes the process right
+  after, and a deferred walk would then find nothing to kill. `netstandard2.0` has no tree walk
   and calls `Process.Kill()`, so there a child started between `Start()` and the job attach can outlive the
   kill and hold the pipes until it exits. Typst starts no child processes, so this is accepted (follow-ups
   doc).

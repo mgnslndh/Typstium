@@ -85,6 +85,116 @@ public class TypstProcessRunnerTests
     }
 
     [Test]
+    public async Task A_containment_that_cannot_be_created_is_a_start_failure()
+    {
+        var runner = new TypstProcessRunner(_ => throw new Win32Exception(1450));
+        var spec = ShellCommands.Spec(ShellCommands.Run("exit 0", "exit 0"));
+
+        var exception = await Assert.ThrowsAsync<TypstProcessStartException>(() => runner.RunAsync(spec, CancellationToken.None));
+
+        await Assert.That(exception!.ExecutablePath).IsEqualTo(spec.Executable);
+        await Assert.That(exception.InnerException is Win32Exception).IsTrue();
+    }
+
+    // If Typst can't join its containment it must not run on outside it: the start fails and the process is killed.
+    [Test]
+    public async Task A_running_process_that_cannot_join_its_containment_is_killed()
+    {
+        var containment = new FailingAttachContainment();
+        var runner = new TypstProcessRunner(_ => containment);
+
+        var exception = await Assert.ThrowsAsync<TypstProcessStartException>(() => runner.RunAsync(ShellCommands.Spec(ShellCommands.Sleep30()), CancellationToken.None));
+
+        await Assert.That(exception!.InnerException is Win32Exception).IsTrue();
+        await Assert.That(await HasExitedWithinAsync(containment.ProcessId, TimeSpan.FromSeconds(10))).IsTrue();
+    }
+
+    // Typst can exit before reading all of stdin (a crash on huge markup); the broken pipe isn't the caller's problem.
+    [Test]
+    public async Task A_process_that_exits_without_reading_stdin_still_yields_its_outcome()
+    {
+        var spec = ShellCommands.Spec(ShellCommands.Run("exit 3", "exit 3"), stdin: new byte[4 * 1024 * 1024]);
+
+        var outcome = await _runner.RunAsync(spec, CancellationToken.None);
+
+        await Assert.That(outcome is ProcessOutcome.Exited { ExitCode: 3 }).IsTrue();
+    }
+
+    [Test]
+    public async Task A_containment_that_fails_to_terminate_still_ends_in_a_timeout()
+    {
+        // The shell's sleep runs in a child process, which only the tree walk reaches once the job can't be terminated.
+        if (RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.Ordinal))
+        {
+            Skip.Test("The netstandard2.0 build has no process-tree walk; Typst starts no child processes (follow-up).");
+        }
+
+        var runner = new TypstProcessRunner(_ => new FailingTerminateContainment());
+        var stopwatch = Stopwatch.StartNew();
+
+        var outcome = await runner.RunAsync(ShellCommands.Spec(ShellCommands.Sleep30(), timeout: TimeSpan.FromMilliseconds(500)), CancellationToken.None);
+
+        await Assert.That(outcome is ProcessOutcome.TimedOut).IsTrue();
+        await Assert.That(stopwatch.Elapsed).IsLessThan(TimeSpan.FromSeconds(10));
+    }
+
+    private static async Task<bool> HasExitedWithinAsync(int processId, TimeSpan limit)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        while (stopwatch.Elapsed < limit)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(processId);
+                if (process.HasExited)
+                {
+                    return true;
+                }
+            }
+            catch (ArgumentException)
+            {
+                return true;
+            }
+
+            await Task.Delay(50);
+        }
+
+        return false;
+    }
+
+    private sealed class FailingAttachContainment : IProcessContainment
+    {
+        public int ProcessId { get; private set; }
+
+        public void Attach(Process process)
+        {
+            ProcessId = process.Id;
+            throw new Win32Exception(5);
+        }
+
+        public void Terminate()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class FailingTerminateContainment : IProcessContainment
+    {
+        public void Attach(Process process)
+        {
+        }
+
+        public void Terminate() => throw new InvalidOperationException("The job object is gone.");
+
+        public void Dispose()
+        {
+        }
+    }
+
+    [Test]
     [Arguments(TypstProcessPriority.BelowNormal, ProcessPriorityClass.BelowNormal)]
     [Arguments(TypstProcessPriority.Idle, ProcessPriorityClass.Idle)]
     public async Task Priority_is_lowered_before_the_process_joins_its_containment(TypstProcessPriority priority, ProcessPriorityClass expected)
