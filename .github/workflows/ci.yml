@@ -82,11 +82,6 @@ jobs:
           path: artifacts/coverage/summary.json
           if-no-files-found: error
           retention-days: 90
-      # TEMPORARY: compare what Cake reads (GitHubActionsWorkflowInfo) with what the runner sets. Removed before merging.
-      - run: |
-          env | sort | grep -E '^(GITHUB_|RUNNER_|CI=)'
-          jq '{number: .pull_request.number, head: .pull_request.head.sha, repo: .pull_request.head.repo.full_name, user: .pull_request.user.login}' "$GITHUB_EVENT_PATH"
-        shell: bash
       # The pull request's number, head and author come from the event payload; the repository and base branch from
       # GITHUB_REPOSITORY and GITHUB_BASE_REF.
       - name: Compare with the merge base
