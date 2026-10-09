@@ -1,5 +1,6 @@
 using Typstium.Executable;
 using Typstium.UnitTests.Testing;
+using TUnit.Assertions.Enums;
 
 namespace Typstium.UnitTests.Executable;
 
@@ -114,6 +115,54 @@ public class LocatorTests
         var result = await new SearchPathLocator(environment).LocateAsync(CancellationToken.None);
 
         await Assert.That(result is TypstLocatorResult.FoundResult).IsTrue();
+    }
+
+    [Test]
+    public async Task Well_known_locations_on_windows_are_cargo_then_scoop_and_nothing_unix_like()
+    {
+        var environment = new FakeLocatorEnvironment { IsWindows = true };
+        var home = environment.HomeDirectory!;
+        environment.Files.Add("/usr/local/bin/typst");
+        var locator = new WellKnownLocationsLocator(environment);
+
+        var notFound = (TypstLocatorResult.NotFoundResult)await locator.LocateAsync(CancellationToken.None);
+        var scoop = environment.AddFile(home, "scoop", "shims", "typst.exe");
+        var foundScoop = await locator.LocateAsync(CancellationToken.None);
+        var cargo = environment.AddFile(home, ".cargo", "bin", "typst.exe");
+        var foundCargo = await locator.LocateAsync(CancellationToken.None);
+
+        await Assert.That(notFound.SearchedLocations).IsEquivalentTo(new[] { cargo, scoop }, CollectionOrdering.Matching);
+        await Assert.That(foundScoop).IsEqualTo(TypstLocatorResult.Found(scoop));
+        await Assert.That(foundCargo).IsEqualTo(TypstLocatorResult.Found(cargo));
+    }
+
+    [Test]
+    public async Task Well_known_locations_on_unix_are_cargo_then_homebrew_then_usr_local()
+    {
+        var environment = new FakeLocatorEnvironment { IsWindows = false };
+        var cargo = Path.Combine(environment.HomeDirectory!, ".cargo", "bin", "typst");
+        var locator = new WellKnownLocationsLocator(environment);
+
+        environment.Files.Add("/usr/local/bin/typst");
+        var foundUsrLocal = await locator.LocateAsync(CancellationToken.None);
+        environment.Files.Add("/opt/homebrew/bin/typst");
+        var foundHomebrew = await locator.LocateAsync(CancellationToken.None);
+        environment.Files.Add(cargo);
+        var foundCargo = await locator.LocateAsync(CancellationToken.None);
+
+        await Assert.That(foundUsrLocal).IsEqualTo(TypstLocatorResult.Found("/usr/local/bin/typst"));
+        await Assert.That(foundHomebrew).IsEqualTo(TypstLocatorResult.Found("/opt/homebrew/bin/typst"));
+        await Assert.That(foundCargo).IsEqualTo(TypstLocatorResult.Found(cargo));
+    }
+
+    [Test]
+    public async Task Well_known_locations_without_a_home_directory_still_search_the_system_folders()
+    {
+        var environment = new FakeLocatorEnvironment { IsWindows = false, HomeDirectory = null };
+
+        var result = (TypstLocatorResult.NotFoundResult)await new WellKnownLocationsLocator(environment).LocateAsync(CancellationToken.None);
+
+        await Assert.That(result.SearchedLocations).IsEquivalentTo(new[] { "/opt/homebrew/bin/typst", "/usr/local/bin/typst" }, CollectionOrdering.Matching);
     }
 
     [Test]

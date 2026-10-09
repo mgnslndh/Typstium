@@ -21,6 +21,14 @@ public class TypstExecutableResolverTests
 
     private static string OptA => Path.Combine(FakeLocatorEnvironment.Root, "opt", "a", "typst");
 
+    // A resolver over nothing would always report "not found" with an empty search list.
+    [Test]
+    public async Task A_resolver_needs_at_least_one_locator_and_no_nulls()
+    {
+        await Assert.That(Assert.Throws<ArgumentException>(() => new TypstExecutableResolver(Array.Empty<ITypstExecutableLocator>()))).IsNotNull();
+        await Assert.That(Assert.Throws<ArgumentException>(() => new TypstExecutableResolver(new ITypstExecutableLocator[] { new CountingLocator("A", TypstLocatorResult.Found(OptA)), null! }))).IsNotNull();
+    }
+
     [Test]
     public async Task Custom_locators_cannot_return_relative_paths()
     {
