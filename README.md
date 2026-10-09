@@ -39,8 +39,10 @@ dotnet build
 dotnet test   # integration tests are skipped when Typst isn't installed
 ```
 
-To run exactly what CI runs (build, unit, integration, then the timing tests alone), use `./build.ps1`
-(PowerShell 7). Add `-Coverage` for code-coverage tables of the unit and integration tests (by visibility,
-namespace and area, plus the classes with the most missed lines), as CI prints them. `-CoverageReportOnly`
-merges and reports raw coverage files already in `artifacts/coverage/raw/`, such as CI's Windows and Ubuntu
-artifacts copied together.
+To run exactly what CI runs (the build's own tests, build, unit, integration, then the timing tests alone), use
+`./build.sh` or `./build.ps1`. Both start the Cake build in `build/Build` and pass their arguments on. Add
+`--coverage` for code-coverage tables of the unit and integration tests (by visibility, namespace and area, plus the
+classes with the most missed lines), as CI prints them. `--target=CoverageReport` merges and reports raw coverage
+files already in `artifacts/coverage/raw/`, such as CI's Windows and Ubuntu artifacts copied together. Other
+arguments: `--configuration=Debug`, and `--target=<task>` for a single step (`BuildTests`, `Build`, `UnitTests`,
+`IntegrationTests`, `TimingTests`).

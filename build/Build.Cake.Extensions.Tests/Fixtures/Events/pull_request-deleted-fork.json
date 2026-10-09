@@ -1,0 +1,11 @@
+{
+  "action": "opened",
+  "number": 7,
+  "pull_request": {
+    "number": 7,
+    "head": { "ref": "patch-1", "sha": "fedcba9876543210fedcba9876543210fedcba98", "repo": null },
+    "base": { "ref": "main", "sha": "89abcdef0123456789abcdef0123456789abcdef", "repo": { "full_name": "mgnslndh/Typstium" } },
+    "user": { "login": "someone" }
+  },
+  "repository": { "full_name": "mgnslndh/Typstium" }
+}

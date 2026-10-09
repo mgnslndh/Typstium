@@ -23,7 +23,12 @@ updates:
       runtime-packages:
         patterns: ['System.*', 'Microsoft.Bcl.*']
       build-tooling:
-        patterns: ['Polyfill', 'Microsoft.CodeAnalysis.*']
+        patterns: ['Polyfill', 'Microsoft.CodeAnalysis.*', 'ReportGenerator.Core']
+      # The build (build/): Cake.Sdk in global.json's msbuild-sdks, the Cake packages and Spectre.Console move together.
+      # Spectre.Console is pre-1.0 and Cake.Cli is compiled against it; build/Build fails (NU1605) when Cake needs a
+      # newer one than Directory.Packages.props pins.
+      cake:
+        patterns: ['Cake.*', 'Spectre.Console*']
     ignore:
       - dependency-name: 'System.*'
         update-types: ['version-update:semver-major']

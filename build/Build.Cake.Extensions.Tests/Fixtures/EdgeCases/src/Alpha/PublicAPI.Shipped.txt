@@ -1,0 +1,7 @@
+#nullable enable
+Alpha.Api.Widget
+Alpha.Api.Widget.Run() -> void
+Alpha.Api.Widget.Inner
+Alpha.Api.Box<T>
+Alpha.Api.Box<T>.Get() -> T
+Alpha.Root

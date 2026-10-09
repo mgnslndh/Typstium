@@ -1,0 +1,57 @@
+{
+  "totals": {
+    "coveredLines": 14,
+    "lines": 33,
+    "coveredBranches": 2,
+    "branches": 8,
+    "coveredMethods": 2,
+    "methods": 3
+  },
+  "namespaces": [
+    {
+      "name": "Alpha.Internal",
+      "coveredLines": 3,
+      "lines": 12,
+      "coveredBranches": 1,
+      "branches": 4,
+      "coveredMethods": 0,
+      "methods": 0
+    },
+    {
+      "name": "Alpha.Api",
+      "coveredLines": 6,
+      "lines": 9,
+      "coveredBranches": 1,
+      "branches": 4,
+      "coveredMethods": 2,
+      "methods": 3
+    },
+    {
+      "name": "Alpha",
+      "coveredLines": 2,
+      "lines": 4,
+      "coveredBranches": 0,
+      "branches": 0,
+      "coveredMethods": 0,
+      "methods": 0
+    },
+    {
+      "name": "Beta",
+      "coveredLines": 1,
+      "lines": 6,
+      "coveredBranches": 0,
+      "branches": 0,
+      "coveredMethods": 0,
+      "methods": 0
+    },
+    {
+      "name": "Beta.Tools",
+      "coveredLines": 2,
+      "lines": 2,
+      "coveredBranches": 0,
+      "branches": 0,
+      "coveredMethods": 0,
+      "methods": 0
+    }
+  ]
+}

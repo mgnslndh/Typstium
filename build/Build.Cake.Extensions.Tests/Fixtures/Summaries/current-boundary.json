@@ -1,0 +1,6 @@
+{
+  "totals": { "coveredLines": 995, "lines": 1000, "coveredBranches": 10, "branches": 10, "coveredMethods": 10, "methods": 10 },
+  "namespaces": [
+    { "name": "Typstium", "coveredLines": 995, "lines": 1000, "coveredBranches": 10, "branches": 10, "coveredMethods": 10, "methods": 10 }
+  ]
+}

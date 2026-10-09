@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Build/Build.csproj" />
+  <Project Path="Build.Cake.Extensions/Build.Cake.Extensions.csproj" />
+  <Project Path="Build.Cake.Extensions.Tests/Build.Cake.Extensions.Tests.csproj" />
+</Solution>

@@ -1,0 +1,8 @@
+{
+  "totals": { "coveredLines": 830, "lines": 1000, "coveredBranches": 300, "branches": 400, "coveredMethods": 180, "methods": 200 },
+  "namespaces": [
+    { "name": "Typstium", "coveredLines": 400, "lines": 450, "coveredBranches": 150, "branches": 180, "coveredMethods": 90, "methods": 95 },
+    { "name": "Typstium.Compilation", "coveredLines": 250, "lines": 300, "coveredBranches": 100, "branches": 120, "coveredMethods": 60, "methods": 65 },
+    { "name": "Typstium.Processes", "coveredLines": 180, "lines": 250, "coveredBranches": 50, "branches": 100, "coveredMethods": 30, "methods": 40 }
+  ]
+}

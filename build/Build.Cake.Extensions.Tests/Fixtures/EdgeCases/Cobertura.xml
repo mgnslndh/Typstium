@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<coverage line-rate="0" branch-rate="0" version="1.9" timestamp="0">
+  <packages>
+    <package name="Alpha" line-rate="0" branch-rate="0" complexity="0">
+      <classes>
+        <class name="Alpha.Api.Widget" filename="src/Alpha/Api/Widget.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods>
+            <method name="Run" signature="()" line-rate="1" branch-rate="1" complexity="1">
+              <lines><line number="10" hits="3" branch="false" /></lines>
+            </method>
+            <method name="Stop" signature="()" line-rate="0" branch-rate="0" complexity="1">
+              <lines><line number="20" hits="0" branch="false" /></lines>
+            </method>
+          </methods>
+          <lines>
+            <line number="10" hits="3" branch="true" condition-coverage="50% (1/2)" />
+            <line number="11" hits="3" branch="false" />
+            <line number="20" hits="0" branch="false" />
+            <line number="21" hits="0" branch="true" condition-coverage="0% (0/2)" />
+          </lines>
+        </class>
+        <class name="Alpha.Api.Widget.Inner" filename="src/Alpha/Api/Widget.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="40" hits="1" branch="false" />
+            <line number="41" hits="0" branch="false" />
+          </lines>
+        </class>
+        <class name="Alpha.Api.Box&lt;T&gt;" filename="src/Alpha/Api/Box.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods>
+            <method name="Get" signature="()" line-rate="1" branch-rate="1" complexity="1">
+              <lines><line number="5" hits="2" branch="false" /></lines>
+            </method>
+          </methods>
+          <lines>
+            <line number="5" hits="2" branch="false" />
+            <line number="6" hits="2" branch="false" />
+            <line number="7" hits="2" branch="false" />
+          </lines>
+        </class>
+        <class name="Alpha.Internal.Cache&lt;TKey, TValue&gt;" filename="src/Alpha/Internal/Cache.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="1" hits="1" branch="false" />
+            <line number="2" hits="0" branch="false" />
+            <line number="3" hits="0" branch="false" />
+            <line number="4" hits="0" branch="false" />
+          </lines>
+        </class>
+        <class name="Alpha.Internal.Parser" filename="src/Alpha/Internal/Parser.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="1" hits="1" branch="false" />
+            <line number="2" hits="1" branch="false" />
+            <line number="3" hits="0" branch="false" />
+            <line number="4" hits="0" branch="false" />
+            <line number="5" hits="0" branch="false" />
+          </lines>
+        </class>
+        <class name="Alpha.Internal.Parser" filename="src/Alpha/Internal/Parser.Tokens.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="1" hits="0" branch="true" condition-coverage="25% (1/4)" />
+            <line number="2" hits="0" branch="false" />
+            <line number="3" hits="0" branch="false" />
+          </lines>
+        </class>
+        <class name="Alpha.Root" filename="src/Alpha/Root.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="1" hits="1" branch="false" />
+            <line number="2" hits="1" branch="false" />
+          </lines>
+        </class>
+        <class name="Alpha.Generated" filename="obj/Release/Generated.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="1" hits="0" branch="false" />
+            <line number="2" hits="0" branch="false" />
+          </lines>
+        </class>
+        <class name="Alpha.Empty" filename="src/Alpha/Empty.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines />
+        </class>
+      </classes>
+    </package>
+    <package name="Beta" line-rate="0" branch-rate="0" complexity="0">
+      <classes>
+        <class name="Beta.Thing" filename="C:/agent/work/src/Beta/Thing.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="1" hits="1" branch="false" />
+            <line number="2" hits="0" branch="false" />
+            <line number="3" hits="0" branch="false" />
+            <line number="4" hits="0" branch="false" />
+            <line number="5" hits="0" branch="false" />
+            <line number="6" hits="0" branch="false" />
+          </lines>
+        </class>
+        <class name="Beta.Tools.Helper" filename="src/Beta/Tools/Helper.cs" line-rate="0" branch-rate="0" complexity="0">
+          <methods />
+          <lines>
+            <line number="1" hits="5" branch="false" />
+            <line number="2" hits="5" branch="false" />
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>
