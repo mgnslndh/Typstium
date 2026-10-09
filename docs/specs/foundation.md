@@ -1092,7 +1092,10 @@ GitHub Actions on `windows-latest` and `ubuntu-latest`:
   then the timing tests alone (D41)
 - the pinned-Typst jobs run `./build.ps1 -Coverage` (D45): coverage of the unit and integration tests,
   merged across test projects and target frameworks, printed as a table per namespace of each project
-  under `src/` (line, branch, method; assembly subtotals and a total) and written to the job summary
+  under `src/` and written to the job summary. Rows are sorted by missed (uncovered) lines, so the biggest
+  contributor to the gap comes first; columns are Missed, Gap (the row's share of all uncovered lines), and
+  Line, Branch and Method coverage, where a method counts once any of its lines ran (whole-method coverage
+  would mostly repeat the Line column). Assembly subtotals and a total close the table
 
 ## 8. Decisions
 

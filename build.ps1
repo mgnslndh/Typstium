@@ -75,11 +75,30 @@ function Format-Rate([int] $Covered, [int] $Total) {
     return '{0,6}  ({1}/{2})' -f $percent, $Covered, $Total
 }
 
-# Rows: per assembly, its namespaces then a subtotal; finally the total over all assemblies.
+function Get-MissedLines($Counts) {
+    return $Counts.Lines - $Counts.CoveredLines
+}
+
+# Biggest contributor to the coverage gap first: most uncovered lines, then most uncovered branches, then name.
+function Sort-ByGap($Items, [scriptblock] $Counts, [scriptblock] $Name) {
+    return $Items | Sort-Object `
+        @{ Expression = { $c = & $Counts $_; $c.Lines - $c.CoveredLines }; Descending = $true },
+        @{ Expression = { $c = & $Counts $_; $c.Branches - $c.CoveredBranches }; Descending = $true },
+        @{ Expression = $Name }
+}
+
+# Rows: per assembly (biggest gap first), its namespaces (biggest gap first) then a subtotal; finally the total.
 function Get-CoverageRows($Summary) {
     $rows = [System.Collections.Generic.List[object]]::new()
     $total = New-Counts
-    foreach ($assembly in $Summary.coverage.assemblies | Sort-Object name) {
+    $assemblies = foreach ($assembly in $Summary.coverage.assemblies) {
+        $subtotal = New-Counts
+        Add-Counts $subtotal $assembly
+        [pscustomobject]@{ Assembly = $assembly; Counts = $subtotal }
+    }
+
+    foreach ($entry in Sort-ByGap $assemblies { param($e) $e.Counts } { $_.Assembly.name }) {
+        $assembly = $entry.Assembly
         $classNames = [System.Collections.Generic.HashSet[string]]::new([string[]]@($assembly.classesinassembly | ForEach-Object { ($_.name -split '<')[0] }))
         $namespaces = [ordered]@{}
         foreach ($class in $assembly.classesinassembly) {
@@ -91,44 +110,71 @@ function Get-CoverageRows($Summary) {
             Add-Counts $namespaces[$namespace] $class
         }
 
-        foreach ($namespace in $namespaces.Keys | Sort-Object) {
+        foreach ($namespace in Sort-ByGap @($namespaces.Keys) { param($n) $namespaces[$n] } { $_ }) {
             $rows.Add([pscustomobject]@{ Kind = 'Namespace'; Name = $namespace; Counts = $namespaces[$namespace] })
         }
 
-        $subtotal = New-Counts
-        Add-Counts $subtotal $assembly
         Add-Counts $total $assembly
-        $rows.Add([pscustomobject]@{ Kind = 'Assembly'; Name = "$($assembly.name) (assembly)"; Counts = $subtotal })
+        $rows.Add([pscustomobject]@{ Kind = 'Assembly'; Name = "$($assembly.name) (assembly)"; Counts = $entry.Counts })
     }
 
     $rows.Add([pscustomobject]@{ Kind = 'Total'; Name = 'Total'; Counts = $total })
     return $rows
 }
 
-function Write-CoverageTable($Rows) {
-    $nameWidth = [Math]::Max(9, ($Rows | ForEach-Object { $_.Name.Length + 2 } | Measure-Object -Maximum).Maximum)
-    $cells = $Rows | ForEach-Object {
-        @((Format-Rate $_.Counts.CoveredLines $_.Counts.Lines), (Format-Rate $_.Counts.CoveredBranches $_.Counts.Branches), (Format-Rate $_.Counts.CoveredMethods $_.Counts.Methods))
+# A row's share of all uncovered lines: what closing its gap would do for the total.
+function Format-Gap([int] $Missed, [int] $TotalMissed) {
+    if ($TotalMissed -eq 0) {
+        return '-'
     }
-    $columnWidth = [Math]::Max(6, ($cells | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum)
-    $rule = ('-' * $nameWidth) + '  ' + (@(1..3 | ForEach-Object { '-' * $columnWidth }) -join '  ')
 
+    return [string]::Format([cultureinfo]::InvariantCulture, '{0:0.0}%', 100.0 * $Missed / $TotalMissed)
+}
+
+function Get-RowCells($Row, [int] $TotalMissed) {
+    $missed = Get-MissedLines $Row.Counts
+    return @(
+        [string]$missed,
+        (Format-Gap $missed $TotalMissed),
+        (Format-Rate $Row.Counts.CoveredLines $Row.Counts.Lines),
+        (Format-Rate $Row.Counts.CoveredBranches $Row.Counts.Branches),
+        (Format-Rate $Row.Counts.CoveredMethods $Row.Counts.Methods))
+}
+
+$CoverageHeaders = @('Missed', 'Gap', 'Line', 'Branch', 'Method (called)')
+
+function Write-CoverageTable($Rows) {
+    $totalMissed = Get-MissedLines ($Rows | Where-Object Kind -eq 'Total').Counts
+    $names = $Rows | ForEach-Object { $(if ($_.Kind -eq 'Namespace') { '  ' + $_.Name } else { $_.Name }) }
+    $cells = @($Rows | ForEach-Object { , (Get-RowCells $_ $totalMissed) })
+    $nameWidth = [Math]::Max(9, ($names | Measure-Object -Property Length -Maximum).Maximum)
+    $widths = for ($c = 0; $c -lt $CoverageHeaders.Count; $c++) {
+        [Math]::Max($CoverageHeaders[$c].Length, ($cells | ForEach-Object { $_[$c].Length } | Measure-Object -Maximum).Maximum)
+    }
+
+    # Missed and Gap are right-aligned numbers; the rate columns are left-aligned text.
+    function Format-Line([string] $Name, [string[]] $Values) {
+        $parts = for ($c = 0; $c -lt $Values.Count; $c++) {
+            $(if ($c -lt 2) { $Values[$c].PadLeft($widths[$c]) } else { $Values[$c].PadRight($widths[$c]) })
+        }
+
+        return ($Name.PadRight($nameWidth) + '  ' + ($parts -join '  ')).TrimEnd()
+    }
+
+    $rule = ('-' * $nameWidth) + '  ' + (@($widths | ForEach-Object { '-' * $_ }) -join '  ')
     Write-Host ''
-    Write-Host ('{0}  {1}  {2}  {3}' -f 'Namespace'.PadRight($nameWidth), 'Line'.PadRight($columnWidth), 'Branch'.PadRight($columnWidth), 'Method')
+    Write-Host (Format-Line 'Namespace' $CoverageHeaders)
     Write-Host $rule
-    foreach ($row in $Rows) {
-        $name = $(if ($row.Kind -eq 'Namespace') { '  ' + $row.Name } else { $row.Name })
-        $line = '{0}  {1}  {2}  {3}' -f $name.PadRight($nameWidth),
-            (Format-Rate $row.Counts.CoveredLines $row.Counts.Lines).PadRight($columnWidth),
-            (Format-Rate $row.Counts.CoveredBranches $row.Counts.Branches).PadRight($columnWidth),
-            (Format-Rate $row.Counts.CoveredMethods $row.Counts.Methods)
-        if ($row.Kind -eq 'Total') {
+    for ($r = 0; $r -lt $Rows.Count; $r++) {
+        if ($Rows[$r].Kind -eq 'Total') {
             Write-Host $rule
         }
 
-        Write-Host $line.TrimEnd() -ForegroundColor $(if ($row.Kind -eq 'Namespace') { 'Gray' } else { 'White' })
+        Write-Host (Format-Line $names[$r] $cells[$r]) -ForegroundColor $(if ($Rows[$r].Kind -eq 'Namespace') { 'Gray' } else { 'White' })
     }
 
+    Write-Host ''
+    Write-Host 'Sorted by missed lines. Gap: share of all uncovered lines. Method (called): methods entered at least once.'
     Write-Host ''
 }
 
@@ -137,24 +183,24 @@ function Write-CoverageJobSummary($Rows) {
         return
     }
 
+    $totalMissed = Get-MissedLines ($Rows | Where-Object Kind -eq 'Total').Counts
     $markdown = [System.Text.StringBuilder]::new()
     [void]$markdown.AppendLine('### Code coverage (unit and integration tests)')
     [void]$markdown.AppendLine()
-    [void]$markdown.AppendLine('| Namespace | Line | Branch | Method |')
-    [void]$markdown.AppendLine('| --- | ---: | ---: | ---: |')
+    [void]$markdown.AppendLine("| Namespace | $($CoverageHeaders -join ' | ') |")
+    [void]$markdown.AppendLine('| --- | ---: | ---: | ---: | ---: | ---: |')
     foreach ($row in $Rows) {
         $name = $(if ($row.Kind -eq 'Namespace') { "&nbsp;&nbsp;$($row.Name)" } else { "**$($row.Name)**" })
-        $rates = @(
-            (Format-Rate $row.Counts.CoveredLines $row.Counts.Lines),
-            (Format-Rate $row.Counts.CoveredBranches $row.Counts.Branches),
-            (Format-Rate $row.Counts.CoveredMethods $row.Counts.Methods)) | ForEach-Object { ($_ -replace '\s+', ' ').Trim() }
+        $values = Get-RowCells $row $totalMissed | ForEach-Object { ($_ -replace '\s+', ' ').Trim() }
         if ($row.Kind -ne 'Namespace') {
-            $rates = $rates | ForEach-Object { "**$_**" }
+            $values = $values | ForEach-Object { "**$_**" }
         }
 
-        [void]$markdown.AppendLine("| $name | $($rates -join ' | ') |")
+        [void]$markdown.AppendLine("| $name | $($values -join ' | ') |")
     }
 
+    [void]$markdown.AppendLine()
+    [void]$markdown.AppendLine('Sorted by missed lines. *Gap*: share of all uncovered lines. *Method (called)*: methods entered at least once.')
     Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $markdown.ToString() -Encoding utf8
 }
 
