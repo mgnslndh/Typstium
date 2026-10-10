@@ -315,6 +315,18 @@ reviewed. The keys are generic so the lock model can live in the Typstium-agnost
 
 The default target doesn't pack runtimes, so a local `./build.ps1` stays fast.
 
+**Pack properties.** `PackTypstRuntimes` and the runtime tests' fixture feed pass these to the two package projects.
+They're inputs for building the packages, not settings an app sets (those are in section 4):
+
+| Property | Project | Meaning |
+|---|---|---|
+| `TypstiumRuntimeIdentifier` | `Typstium.Runtime` | The RID to pack, e.g. `linux-x64`. It names the package (`Typstium.Runtime.<rid>`) and its `tools/typst/<rid>/` folder, and picks the executable's name (`typst.exe` for `win-*`, otherwise `typst`) |
+| `TypstiumRuntimeSource` | `Typstium.Runtime` | Folder holding `typst[.exe]`, `LICENSE` and `NOTICE`. The pack fails if any of them is missing |
+| `TypstVersion` | both | The Typst version, used as the package version. `Typstium.Runtime.All` depends on every RID package at exactly this version |
+| `RestoreAdditionalProjectSources` | `Typstium.Runtime.All` | The folder the RID packages were packed to, so the meta package can restore them (a standard NuGet property) |
+
+`Typstium.Runtime` requires `TypstiumRuntimeIdentifier`, `TypstiumRuntimeSource` and `TypstVersion`; a pack without them fails with an error naming them.
+
 **CI.** A `pack` job on ubuntu-latest runs `PackTypstRuntimes`, caches `artifacts/cache/typst/` keyed by the
 lock file's hash, and uploads the packages as an artifact for the end-to-end jobs (section 10).
 
