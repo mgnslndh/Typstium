@@ -75,6 +75,24 @@ public class TypstCompileRunnerTests
     }
 
     [Test]
+    [Arguments("pages-{p}/page.png")]
+    [Arguments("out/{0p}/page.png")]
+    [Arguments("out-{t}/page-{p}.png")]
+    public async Task Page_placeholders_in_a_folder_are_refused_before_compiling(string output)
+    {
+        using var fixture = new Fixture();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            fixture.Runner(FixedResultCompiler.Pages(TypstOutputFormat.Png, 2))
+                .RunAsync(new FilePath("spec.typ"), new FilePath(output), new TypstCompileSettings(), CancellationToken.None));
+
+        await Assert.That(exception!.Message).Contains("file name");
+        await Assert.That(exception.ParamName).IsEqualTo("output");
+        await Assert.That(fixture.CompilerCreated).IsFalse();
+        await Assert.That(Directory.EnumerateFileSystemEntries(fixture.Work.Path).Any()).IsFalse();
+    }
+
+    [Test]
     [Arguments(TypstCompileStatus.Failed)]
     [Arguments(TypstCompileStatus.TimedOut)]
     [Arguments(TypstCompileStatus.OutputLimitExceeded)]

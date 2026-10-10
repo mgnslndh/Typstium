@@ -21,6 +21,7 @@ internal sealed class TypstCompileRunner(ICakeEnvironment environment, ICakeLog 
         var inputPath = CakePaths.Native(input, environment);
         var outputFile = output ?? TypstOutputPaths.DefaultOutput(input);
         var format = TypstOutputPaths.FormatOf(outputFile, settings.Format);
+        TypstOutputPaths.EnsurePlaceholdersInFileName(outputFile);
         var outputPath = CakePaths.Native(outputFile, environment);
         var request = TypstCompileRequestMapper.Map(inputPath, format, settings, environment);
 
