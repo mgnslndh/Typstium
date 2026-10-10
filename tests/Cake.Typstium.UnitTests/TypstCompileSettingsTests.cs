@@ -71,6 +71,19 @@ public class TypstCompileSettingsTests
     }
 
     [Test]
+    public async Task Null_extra_arguments_are_refused_where_they_are_set()
+    {
+        var settings = new TypstCompileSettings();
+
+        var direct = Assert.Throws<ArgumentNullException>(() => settings.ExtraArguments = null!);
+        var fluent = Assert.Throws<ArgumentNullException>(() => settings.WithExtraArguments(null!));
+
+        await Assert.That(direct!.ParamName).IsEqualTo("ExtraArguments");
+        await Assert.That(fluent!.ParamName).IsEqualTo("ExtraArguments");
+        await Assert.That(settings.ExtraArguments).IsEqualTo(TypstArguments.Empty);
+    }
+
+    [Test]
     public async Task WithInput_replaces_an_existing_key()
     {
         var settings = new TypstCompileSettings().WithInput("version", "1").WithInput("version", "2");

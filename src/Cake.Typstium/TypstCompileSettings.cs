@@ -55,7 +55,11 @@ public sealed class TypstCompileSettings
     public bool TreatWarningsAsErrors { get; set; }
 
     /// <summary>Arguments appended after the ones Typstium generates.</summary>
-    public TypstArguments ExtraArguments { get; set; } = TypstArguments.Empty;
+    public TypstArguments ExtraArguments
+    {
+        get;
+        set => field = value ?? throw new ArgumentNullException(nameof(ExtraArguments), "Use TypstArguments.Empty for no extra arguments.");
+    } = TypstArguments.Empty;
 
     /// <summary>Changes the complete generated command line; can undo every guarantee Typstium gives.</summary>
     public Func<TypstArguments, TypstArguments>? ArgumentCustomization { get; set; }
