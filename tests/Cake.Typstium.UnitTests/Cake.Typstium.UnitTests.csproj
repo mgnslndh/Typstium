@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="Cake.Testing" />
+    <ProjectReference Include="..\..\src\Cake.Typstium\Cake.Typstium.csproj" />
+    <ProjectReference Include="..\Typstium.Testing\Typstium.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

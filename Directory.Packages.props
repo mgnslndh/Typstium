@@ -13,6 +13,10 @@
     <PackageVersion Include="TUnit" Version="1.73.19" />
     <PackageVersion Include="TUnit.Core" Version="1.73.19" />
     <PackageVersion Include="TUnit.Assertions" Version="1.73.19" />
+    <!-- Cake.Typstium (docs/specs/cake.md): the addin builds against the first Cake 6 so every Cake 6.x loads it;
+         the tests use the fakes of the Cake version the repository's build runs. -->
+    <PackageVersion Include="Cake.Core" Version="6.0.0" />
+    <PackageVersion Include="Cake.Testing" Version="6.3.0" />
     <!-- The build under build/ (docs/specs/cake-sdk-build.md). Cake.Common matches Cake.Sdk in global.json;
          Spectre.Console matches the version Cake.Cli ships (build/Build fails if Cake needs a newer one). -->
     <PackageVersion Include="Cake.Common" Version="6.3.0" />

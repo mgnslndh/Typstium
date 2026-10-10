@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Cake.Typstium</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PackageId>Cake.Typstium</PackageId>
+    <Description>Cake addin for Typst: compile .typ documents to PDF, PNG or SVG in Cake scripts, Frosting and Cake.Sdk, over the Typstium API.</Description>
+    <PackageTags>cake-addin;cake;typst;pdf;typesetting;documents</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- With TreatWarningsAsErrors, CS1591 makes every public member's XML docs part of the build. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Cake provides Cake.Core at run time; the addin must not ship or depend on it (docs/specs/cake.md §3). -->
+    <PackageReference Include="Cake.Core" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <ProjectReference Include="..\Typstium\Typstium.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Cake.Typstium.UnitTests" />
+  </ItemGroup>
+
+</Project>
