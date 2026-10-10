@@ -190,6 +190,15 @@
     <WriteLinesToFile File="$(PublishDir)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
   </Target>
 
+  <!-- The manifest is also written to obj/, so WebDeploy has a current one even when the build copies nothing to bin/
+       (TypstiumCopyRuntimeOnBuild=false). -->
+  <Target Name="_TypstiumWriteIntermediateManifest" Condition="'@(_TypstiumSelected)' != ''">
+    <WriteLinesToFile File="$(IntermediateOutputPath)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <FileWrites Include="$(IntermediateOutputPath)typstium.runtime.json" />
+    </ItemGroup>
+  </Target>
+
   <!-- NuGet drops the execute bit when it extracts a package; Copy keeps the source's mode (docs/specs/runtime-packages.md §6). -->
   <Target Name="_TypstiumChmodOutput" AfterTargets="CopyFilesToOutputDirectory"
           Condition="'$(OS)' != 'Windows_NT' and '@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnBuild)' == 'true'">
@@ -203,12 +212,13 @@
 
   <!-- Classic ASP.NET web projects publish through the Web Publishing Pipeline, which only packs files it knows about. -->
   <Target Name="_TypstiumAddWebDeployFiles" BeforeTargets="CopyAllFilesToSingleFolderForPackage;CopyAllFilesToSingleFolderForMsdeploy"
+          DependsOnTargets="_TypstiumWriteIntermediateManifest"
           Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
     <ItemGroup>
       <FilesForPackagingFromProject Include="%(_TypstiumRuntimeFileToCopy.Identity)">
         <DestinationRelativePath>bin\%(_TypstiumRuntimeFileToCopy.TypstiumTargetPath)</DestinationRelativePath>
       </FilesForPackagingFromProject>
-      <FilesForPackagingFromProject Include="$(OutDir)typstium.runtime.json" Condition="Exists('$(OutDir)typstium.runtime.json')">
+      <FilesForPackagingFromProject Include="$(IntermediateOutputPath)typstium.runtime.json">
         <DestinationRelativePath>bin\typstium.runtime.json</DestinationRelativePath>
       </FilesForPackagingFromProject>
     </ItemGroup>

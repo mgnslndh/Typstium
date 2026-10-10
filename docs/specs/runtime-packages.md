@@ -176,7 +176,8 @@ receives the library's files unchanged.
 
 **Manifest.** Whenever at least one runtime is selected, a target writes
 `typstium.runtime.json` straight into `$(OutDir)` after `CopyFilesToOutputDirectory`
-and into `$(PublishDir)` after `CopyFilesToPublishDirectory` (`WriteOnlyWhenDifferent`, registered in `FileWrites`).
+and into `$(PublishDir)` after `CopyFilesToPublishDirectory` (`WriteOnlyWhenDifferent`; the output copy is
+registered in `FileWrites`).
 As a content item it would flow through `ProjectReference`, and an app and a library would collide on it at
 publish (`NETSDK1152`):
 
@@ -202,7 +203,9 @@ runtime `EnsureExecutable` remains the fallback (RS12).
 - `TypstiumCopyRuntime=false`.
 
 **Classic web projects.** The output already goes to `bin/`. A target adds the selected files and their notices to
-`FilesForPackagingFromProject`, so WebDeploy/MSDeploy packages include them (RS17).
+`FilesForPackagingFromProject`, so WebDeploy/MSDeploy packages include them (RS17). Its manifest is written to
+`$(IntermediateOutputPath)` and packaged from there, so the deployment gets a current one even when
+`TypstiumCopyRuntimeOnBuild` is false and the build writes none to `bin/`.
 
 ## 7. Locating the binary at runtime
 

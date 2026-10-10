@@ -102,6 +102,24 @@ public class ClassicProjectTests
         await Assert.That(File.Exists(Path.Combine(site, "bin", "typstium.runtime.json"))).IsTrue().Because(published);
     }
 
+    // Copy-on-build off: the build writes no manifest to bin\, so the publish must bring its own.
+    [Test]
+    [Property(Scenario.Key, "RS17")]
+    [Property(Scenario.Key, "RS29")]
+    public async Task A_classic_web_publish_without_build_copies_ships_a_manifest_for_its_custom_directory()
+    {
+        var (temp, site, published) = await PublishClassicWebAsync("""
+                <TypstiumCopyRuntimeOnBuild>false</TypstiumCopyRuntimeOnBuild>
+                <TypstiumRuntimeDirectory>custom/{rid}</TypstiumRuntimeDirectory>
+            """);
+        using var _ = temp;
+
+        await Assert.That(File.Exists(Path.Combine(site, "bin", "custom", "win-x64", "typst.exe"))).IsTrue().Because(published);
+        var manifest = Path.Combine(site, "bin", "typstium.runtime.json");
+        await Assert.That(File.Exists(manifest)).IsTrue().Because(published);
+        await Assert.That(File.ReadAllText(manifest)).Contains("\"win-x64\": \"custom/win-x64/typst.exe\"");
+    }
+
     private static async Task<(TemporaryDirectory Temp, string Site, string Published)> PublishClassicWebAsync(string extraProperties)
     {
         var msbuild = await RequireMSBuildAsync();
