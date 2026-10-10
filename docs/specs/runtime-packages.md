@@ -54,7 +54,7 @@ manual install, and the compiler should find it without configuration. This spec
 | D15 | Binary location in the package | `tools/typst/<rid>/` | `runtimes/<rid>/native/` | NuGet's native asset handling is unreliable for executables and on .NET Framework. `tools/` also serves Cake's `#tool` |
 | D16 | Task names | `UpdateTypstRuntimes`, `DownloadTypstRuntimes`, `PackTypstRuntimes` | `Fetch…`, `PackRuntimes` | Consistent names that say what each task does |
 | D17 | Where targets tests get packages | Fixture runtime packages with a stub executable | The real packages | Fast, offline and runnable on every OS; real packages are tested end to end (section 10) |
-| D18 | Downloading and extracting assets | Own small downloader in `Build.Cake.Extensions` (`HttpClient`, streaming SHA-256, https-only redirects, retries, stall timeout; ideas taken from Cake.Download.Module's `HttpDownloader`), SharpCompress for xz, the BCL for zip and tar; only `typst[.exe]` and `LICENSE` are extracted, by name, to paths the build chooses | Cake.Download.Module | The module makes tools runnable on the build machine: host platform only, registered with Cake's tool locator, no xz (it may not take dependencies). Packaging fetches seven platforms' files. The build project may take dependencies; core and the runtime packages gain none |
+| D18 | Downloading and extracting assets | Own small downloader in `Build.Cake.Extensions` (`HttpClient`, streaming SHA-256, https-only redirects, retries, stall timeout; ideas taken from Cake.Download.Module's `HttpDownloader`), SharpCompress for xz, the BCL for zip and tar; only `typst[.exe]`, `LICENSE` and `NOTICE` are extracted, by name, to paths the build chooses | Cake.Download.Module | The module makes tools runnable on the build machine: host platform only, registered with Cake's tool locator, no xz (it may not take dependencies). Packaging fetches seven platforms' files. The build project may take dependencies; core and the runtime packages gain none |
 
 ## 3. Packages
 
@@ -63,6 +63,7 @@ manual install, and the compiler should find it without configuration. This spec
 ```
 tools/typst/<rid>/typst[.exe]            the official binary, unmodified
 tools/typst/<rid>/LICENSE                Typst's Apache-2.0 license
+tools/typst/<rid>/NOTICE                 Typst's NOTICE file, which Apache-2.0 §4(d) requires redistributions to carry
 build/Typstium.Runtime.<rid>.props       for packages.config (direct references only)
 buildTransitive/Typstium.Runtime.<rid>.props
 README.md
@@ -82,7 +83,7 @@ Both props files are identical and only declare the binary:
 ```
 
 - No dependencies. `DevelopmentDependency` is false, because the binary has to reach the consuming app.
-- License `Apache-2.0` (the contents are Typst's), with Typst's `LICENSE` file. The README says which Typst
+- License `Apache-2.0` (the contents are Typst's), with Typst's `LICENSE` and `NOTICE` files. The README says which Typst
   version it holds, where it came from, and that it's repackaged unchanged.
 - Version: Typst's (`0.15.1`). A repack of the same Typst version, needed only when the package layout itself
   was wrong, uses a fourth part (`0.15.1.1`).
@@ -295,7 +296,7 @@ reviewed. The keys are generic so the lock model can live in the Typstium-agnost
   The only task that uses the API.
 - `DownloadTypstRuntimes`: downloads each asset (D18) into
   `artifacts/cache/typst/<version>/`, reusing files whose digest already matches; verifies SHA256 against the
-  lock file (mismatch → build fails); extracts the single `typst[.exe]` and Typst's `LICENSE`. Then runs the
+  lock file (mismatch → build fails); extracts the single `typst[.exe]` and Typst's `LICENSE` and `NOTICE`. Then runs the
   host RID's binary with `--version` and compares it with the lock file's `version`.
 - `PackTypstRuntimes` (depends on `DownloadTypstRuntimes`): packs the template project
   `src/Typstium.Runtime/Typstium.Runtime.csproj` (`IncludeBuildOutput=false`, no code) once per RID with

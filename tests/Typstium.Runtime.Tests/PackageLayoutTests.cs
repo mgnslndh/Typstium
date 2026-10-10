@@ -20,7 +20,7 @@ public class PackageLayoutTests
     [Test]
     [Arguments("linux-x64", "typst")]
     [Arguments("win-arm64", "typst.exe")]
-    public async Task A_runtime_package_holds_the_binary_its_license_and_the_props(string rid, string executable)
+    public async Task A_runtime_package_holds_the_binary_its_license_and_notice_and_the_props(string rid, string executable)
     {
         var (entries, nuspec, archive) = await OpenAsync("Typstium.Runtime." + rid);
         using (archive)
@@ -31,6 +31,7 @@ public class PackageLayoutTests
                 $"build/Typstium.Runtime.{rid}.props",
                 $"buildTransitive/Typstium.Runtime.{rid}.props",
                 $"tools/typst/{rid}/LICENSE",
+                $"tools/typst/{rid}/NOTICE",
                 $"tools/typst/{rid}/{executable}",
             }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
             await Assert.That(nuspec).Contains("<license type=\"expression\">Apache-2.0</license>");

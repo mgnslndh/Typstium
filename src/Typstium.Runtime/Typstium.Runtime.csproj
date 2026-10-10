@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Packed once per RID by PackTypstRuntimes and by the runtime tests (docs/specs/runtime-packages.md §3, §8): no
-       code, only Typst's binary, its license and a props file that declares the binary to Typstium's targets.
-       Required properties: TypstiumRuntimeIdentifier, TypstiumRuntimeSource (folder with typst[.exe] and LICENSE),
+       code, only Typst's binary, its LICENSE and NOTICE, and a props file that declares the binary to Typstium's targets.
+       Required properties: TypstiumRuntimeIdentifier, TypstiumRuntimeSource (folder with typst[.exe], LICENSE and NOTICE),
        TypstVersion. -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -38,12 +38,14 @@
     <None Include="README.md" Pack="true" PackagePath="/" />
     <None Include="$(TypstiumRuntimeSource)/$(TypstiumRuntimeExecutable)" Pack="true" PackagePath="tools/typst/$(TypstiumRuntimeIdentifier)/" />
     <None Include="$(TypstiumRuntimeSource)/LICENSE" Pack="true" PackagePath="tools/typst/$(TypstiumRuntimeIdentifier)/" />
+    <None Include="$(TypstiumRuntimeSource)/NOTICE" Pack="true" PackagePath="tools/typst/$(TypstiumRuntimeIdentifier)/" />
   </ItemGroup>
 
   <Target Name="_TypstiumValidateRuntimeProperties" BeforeTargets="Build;Pack">
     <Error Condition="'$(TypstiumRuntimeIdentifier)' == '' or '$(TypstiumRuntimeSource)' == '' or '$(TypstVersion)' == ''"
            Text="Pack with -p:TypstiumRuntimeIdentifier=&lt;rid&gt; -p:TypstiumRuntimeSource=&lt;folder&gt; -p:TypstVersion=&lt;version&gt;." />
     <Error Condition="!Exists('$(TypstiumRuntimeSource)/$(TypstiumRuntimeExecutable)')" Text="$(TypstiumRuntimeSource)/$(TypstiumRuntimeExecutable) doesn't exist." />
+    <Error Condition="!Exists('$(TypstiumRuntimeSource)/LICENSE') or !Exists('$(TypstiumRuntimeSource)/NOTICE')" Text="$(TypstiumRuntimeSource) needs Typst's LICENSE and NOTICE." />
   </Target>
 
   <Target Name="_TypstiumAddRuntimeProps">

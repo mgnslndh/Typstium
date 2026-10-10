@@ -43,6 +43,7 @@ public static class PackageFeed
             Directory.CreateDirectory(source);
             await File.WriteAllTextAsync(Path.Combine(source, ExecutableName(rid)), $"stub typst for {rid}\n");
             await File.WriteAllTextAsync(Path.Combine(source, "LICENSE"), "stub license\n");
+            await File.WriteAllTextAsync(Path.Combine(source, "NOTICE"), "stub notice\n");
             await PackAsync(environment, Path.Combine("src", "Typstium.Runtime", "Typstium.Runtime.csproj"),
                 "-o", directory, "-p:TypstiumRuntimeIdentifier=" + rid, "-p:TypstiumRuntimeSource=" + source, "-p:TypstVersion=" + version);
         }

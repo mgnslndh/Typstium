@@ -44,6 +44,8 @@ public static partial class Program
                     {
                         [executable] = System.IO.Path.Combine(folder, executable),
                         ["LICENSE"] = System.IO.Path.Combine(folder, "LICENSE"),
+                        // Apache-2.0 §4(d): a redistribution carries the NOTICE file too.
+                        ["NOTICE"] = System.IO.Path.Combine(folder, "NOTICE"),
                     });
                     Information("{0}: {1} verified and extracted.", rid, asset.Name);
                 }
