@@ -4,7 +4,7 @@ using Typstium;
 namespace Cake.Typstium;
 
 /// <summary>
-/// How <c>TypstCompile</c> compiles. The defaults equal <see cref="TypstCompileOptions.Default"/>: no system fonts, no
+/// How <see cref="TypstAliases.TypstCompile(Cake.Core.ICakeContext, FilePath, FilePath, TypstCompileSettings)"/> compiles. The defaults equal <see cref="TypstCompileOptions.Default"/>: no system fonts, no
 /// network, a 60 second timeout. Relative paths resolve against Cake's working directory.
 /// </summary>
 public sealed class TypstCompileSettings

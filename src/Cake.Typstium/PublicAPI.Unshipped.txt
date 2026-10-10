@@ -1,4 +1,5 @@
 #nullable enable
+Cake.Typstium.TypstAliases
 Cake.Typstium.TypstCompileSettings
 Cake.Typstium.TypstCompileSettings.AllowNetwork.get -> bool
 Cake.Typstium.TypstCompileSettings.AllowNetwork.set -> void
@@ -33,6 +34,17 @@ Cake.Typstium.TypstCompileSettings.TreatWarningsAsErrors.get -> bool
 Cake.Typstium.TypstCompileSettings.TreatWarningsAsErrors.set -> void
 Cake.Typstium.TypstCompileSettings.TypstCompileSettings() -> void
 Cake.Typstium.TypstCompileSettingsExtensions
+static Cake.Typstium.TypstAliases.TypstCompile(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input) -> Typstium.TypstCompileResult!
+static Cake.Typstium.TypstAliases.TypstCompile(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input, Cake.Core.IO.FilePath! output) -> Typstium.TypstCompileResult!
+static Cake.Typstium.TypstAliases.TypstCompile(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input, Cake.Core.IO.FilePath! output, Cake.Typstium.TypstCompileSettings! settings) -> Typstium.TypstCompileResult!
+static Cake.Typstium.TypstAliases.TypstCompileAsync(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Cake.Typstium.TypstAliases.TypstCompileAsync(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input, Cake.Core.IO.FilePath! output) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Cake.Typstium.TypstAliases.TypstCompileAsync(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input, Cake.Core.IO.FilePath! output, Cake.Typstium.TypstCompileSettings! settings) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Cake.Typstium.TypstAliases.TypstCompileAsync(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input, Cake.Core.IO.FilePath! output, Cake.Typstium.TypstCompileSettings! settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Cake.Typstium.TypstAliases.TypstCompileAsync(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input, Cake.Core.IO.FilePath! output, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Cake.Typstium.TypstAliases.TypstCompileAsync(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! input, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Typstium.TypstCompileResult!>!
+static Cake.Typstium.TypstAliases.TypstCompiler(this Cake.Core.ICakeContext! context) -> Typstium.ITypstCompiler!
+static Cake.Typstium.TypstAliases.TypstCompiler(this Cake.Core.ICakeContext! context, Cake.Core.IO.FilePath! toolPath) -> Typstium.ITypstCompiler!
 static Cake.Typstium.TypstCompileSettingsExtensions.WithArgumentCustomization(this Cake.Typstium.TypstCompileSettings! settings, System.Func<Typstium.TypstArguments!, Typstium.TypstArguments!>! customization) -> Cake.Typstium.TypstCompileSettings!
 static Cake.Typstium.TypstCompileSettingsExtensions.WithCreationTimestamp(this Cake.Typstium.TypstCompileSettings! settings, System.DateTimeOffset timestamp) -> Cake.Typstium.TypstCompileSettings!
 static Cake.Typstium.TypstCompileSettingsExtensions.WithExtraArguments(this Cake.Typstium.TypstCompileSettings! settings, Typstium.TypstArguments! arguments) -> Cake.Typstium.TypstCompileSettings!
