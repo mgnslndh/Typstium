@@ -394,7 +394,9 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 - Generate small projects in a temp folder and run real `dotnet build` and `dotnet publish` (and
   `msbuild.exe` for classic projects on Windows).
 - Use fixture runtime packages, packed from the same template with a stub executable, from a local feed with
-  an isolated `NUGET_PACKAGES` folder.
+  a persistent `NUGET_PACKAGES` folder isolated from the user's (`artifacts/runtime-tests/nuget-packages`). The
+  packages under test get a unique version per session (`0.0.0-t<UTC timestamp>`), so a stale fixture can't be
+  served. End-to-end tests use a fresh cache for each session.
 - Assert the output tree golden-file style, the manifest content, and the diagnostic codes.
 - RID mapping (section 5) is exercised through these builds, one case per mapping rule.
 

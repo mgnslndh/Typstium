@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Packed once per RID by PackTypstRuntimes and by the runtime tests (docs/specs/runtime-packages.md §3, §8): no
+       code, only Typst's binary, its license and a props file that declares the binary to Typstium's targets.
+       Required properties: TypstiumRuntimeIdentifier, TypstiumRuntimeSource (folder with typst[.exe] and LICENSE),
+       TypstVersion. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- NU5128: no lib/ folder for netstandard2.0. Intended: the package has no assemblies at all. -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <PackageId>Typstium.Runtime.$(TypstiumRuntimeIdentifier)</PackageId>
+    <Version>$(TypstVersion)</Version>
+    <Description>The official Typst CLI $(TypstVersion) for $(TypstiumRuntimeIdentifier), repackaged unchanged for Typstium.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>$(PackageTags);typst-cli;runtime</PackageTags>
+    <TypstiumRuntimeExecutable>typst</TypstiumRuntimeExecutable>
+    <TypstiumRuntimeExecutable Condition="$(TypstiumRuntimeIdentifier.StartsWith('win-'))">typst.exe</TypstiumRuntimeExecutable>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_TypstiumAddRuntimeProps</TargetsForTfmSpecificContentInPackage>
+    <!-- %24 is an escaped $, so MSBuild writes these references into the props instead of expanding them here. -->
+    <_TypstiumPropsContent><![CDATA[<Project>
+  <!-- Declares the binary in this package to Typstium's build targets (docs/specs/runtime-packages.md §3). -->
+  <ItemGroup>
+    <TypstiumRuntime Include="{rid}"
+                     Executable="%24([MSBuild]::NormalizePath('%24(MSBuildThisFileDirectory)', '..', 'tools', 'typst', '{rid}', '{exe}'))"
+                     TypstVersion="{version}"
+                     ContractVersion="1" />
+  </ItemGroup>
+</Project>]]></_TypstiumPropsContent>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="$(TypstiumRuntimeSource)/$(TypstiumRuntimeExecutable)" Pack="true" PackagePath="tools/typst/$(TypstiumRuntimeIdentifier)/" />
+    <None Include="$(TypstiumRuntimeSource)/LICENSE" Pack="true" PackagePath="tools/typst/$(TypstiumRuntimeIdentifier)/" />
+  </ItemGroup>
+
+  <Target Name="_TypstiumValidateRuntimeProperties" BeforeTargets="Build;Pack">
+    <Error Condition="'$(TypstiumRuntimeIdentifier)' == '' or '$(TypstiumRuntimeSource)' == '' or '$(TypstVersion)' == ''"
+           Text="Pack with -p:TypstiumRuntimeIdentifier=&lt;rid&gt; -p:TypstiumRuntimeSource=&lt;folder&gt; -p:TypstVersion=&lt;version&gt;." />
+    <Error Condition="!Exists('$(TypstiumRuntimeSource)/$(TypstiumRuntimeExecutable)')" Text="$(TypstiumRuntimeSource)/$(TypstiumRuntimeExecutable) doesn't exist." />
+  </Target>
+
+  <Target Name="_TypstiumAddRuntimeProps">
+    <!-- Set here, not at the top: IntermediateOutputPath is empty until the SDK targets have been imported. -->
+    <PropertyGroup>
+      <_TypstiumPropsFile>$(IntermediateOutputPath)Typstium.Runtime.$(TypstiumRuntimeIdentifier).props</_TypstiumPropsFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(_TypstiumPropsFile)"
+                      Lines="$(_TypstiumPropsContent.Replace('{rid}', '$(TypstiumRuntimeIdentifier)').Replace('{exe}', '$(TypstiumRuntimeExecutable)').Replace('{version}', '$(TypstVersion)'))"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(_TypstiumPropsFile)" PackagePath="build/;buildTransitive/" />
+    </ItemGroup>
+  </Target>
+
+</Project>
