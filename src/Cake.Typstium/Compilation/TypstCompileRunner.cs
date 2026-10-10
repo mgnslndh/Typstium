@@ -39,13 +39,17 @@ internal sealed class TypstCompileRunner(ICakeEnvironment environment, ICakeLog 
         }
 
         var pages = await SaveAsync(result.Document!, outputPath, cancellationToken).ConfigureAwait(false);
-        log.Information("{0}", pages == 1
-            ? $"Typst compiled {inputPath} to {outputPath} in {Milliseconds(result)} ms."
-            : $"Typst compiled {inputPath} to {outputPath} ({pages} pages) in {Milliseconds(result)} ms.");
+        // Which Typst ran, and from where, is the first thing to check when output differs between machines or a
+        // pinned #tool version seems ignored.
+        var invocation = result.Invocation;
+        var pageCount = pages is { } count ? " (" + Count(count, "page") + ")" : "";
+        log.Information("{0}",
+            $"Typst {invocation.TypstVersion} ({invocation.ExecutableFoundBy}: {invocation.ExecutablePath}) compiled {inputPath} to {outputPath}{pageCount} in {Milliseconds(result)} ms.");
         return result;
     }
 
-    private static async Task<int> SaveAsync(TypstDocument document, string outputPath, CancellationToken cancellationToken)
+    /// <returns>The page count for paged output, null for a single file.</returns>
+    private static async Task<int?> SaveAsync(TypstDocument document, string outputPath, CancellationToken cancellationToken)
     {
         if (document is TypstDocument.Paged paged
             && paged.Pages.Length > 1
@@ -66,7 +70,7 @@ internal sealed class TypstCompileRunner(ICakeEnvironment environment, ICakeLog 
         {
             case TypstDocument.SingleFile single:
                 await single.SaveAsync(outputPath, cancellationToken).ConfigureAwait(false);
-                return 1;
+                return null;
             case TypstDocument.Paged pagedDocument:
                 return (await pagedDocument.SaveAsync(outputPath, cancellationToken).ConfigureAwait(false)).Count;
             default:
@@ -74,11 +78,10 @@ internal sealed class TypstCompileRunner(ICakeEnvironment environment, ICakeLog 
         }
     }
 
-    private static string Count(IEnumerable<TypstDiagnostic> diagnostics, string noun)
-    {
-        var count = diagnostics.Count();
-        return count.ToString(CultureInfo.InvariantCulture) + " " + noun + (count == 1 ? "" : "s");
-    }
+    private static string Count(IEnumerable<TypstDiagnostic> diagnostics, string noun) => Count(diagnostics.Count(), noun);
+
+    private static string Count(int count, string noun) =>
+        count.ToString(CultureInfo.InvariantCulture) + " " + noun + (count == 1 ? "" : "s");
 
     private static string Milliseconds(TypstCompileResult result) =>
         ((long)result.Invocation.TotalDuration.TotalMilliseconds).ToString(CultureInfo.InvariantCulture);

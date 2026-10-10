@@ -40,6 +40,31 @@ public class TypstCompileRunnerTests
     }
 
     [Test]
+    public async Task The_success_line_names_the_typst_version_and_where_it_came_from()
+    {
+        using var fixture = new Fixture();
+
+        await fixture.Runner(FixedResultCompiler.Pdf()).RunAsync(new FilePath("spec.typ"), output: null, new TypstCompileSettings(), CancellationToken.None);
+
+        var line = fixture.Log.Entries.Single(entry => entry.Level == LogLevel.Information).Message;
+        await Assert.That(line).StartsWith("Typst 0.15.1 (Fake: typst) compiled ");
+        await Assert.That(line).DoesNotContain("page");
+    }
+
+    [Test]
+    [Arguments(1, "(1 page)")]
+    [Arguments(3, "(3 pages)")]
+    public async Task Paged_output_logs_its_page_count(int pages, string expected)
+    {
+        using var fixture = new Fixture();
+
+        await fixture.Runner(FixedResultCompiler.Pages(TypstOutputFormat.Png, pages))
+            .RunAsync(new FilePath("spec.typ"), new FilePath("out/page-{p}.png"), new TypstCompileSettings(), CancellationToken.None);
+
+        await Assert.That(fixture.Log.Entries.Single(entry => entry.Level == LogLevel.Information).Message).Contains(expected);
+    }
+
+    [Test]
     public async Task Creates_a_missing_output_folder()
     {
         using var fixture = new Fixture();
