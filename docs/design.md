@@ -12,7 +12,7 @@ and this overview disagree, the spec wins.
 | [Foundation](specs/foundation.md) | Repo scaffolding, core API, CLI backend, diagnostics, template providers, tests | Draft |
 | [Runtime packages](specs/runtime-packages.md) | `Typstium.Runtime.<rid>`, `Runtime.All`, MSBuild targets, runtime manifest, packaging CI ([user guide](runtime-packages.md)) | Implemented |
 | Build (`build.md`) | `Typstium.Build` for `dotnet build` and `msbuild.exe` | Planned |
-| Cake (`cake.md`) | `Cake.Typstium` | Planned |
+| [Cake](specs/cake.md) | `Cake.Typstium`: aliases, Typst from `#tool` and the locator chain | Draft |
 | ASP.NET Core (`aspnetcore.md`) | `Typstium.AspNetCore`, template lifecycle | Planned |
 | Markdown (`markdown.md`) | Markdown and Scriban content on `.typ` layouts via cmarker | Planned |
 | Source generators (`source-generators.md`) | Typed templates | Planned |
@@ -274,9 +274,9 @@ Every integration is a thin layer over the core API. All of them stay in scope e
 
 **Cake (`Cake.Typstium`)**
 
-- Aliases such as `TypstCompile("spec.typ", settings)`, for both script and Frosting.
-- The binary resolves the Cake way first (`#tool nuget:?package=Typstium.Runtime.win-x64`), then through the core resolution chain.
-- Use case A: Markdown release notes are rendered inside a branded `.typ` template with the Typst package `cmarker`, vendored at build time.
+- Aliases such as `TypstCompile("spec.typ", "spec.pdf", settings)`, sync and async, for script, Frosting and Cake.Sdk, plus `TypstCompiler()` for the full core API.
+- Typst comes from Cake's tools folder (`#tool nuget:?package=Typstium.Runtime.win-x64`, one line per platform) after `TYPST_PATH`, in the place of the bundled runtime in the core resolution chain.
+- The first generation compiles plain `.typ` files. Markdown release notes through `cmarker` (use case A in full) come later, together with Markdown support in the other integrations.
 
 **ASP.NET Core (`Typstium.AspNetCore`)**
 
@@ -330,7 +330,12 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 
 - [ ] Pick the name and reserve the NuGet ID prefix
 - [ ] Ask the Typst team for a nod on using the name
-- [ ] Spike: measure CLI compile time for the license template (default vs `--ignore-system-fonts` + bundled fonts)
-- [ ] Spike: produce the release-notes PDF from Markdown with `cmarker` in a Cake script
-- [ ] Prototype the build targets that copy the binary and set the executable bit
-- [ ] Verify the `buildTransitive` approach in an ASP.NET Core 2.x app on .NET Framework under IIS
+- [x] Spike: measure CLI compile time for the license template (spike 0: about 35 ms per PDF without system fonts)
+- [x] Prototype the build targets that copy the binary and set the executable bit (runtime packages, PR #5)
+- [ ] Verify the `buildTransitive` approach in an ASP.NET Core 2.x app on .NET Framework under IIS (RS16 in the
+  [runtime packages checklist](runtime-packages-checklist.md))
+- [ ] `Cake.Typstium` ([spec](specs/cake.md))
+- [ ] `Typstium.Build`: decide how it gets a binary for the build host (runtime packages spec §11)
+- [ ] `Typstium.AspNetCore`
+- [ ] Markdown through `cmarker` in every integration, including the release-notes PDF in a Cake script (the
+  Markdown half of spike 0 proved the Typst side)

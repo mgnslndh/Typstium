@@ -458,7 +458,7 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 - **`Cake.Typstium`** gets its binary from the runtime packages
   (`#tool nuget:?package=Typstium.Runtime.<rid>`, reading `tools/typst/<rid>/`), so it needs no xz support.
   Downloading from Typst's releases through Cake.Download.Module becomes an option only if the module gains
-  xz. Its own spec decides the details.
+  xz. Its own spec, [Cake](cake.md), decides the details.
 - **`Typstium.Build`** needs a binary for the build machine, which may differ from the target's
   (build on Windows, deploy to Linux). Whether it reuses the RID packages, and how it chooses the host RID,
   needs investigation.
