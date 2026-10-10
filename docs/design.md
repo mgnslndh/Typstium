@@ -10,7 +10,7 @@ and this overview disagree, the spec wins.
 | Spec | Covers | Status |
 | --- | --- | --- |
 | [Foundation](specs/foundation.md) | Repo scaffolding, core API, CLI backend, diagnostics, template providers, tests | Draft |
-| [Runtime packages](specs/runtime-packages.md) | `Typstium.Runtime.<rid>`, `Runtime.All`, MSBuild targets, runtime manifest, packaging CI | Proposed |
+| [Runtime packages](specs/runtime-packages.md) | `Typstium.Runtime.<rid>`, `Runtime.All`, MSBuild targets, runtime manifest, packaging CI | Implemented |
 | Build (`build.md`) | `Typstium.Build` for `dotnet build` and `msbuild.exe` | Planned |
 | Cake (`cake.md`) | `Cake.Typstium` | Planned |
 | ASP.NET Core (`aspnetcore.md`) | `Typstium.AspNetCore`, template lifecycle | Planned |

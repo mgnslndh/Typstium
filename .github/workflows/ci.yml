@@ -110,3 +110,97 @@ jobs:
       # The same steps as a local run: the build's own tests, build, unit, integration, then the timing tests alone.
       - run: ./build.sh
         shell: bash
+
+  # The runtime package targets against fixture packages (stub binaries), on every OS the targets run on.
+  runtime-targets:
+    name: Runtime targets / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_NOLOGO: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - if: runner.os == 'Windows'
+        run: ./build.ps1 --target=RuntimeTests
+        shell: pwsh
+      - if: runner.os != 'Windows'
+        run: ./build.sh --target=RuntimeTests
+        shell: bash
+
+  # Downloads, verifies and packs the real runtime packages once; the end-to-end jobs use them.
+  pack:
+    name: Pack runtime packages
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: artifacts/cache/typst
+          key: typst-assets-${{ hashFiles('build/typst-runtimes.json') }}
+      - run: ./build.sh --target=PackTypstRuntimes
+        shell: bash
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: runtime-packages
+          path: artifacts/packages/Typstium.Runtime.*.nupkg
+          if-no-files-found: error
+          retention-days: 7
+
+  runtime-e2e:
+    name: Runtime end to end / ${{ matrix.os }}
+    needs: pack
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_NOLOGO: 'true'
+      TYPSTIUM_REQUIRE_RUNTIME_PACKAGES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: runtime-packages
+          path: artifacts/packages
+      - if: runner.os == 'Windows'
+        run: ./build.ps1 --target=RuntimeEndToEndTests
+        shell: pwsh
+      - if: runner.os != 'Windows'
+        run: ./build.sh --target=RuntimeEndToEndTests
+        shell: bash
+
+  # Windows on Arm runners are free for public repositories only (spec runtime-packages §10).
+  runtime-e2e-windows-arm:
+    name: Runtime end to end / windows-11-arm
+    if: github.event.repository.private == false
+    needs: pack
+    runs-on: windows-11-arm
+    env:
+      DOTNET_NOLOGO: 'true'
+      TYPSTIUM_REQUIRE_RUNTIME_PACKAGES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: runtime-packages
+          path: artifacts/packages
+      - run: ./build.ps1 --target=RuntimeEndToEndTests
+        shell: pwsh

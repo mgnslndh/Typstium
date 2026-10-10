@@ -68,6 +68,7 @@ public class DirectoryTests
     }
 
     [Test]
+    [Property(Scenario.Key, "RS31")]
     public async Task A_directory_with_backslashes_is_written_with_forward_slashes()
     {
         var (project, run) = await BuildAsync(@"tools\typst\{rid}\", "win-x64");

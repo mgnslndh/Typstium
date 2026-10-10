@@ -1,6 +1,6 @@
 # Runtime packages: Typst binaries through NuGet
 
-**Status:** Proposed · Oct 10, 2026 · Magnus Lindhe
+**Status:** Implemented · Oct 10, 2026 · Magnus Lindhe
 **Part of:** [Typstium design overview](../design.md)
 **Builds on:** [Foundation](foundation.md) (`BundledRuntimeLocator`), [Cake.Sdk build](cake-sdk-build.md)
 
@@ -137,6 +137,8 @@ In order:
    - Older distro RIDs map by OS family and architecture (`ubuntu.22.04-x64` → `linux-x64`,
      `win10-x64` → `win-x64`, `osx.13-arm64` → `osx-arm64`).
    - `win-x86` → every referenced `win-*` runtime (D12).
+     The .NET SDK infers `RuntimeIdentifier` `win-x86` for .NET Framework executables, so they select every referenced
+     `win-*` runtime by this rule (RS40).
    - No referenced runtime matches → `TYPSTIUM0001`, nothing is copied.
 3. Neither set → every referenced runtime.
 
@@ -413,8 +415,10 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 - Emulation on real hardware (RS41): `macos-latest` (arm64) with only `osx-x64` referenced, and
   `windows-11-arm` with only `win-x64`. These runs also record what `RuntimeInformation.OSArchitecture`
   reports under emulation (risk R1).
+- `windows-11-arm` runs only while the repository is public (GitHub offers those hosted runners free for public
+  repositories only); until then the Windows half of RS41 is in the manual checklist.
 
-**Manual checklist** (`docs/runtime-packages-checklist.md`, each entry with a date and result once run)
+**[Manual checklist](../runtime-packages-checklist.md)** (`docs/runtime-packages-checklist.md`, each entry with a date and result once run)
 
 - RS12, RS14 (App Service, Functions), RS15, RS16, RS17 (WebDeploy), RS36.
 
