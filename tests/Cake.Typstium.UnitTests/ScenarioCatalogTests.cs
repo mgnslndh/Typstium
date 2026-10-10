@@ -25,6 +25,6 @@ public partial class ScenarioCatalogTests
             : [];
 
         await Assert.That(needed.Except(tagged).Order(StringComparer.Ordinal).ToArray()).IsEmpty();
-        await Assert.That(needed.Count).IsEqualTo(6);
+        await Assert.That(needed.Count).IsEqualTo(7);
     }
 }

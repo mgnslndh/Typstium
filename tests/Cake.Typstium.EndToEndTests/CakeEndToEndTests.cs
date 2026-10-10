@@ -10,8 +10,6 @@ public partial class CakeEndToEndTests
     private const string Document = "= Hello from Cake\n\nCompiled by Cake.Typstium.\n";
     private const string BrokenDocument = "= Broken\n\n#let x = (1, 2\n";
 
-    private static readonly SemaphoreSlim ToolInstall = new(1, 1);
-
     private static string OtherRid => CakeSession.HostRid.StartsWith("win", StringComparison.Ordinal) ? "linux-x64" : "win-x64";
 
     /// <summary>A folder with nuget.config, global.json, doc.typ and a local Cake.Tool 6.3.0.</summary>
@@ -21,18 +19,9 @@ public partial class CakeEndToEndTests
         folder.CreateFile("nuget.config", session.NuGetConfig);
         folder.CreateFile("doc.typ", document);
         File.Copy(Path.Combine(RepositoryPaths.Root, "global.json"), folder.Combine("global.json"));
-        Expect(await DotNet.RunAsync(folder.Path, session.Environment, "new", "tool-manifest"), "dotnet new tool-manifest");
-        // Parallel installs into the session's fresh NuGet cache collide on the same .nupkg file.
-        await ToolInstall.WaitAsync();
-        try
-        {
-            Expect(await DotNet.RunAsync(folder.Path, session.Environment, "tool", "install", "Cake.Tool", "--version", "6.3.0"), "dotnet tool install Cake.Tool");
-        }
-        finally
-        {
-            ToolInstall.Release();
-        }
-
+        var environment = session.EnvironmentFor(folder);
+        Expect(await DotNet.RunAsync(folder.Path, environment, "new", "tool-manifest"), "dotnet new tool-manifest");
+        Expect(await DotNet.RunAsync(folder.Path, environment, "tool", "install", "Cake.Tool", "--version", "6.3.0"), "dotnet tool install Cake.Tool");
         return folder;
     }
 
@@ -65,7 +54,7 @@ public partial class CakeEndToEndTests
 
     private static async Task<DotNetRun> RunCakeAsync(Session session, TemporaryDirectory folder, IReadOnlyDictionary<string, string?>? extra = null)
     {
-        var environment = new Dictionary<string, string?>(session.Environment);
+        var environment = new Dictionary<string, string?>(session.EnvironmentFor(folder));
         foreach (var (name, value) in extra ?? new Dictionary<string, string?>())
         {
             environment[name] = value;
@@ -159,7 +148,7 @@ public partial class CakeEndToEndTests
             RunTarget("Default");
             """);
 
-        var run = Plain(await DotNet.RunAsync(folder.Path, session.Environment, "run", "--project", "Build.csproj"));
+        var run = Plain(await DotNet.RunAsync(folder.Path, session.EnvironmentFor(folder), "run", "--project", "Build.csproj"));
 
         Expect(run, "dotnet run (Cake.Sdk)");
         await Assert.That(run.Output).Contains("found-by=BundledRuntime");
@@ -194,5 +183,22 @@ public partial class CakeEndToEndTests
         await Assert.That(run.ExitCode).IsNotEqualTo(0);
         await Assert.That(run.Output).Contains("doc.typ(");
         await Assert.That(run.Output).Contains("error TYPST");
+    }
+
+    [Test]
+    [Property(Scenario.Key, "CK7")]
+    public async Task A_pinned_rollback_wins_over_a_higher_version_left_in_the_tools_folder()
+    {
+        var session = await CakeSession.GetAsync();
+        using var folder = await ScriptFolderAsync(session);
+        folder.CreateFile("build.cake", Script(session, loadDependencies: true, CakeSession.HostRid));
+        var executable = OperatingSystem.IsWindows() ? "typst.exe" : "typst";
+        folder.CreateFile($"tools/Typstium.Runtime.{CakeSession.HostRid}.99.0.0/tools/typst/{CakeSession.HostRid}/{executable}", "stale");
+
+        var run = await RunCakeAsync(session, folder);
+
+        Expect(run, "dotnet cake");
+        await Assert.That(run.Output).Contains($"Typstium.Runtime.{CakeSession.HostRid}.{session.RuntimeVersion}{Path.DirectorySeparatorChar}");
+        await Assert.That(run.Output).Contains($"{session.RuntimeVersion}, 99.0.0; using {session.RuntimeVersion}, registered by #tool");
     }
 }

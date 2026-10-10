@@ -261,6 +261,7 @@ Each scenario has a stable ID. End-to-end tests carry `[Property("Scenario", "CK
 | CK4 | Cake.Sdk project referencing `Cake.Typstium` and `Typstium.Runtime.<rid>`, no `#tool` | PDF produced; found by the bundled runtime | End to end |
 | CK5 | `TYPST_PATH` set and a `#tool` installed | `TYPST_PATH` wins | End to end; resolver unit tests |
 | CK6 | A `.typ` with an error | Cake exits non-zero; the log has the canonical `file(line,col): error TYPST…` line | End to end; integration |
+| CK7 | `#tool` pins an older version than one already in `tools/` (a rollback) | The pinned version runs, and a warning names both versions and says `#tool` chose (D20) | End to end; locator unit tests |
 
 ## 8. Testing
 

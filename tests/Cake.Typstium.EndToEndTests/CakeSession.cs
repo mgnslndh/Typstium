@@ -82,6 +82,17 @@ internal static class CakeSession
 
 internal sealed record Session(string Feed, string Version, string RuntimePackages, string RuntimeVersion, IReadOnlyDictionary<string, string?> Environment)
 {
+    /// <summary>
+    /// The session's environment with a NuGet cache of the scenario's own: scenarios run in parallel, and restores or
+    /// tool installs sharing one fresh cache collide on the same package files. Kept outside the scenario's folder so a
+    /// project there never globs it.
+    /// </summary>
+    public IReadOnlyDictionary<string, string?> EnvironmentFor(TemporaryDirectory folder) =>
+        new Dictionary<string, string?>(Environment)
+        {
+            ["NUGET_PACKAGES"] = System.IO.Path.Combine(PackageFeed.ArtifactsRoot, $"cake-cache-{Version}-{System.IO.Path.GetFileName(folder.Path)}"),
+        };
+
     /// <summary>A nuget.config with the session feed, the runtime packages and nuget.org (for Cake.Tool and Cake.Sdk).</summary>
     public string NuGetConfig => $"""
         <?xml version="1.0" encoding="utf-8"?>
