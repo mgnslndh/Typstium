@@ -10,6 +10,8 @@ public partial class CakeEndToEndTests
     private const string Document = "= Hello from Cake\n\nCompiled by Cake.Typstium.\n";
     private const string BrokenDocument = "= Broken\n\n#let x = (1, 2\n";
 
+    private static readonly SemaphoreSlim ToolInstall = new(1, 1);
+
     private static string OtherRid => CakeSession.HostRid.StartsWith("win", StringComparison.Ordinal) ? "linux-x64" : "win-x64";
 
     /// <summary>A folder with nuget.config, global.json, doc.typ and a local Cake.Tool 6.3.0.</summary>
@@ -21,7 +23,18 @@ public partial class CakeEndToEndTests
         File.Copy(Path.Combine(RepositoryPaths.Root, "global.json"), folder.Combine("global.json"));
         var environment = session.EnvironmentFor(folder);
         Expect(await DotNet.RunAsync(folder.Path, environment, "new", "tool-manifest"), "dotnet new tool-manifest");
-        Expect(await DotNet.RunAsync(folder.Path, environment, "tool", "install", "Cake.Tool", "--version", "6.3.0"), "dotnet tool install Cake.Tool");
+        // dotnet tool install writes a per-user resolver cache (~/.dotnet/toolResolverCache) whatever NUGET_PACKAGES is,
+        // and on Windows two installs at once collide on its file.
+        await ToolInstall.WaitAsync();
+        try
+        {
+            Expect(await DotNet.RunAsync(folder.Path, environment, "tool", "install", "Cake.Tool", "--version", "6.3.0"), "dotnet tool install Cake.Tool");
+        }
+        finally
+        {
+            ToolInstall.Release();
+        }
+
         return folder;
     }
 
