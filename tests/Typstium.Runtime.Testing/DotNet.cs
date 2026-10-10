@@ -49,8 +49,29 @@ public static class DotNet
         process.ErrorDataReceived += (_, line) => { if (line.Data is not null) { lock (output) { output.AppendLine(line.Data); } } };
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-        await process.WaitForExitAsync(timeout.Token);
-        return new DotNetRun(process.ExitCode, output.ToString());
+        var limit = TimeSpan.FromMinutes(10);
+        using var timeout = new CancellationTokenSource(limit);
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // A hung build would otherwise keep running, holding the temp folder, after the test fails.
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+            string captured;
+            lock (output)
+            {
+                captured = output.ToString();
+            }
+
+            throw new TimeoutException($"{tool} {string.Join(' ', arguments)} didn't finish within {limit.TotalMinutes} minutes. Output so far:\n{captured}");
+        }
+
+        lock (output)
+        {
+            return new DotNetRun(process.ExitCode, output.ToString());
+        }
     }
 }

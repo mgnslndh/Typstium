@@ -30,9 +30,17 @@ public class PlatformTests
 
     [Test]
     [Property(Scenario.Key, "RS24")]
-    public async Task Platforms_that_cant_start_processes_copy_nothing_and_say_so()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Platforms_that_cant_start_processes_copy_nothing_and_say_so(bool explicitList)
     {
         using var project = await SampleProject.CreateAsync(runtimes: ["linux-x64"]);
+        if (explicitList)
+        {
+            // Not TYPSTIUM0004 as well: the listed runtime is referenced, it just can't run here.
+            project.Properties["TypstiumRuntimeIdentifiers"] = "linux-x64";
+        }
+
         // A plain console project with browser-wasm needs the wasm-tools workload (NETSDK1147), so this is a minimal Blazor WebAssembly app.
         project.Sdk = "Microsoft.NET.Sdk.BlazorWebAssembly";
         project.ExtraItems.Add("""<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.*" />""");
@@ -41,7 +49,7 @@ public class PlatformTests
         var run = await project.RunAsync("build", "-c", "Release", "-o", "out", "-v:n");
 
         await Assert.That(run.ExitCode).IsEqualTo(0).Because(run.Output);
-        await Assert.That(run.DiagnosticCodes).Contains("TYPSTIUM0006");
+        await Assert.That(run.DiagnosticCodes).IsEquivalentTo(new[] { "TYPSTIUM0006" });
         await Assert.That(project.TypstFiles("out")).IsEmpty();
     }
 

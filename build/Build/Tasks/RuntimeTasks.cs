@@ -121,8 +121,10 @@ public static partial class Program
         }
 
         StartProcess(executable, new ProcessSettings { Arguments = "--version", RedirectStandardOutput = true }, out var output);
+        // "typst 0.15.1 (abc1234)": compare the whole second token, so 0.15.10 doesn't pass for 0.15.1.
         var line = output.FirstOrDefault() ?? "";
-        if (!line.StartsWith($"typst {version}", StringComparison.Ordinal))
+        var tokens = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (tokens is not ["typst", var printed, ..] || printed != version)
         {
             throw new CakeException($"{executable} --version printed '{line}', but {TypstRuntimes.LockFile} pins {version}.");
         }

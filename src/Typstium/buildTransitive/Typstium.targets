@@ -60,7 +60,8 @@
       <_TypstiumSelected Include="@(_TypstiumKnown)" Exclude="@(_TypstiumNotRequested)" />
       <_TypstiumUnavailable Include="@(_TypstiumRequested)" Exclude="@(_TypstiumKnown)" />
     </ItemGroup>
-    <Warning Code="TYPSTIUM0004" Condition="'@(_TypstiumUnavailable)' != ''"
+    <!-- On a platform that can't run Typst, TypstiumRuntime was emptied above, so every listed RID would look unavailable. -->
+    <Warning Code="TYPSTIUM0004" Condition="'@(_TypstiumUnavailable)' != '' and '$(_TypstiumUnsupportedPlatform)' != 'true'"
              Text="TypstiumRuntimeIdentifiers lists '%(_TypstiumUnavailable.Identity)', but no referenced Typstium.Runtime package provides it. Reference Typstium.Runtime.%(_TypstiumUnavailable.Identity), or remove it from the list." />
 
     <!-- 2. A RID: its shipped runtime; a 32-bit Windows app may run on x64 or Arm64 Windows, so it gets both (D12). -->

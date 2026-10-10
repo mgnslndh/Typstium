@@ -99,11 +99,12 @@ No content. Depends on all seven RID packages at exactly its own version (`[0.15
 ### `Typstium` (core) additions
 
 ```
-build/Typstium.props, build/Typstium.targets                    for packages.config
-buildTransitive/Typstium.props, buildTransitive/Typstium.targets
+build/Typstium.targets              for packages.config
+buildTransitive/Typstium.targets
 ```
 
-The `build/` files import the `buildTransitive/` ones, so both entry points run the same logic.
+There are no props files. `build/Typstium.targets` imports the `buildTransitive/` one (once, when both are
+imported), so both entry points run the same logic.
 
 ## 4. MSBuild properties
 
@@ -124,7 +125,7 @@ the manifest, section 7).
 |---|---|---|
 | `TYPSTIUM0001` | Warning | A RID is set, but no referenced runtime matches it |
 | `TYPSTIUM0002` | Error | `TypstiumRuntimeDirectory` has no `{rid}` and more than one RID is selected |
-| `TYPSTIUM0003` | Error | `TypstiumRuntimeDirectory` is absolute or contains `..` |
+| `TYPSTIUM0003` | Error | `TypstiumRuntimeDirectory` is empty, absolute, or contains `..`, `:` or a quote |
 | `TYPSTIUM0004` | Warning | `TypstiumRuntimeIdentifiers` names a RID that no referenced package provides |
 | `TYPSTIUM0005` | Warning | A `TypstiumRuntime` item has a `ContractVersion` this core doesn't know; the item is ignored |
 | `TYPSTIUM0006` | Message | The target platform can't start processes (android, ios, maccatalyst, tvos, browser); nothing is copied |

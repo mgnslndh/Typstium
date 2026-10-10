@@ -36,6 +36,7 @@ public class ContainerTests
         var run = await DotNet.RunToolAsync("docker", app.Directory, new Dictionary<string, string?>(), "run", "--rm", "typstium-e2e:test");
 
         await Assert.That(load.ExitCode).IsEqualTo(0).Because(load.Output);
+        await Assert.That(run.ExitCode).IsEqualTo(0).Because(run.Output);
         await Assert.That(run.Output).Contains("found-by=BundledRuntime");
         await Assert.That(run.Output).Contains("pdf=True");
     }
