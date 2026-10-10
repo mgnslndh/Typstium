@@ -199,15 +199,36 @@
     </ItemGroup>
   </Target>
 
-  <!-- NuGet drops the execute bit when it extracts a package; Copy keeps the source's mode (docs/specs/runtime-packages.md §6). -->
+  <!--
+    NuGet drops the execute bit when it extracts a package; Copy keeps the source's mode (docs/specs/runtime-packages.md §6).
+    The mode is set by a task, not by Exec: Exec runs a shell, which would expand $ and backticks in the paths.
+  -->
+  <UsingTask TaskName="_TypstiumSetExecutable" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll"
+             Condition="'$(OS)' != 'Windows_NT'">
+    <ParameterGroup>
+      <Folder ParameterType="System.String" Required="true" />
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        const System.IO.UnixFileMode execute = System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute | System.IO.UnixFileMode.OtherExecute;
+        foreach (var file in Files)
+        {
+            var path = System.IO.Path.Combine(Folder, file.ItemSpec);
+            System.IO.File.SetUnixFileMode(path, System.IO.File.GetUnixFileMode(path) | execute);
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <Target Name="_TypstiumChmodOutput" AfterTargets="CopyFilesToOutputDirectory"
           Condition="'$(OS)' != 'Windows_NT' and '@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnBuild)' == 'true'">
-    <Exec Command="chmod +x &quot;$(OutDir)%(_TypstiumSelected.TypstiumTargetPath)&quot;" />
+    <_TypstiumSetExecutable Folder="$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(OutDir)'))" Files="@(_TypstiumSelected->'%(TypstiumTargetPath)')" />
   </Target>
 
   <Target Name="_TypstiumChmodPublish" AfterTargets="CopyFilesToPublishDirectory"
           Condition="'$(OS)' != 'Windows_NT' and '@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
-    <Exec Command="chmod +x &quot;$(PublishDir)%(_TypstiumSelected.TypstiumTargetPath)&quot;" />
+    <_TypstiumSetExecutable Folder="$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(PublishDir)'))" Files="@(_TypstiumSelected->'%(TypstiumTargetPath)')" />
   </Target>
 
   <!-- Classic ASP.NET web projects publish through the Web Publishing Pipeline, which only packs files it knows about. -->

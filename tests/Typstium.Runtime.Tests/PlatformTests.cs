@@ -28,6 +28,33 @@ public class PlatformTests
         }
     }
 
+    // A runtime directory and an output folder with characters a shell would expand: the execute bit lands on the
+    // literal path, and nothing is expanded or run.
+    [Test]
+    [Property(Scenario.Key, "RS35")]
+    public async Task The_execute_bit_is_set_on_literal_paths_with_shell_characters()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Skip.Test("Unix file modes don't exist on Windows.");
+            return;
+        }
+
+        using var project = await SampleProject.CreateAsync(runtimes: ["linux-x64"]);
+        project.Properties["TypstiumRuntimeDirectory"] = "assets/$HOME/`id`/{rid}";
+        project.Write();
+        var build = await project.RunAsync("build", "-c", "Release", "-o", "out$HOME");
+        var publish = await project.RunAsync("publish", "-c", "Release", "-o", "pub`id`");
+
+        await Assert.That(build.ExitCode).IsEqualTo(0).Because(build.Output);
+        await Assert.That(publish.ExitCode).IsEqualTo(0).Because(publish.Output);
+        foreach (var folder in new[] { "out$HOME", "pub`id`" })
+        {
+            var mode = File.GetUnixFileMode(Path.Combine(project.Directory, folder, "assets", "$HOME", "`id`", "linux-x64", "typst"));
+            await Assert.That(mode.HasFlag(UnixFileMode.UserExecute)).IsTrue();
+        }
+    }
+
     [Test]
     [Property(Scenario.Key, "RS24")]
     [Arguments(false)]

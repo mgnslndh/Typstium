@@ -192,8 +192,10 @@ publish (`NETSDK1152`):
 
 Paths use `/`, are relative to the manifest's folder, and name the executable itself.
 
-**Execute bit.** On non-Windows build hosts, `chmod +x` runs on each copied binary after
-`CopyFilesToOutputDirectory` and after the publish copy. A build on Windows can't set it; the locator's
+**Execute bit.** On non-Windows build hosts, a small inline task sets the execute bits on each copied binary after
+`CopyFilesToOutputDirectory` and after the publish copy. It calls `File.SetUnixFileMode` rather than running `chmod`
+through `Exec`, because `Exec` runs a shell that would expand `$` and backticks in output folders and runtime
+directories. A build on Windows can't set it; the locator's
 runtime `EnsureExecutable` remains the fallback (RS12).
 
 **Skipped automatically**
