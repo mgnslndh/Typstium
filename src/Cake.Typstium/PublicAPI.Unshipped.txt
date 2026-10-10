@@ -1,1 +1,52 @@
 #nullable enable
+Cake.Typstium.TypstCompileSettings
+Cake.Typstium.TypstCompileSettings.AllowNetwork.get -> bool
+Cake.Typstium.TypstCompileSettings.AllowNetwork.set -> void
+Cake.Typstium.TypstCompileSettings.ArgumentCustomization.get -> System.Func<Typstium.TypstArguments!, Typstium.TypstArguments!>?
+Cake.Typstium.TypstCompileSettings.ArgumentCustomization.set -> void
+Cake.Typstium.TypstCompileSettings.CreationTimestamp.get -> System.DateTimeOffset?
+Cake.Typstium.TypstCompileSettings.CreationTimestamp.set -> void
+Cake.Typstium.TypstCompileSettings.ExtraArguments.get -> Typstium.TypstArguments!
+Cake.Typstium.TypstCompileSettings.ExtraArguments.set -> void
+Cake.Typstium.TypstCompileSettings.FontPaths.get -> System.Collections.Generic.IList<Cake.Core.IO.DirectoryPath!>!
+Cake.Typstium.TypstCompileSettings.Format.get -> Typstium.TypstOutputFormat?
+Cake.Typstium.TypstCompileSettings.Format.set -> void
+Cake.Typstium.TypstCompileSettings.IncludeSystemFonts.get -> bool
+Cake.Typstium.TypstCompileSettings.IncludeSystemFonts.set -> void
+Cake.Typstium.TypstCompileSettings.Inputs.get -> System.Collections.Generic.IDictionary<string!, string!>!
+Cake.Typstium.TypstCompileSettings.PackageCachePath.get -> Cake.Core.IO.DirectoryPath?
+Cake.Typstium.TypstCompileSettings.PackageCachePath.set -> void
+Cake.Typstium.TypstCompileSettings.PackagePath.get -> Cake.Core.IO.DirectoryPath?
+Cake.Typstium.TypstCompileSettings.PackagePath.set -> void
+Cake.Typstium.TypstCompileSettings.Pages.get -> Typstium.TypstPageSelection?
+Cake.Typstium.TypstCompileSettings.Pages.set -> void
+Cake.Typstium.TypstCompileSettings.PdfStandards.get -> System.Collections.Generic.IList<Typstium.PdfStandard!>!
+Cake.Typstium.TypstCompileSettings.Ppi.get -> int?
+Cake.Typstium.TypstCompileSettings.Ppi.set -> void
+Cake.Typstium.TypstCompileSettings.Root.get -> Cake.Core.IO.DirectoryPath?
+Cake.Typstium.TypstCompileSettings.Root.set -> void
+Cake.Typstium.TypstCompileSettings.Timeout.get -> System.TimeSpan?
+Cake.Typstium.TypstCompileSettings.Timeout.set -> void
+Cake.Typstium.TypstCompileSettings.ToolPath.get -> Cake.Core.IO.FilePath?
+Cake.Typstium.TypstCompileSettings.ToolPath.set -> void
+Cake.Typstium.TypstCompileSettings.TreatWarningsAsErrors.get -> bool
+Cake.Typstium.TypstCompileSettings.TreatWarningsAsErrors.set -> void
+Cake.Typstium.TypstCompileSettings.TypstCompileSettings() -> void
+Cake.Typstium.TypstCompileSettingsExtensions
+static Cake.Typstium.TypstCompileSettingsExtensions.WithArgumentCustomization(this Cake.Typstium.TypstCompileSettings! settings, System.Func<Typstium.TypstArguments!, Typstium.TypstArguments!>! customization) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithCreationTimestamp(this Cake.Typstium.TypstCompileSettings! settings, System.DateTimeOffset timestamp) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithExtraArguments(this Cake.Typstium.TypstCompileSettings! settings, Typstium.TypstArguments! arguments) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithFontPath(this Cake.Typstium.TypstCompileSettings! settings, Cake.Core.IO.DirectoryPath! fontPath) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithFormat(this Cake.Typstium.TypstCompileSettings! settings, Typstium.TypstOutputFormat format) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithInput(this Cake.Typstium.TypstCompileSettings! settings, string! key, string! value) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithNetwork(this Cake.Typstium.TypstCompileSettings! settings) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithPackageCachePath(this Cake.Typstium.TypstCompileSettings! settings, Cake.Core.IO.DirectoryPath! packageCachePath) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithPackagePath(this Cake.Typstium.TypstCompileSettings! settings, Cake.Core.IO.DirectoryPath! packagePath) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithPages(this Cake.Typstium.TypstCompileSettings! settings, Typstium.TypstPageSelection! pages) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithPdfStandard(this Cake.Typstium.TypstCompileSettings! settings, Typstium.PdfStandard! standard) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithPpi(this Cake.Typstium.TypstCompileSettings! settings, int ppi) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithRoot(this Cake.Typstium.TypstCompileSettings! settings, Cake.Core.IO.DirectoryPath! root) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithSystemFonts(this Cake.Typstium.TypstCompileSettings! settings) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithTimeout(this Cake.Typstium.TypstCompileSettings! settings, System.TimeSpan timeout) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithToolPath(this Cake.Typstium.TypstCompileSettings! settings, Cake.Core.IO.FilePath! toolPath) -> Cake.Typstium.TypstCompileSettings!
+static Cake.Typstium.TypstCompileSettingsExtensions.WithWarningsAsErrors(this Cake.Typstium.TypstCompileSettings! settings) -> Cake.Typstium.TypstCompileSettings!
