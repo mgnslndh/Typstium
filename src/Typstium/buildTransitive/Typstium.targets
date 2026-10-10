@@ -12,8 +12,23 @@
   </PropertyGroup>
 
   <!-- BeforeTargets, not AssignTargetPathsDependsOn: this file may be imported before Microsoft.Common sets that property. -->
-  <Target Name="_TypstiumAddRuntimeFiles" BeforeTargets="AssignTargetPaths"
+  <!-- §6. Platforms that can't start a process get no binary. A target's Condition is evaluated before its dependencies
+       run, so _TypstiumAddRuntimeFiles empties TypstiumRuntime itself and every later target finds nothing selected. -->
+  <Target Name="_TypstiumCheckPlatform">
+    <PropertyGroup>
+      <_TypstiumPlatform>$(TargetPlatformIdentifier.ToLowerInvariant())</_TypstiumPlatform>
+      <_TypstiumUnsupportedPlatform Condition="'$(_TypstiumPlatform)' == 'android' or '$(_TypstiumPlatform)' == 'ios' or '$(_TypstiumPlatform)' == 'maccatalyst' or '$(_TypstiumPlatform)' == 'tvos' or '$(_TypstiumPlatform)' == 'browser' or $([System.Text.RegularExpressions.Regex]::IsMatch('$(RuntimeIdentifier.ToLowerInvariant())', '^(browser|wasi)-'))">true</_TypstiumUnsupportedPlatform>
+    </PropertyGroup>
+    <Message Importance="normal" Condition="'$(_TypstiumUnsupportedPlatform)' == 'true' and '@(TypstiumRuntime)' != ''"
+             Text="TYPSTIUM0006: Typst can't run as a process on this platform ($(TargetFramework) $(RuntimeIdentifier)), so no Typst binary is copied." />
+  </Target>
+
+  <Target Name="_TypstiumAddRuntimeFiles" BeforeTargets="AssignTargetPaths" DependsOnTargets="_TypstiumCheckPlatform"
           Condition="'$(TypstiumCopyRuntime)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+
+    <ItemGroup Condition="'$(_TypstiumUnsupportedPlatform)' == 'true'">
+      <TypstiumRuntime Remove="@(TypstiumRuntime)" />
+    </ItemGroup>
 
     <!-- build/ and buildTransitive/ of one package can both be imported; keep one item per RID. -->
     <RemoveDuplicates Inputs="@(TypstiumRuntime)">
@@ -107,5 +122,29 @@
   <Target Name="_TypstiumWritePublishManifest" AfterTargets="CopyFilesToPublishDirectory"
           Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
     <WriteLinesToFile File="$(PublishDir)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <!-- NuGet drops the execute bit when it extracts a package; Copy keeps the source's mode (docs/specs/runtime-packages.md §6). -->
+  <Target Name="_TypstiumChmodOutput" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(OS)' != 'Windows_NT' and '@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnBuild)' == 'true'">
+    <Exec Command="chmod +x &quot;$(OutDir)%(_TypstiumSelected.TypstiumTargetPath)&quot;" />
+  </Target>
+
+  <Target Name="_TypstiumChmodPublish" AfterTargets="CopyFilesToPublishDirectory"
+          Condition="'$(OS)' != 'Windows_NT' and '@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
+    <Exec Command="chmod +x &quot;$(PublishDir)%(_TypstiumSelected.TypstiumTargetPath)&quot;" />
+  </Target>
+
+  <!-- Classic ASP.NET web projects publish through the Web Publishing Pipeline, which only packs files it knows about. -->
+  <Target Name="_TypstiumAddWebDeployFiles" BeforeTargets="CopyAllFilesToSingleFolderForPackage;CopyAllFilesToSingleFolderForMsdeploy"
+          Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
+    <ItemGroup>
+      <FilesForPackagingFromProject Include="%(_TypstiumSelected.Executable)">
+        <DestinationRelativePath>bin\%(_TypstiumSelected.TypstiumTargetPath)</DestinationRelativePath>
+      </FilesForPackagingFromProject>
+      <FilesForPackagingFromProject Include="$(OutDir)typstium.runtime.json" Condition="Exists('$(OutDir)typstium.runtime.json')">
+        <DestinationRelativePath>bin\typstium.runtime.json</DestinationRelativePath>
+      </FilesForPackagingFromProject>
+    </ItemGroup>
   </Target>
 </Project>

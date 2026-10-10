@@ -77,7 +77,7 @@ public sealed class SampleProject : IDisposable
             {references}{string.Concat(ExtraItems.Select(item => "    " + item + "\n"))}  </ItemGroup>
             </Project>
             """);
-        File.WriteAllText(Path.Combine(Directory, "Program.cs"), OutputType == "Exe" ? "System.Console.WriteLine(\"hello\");\n" : "public static class Library { }\n");
+        File.WriteAllText(Path.Combine(Directory, "Program.cs"), OutputType is "Exe" or "WinExe" ? "System.Console.WriteLine(\"hello\");\n" : "public static class Library { }\n");
         File.WriteAllText(Path.Combine(Directory, "nuget.config"), $"""
             <?xml version="1.0" encoding="utf-8"?>
             <configuration>
