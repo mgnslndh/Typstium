@@ -16,6 +16,8 @@ manual install, and the compiler should find it without configuration. This spec
 - Cake tasks that pin, download, verify and pack the binaries.
 - A catalog of the scenarios the packages must handle, used for documentation and tests (section 9).
 
+The user guide is [Shipping Typst with your app](../runtime-packages.md).
+
 **Goals**
 
 - `dotnet add package Typstium.Runtime.linux-x64` is all a typical app needs.

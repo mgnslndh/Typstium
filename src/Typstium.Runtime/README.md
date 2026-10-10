@@ -7,3 +7,6 @@ included next to the binary.
 
 Reference it together with the `Typstium` package. Typstium's build targets copy the binary next to your app, and
 Typstium finds it there at runtime. Use `Typstium.Runtime.All` to reference every platform at once.
+
+Which packages to reference, the MSBuild properties, containers, single-file, .NET Framework and installers:
+[Shipping Typst with your app](https://github.com/mgnslndh/Typstium/blob/main/docs/runtime-packages.md).
