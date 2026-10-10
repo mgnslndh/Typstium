@@ -261,22 +261,22 @@ Not in v1: version or SHA256 checks from the manifest. `version` leaves room for
 
 ```json
 {
-  "typst": "0.15.1",
-  "runtimes": {
-    "win-x64":     { "asset": "typst-x86_64-pc-windows-msvc.zip",          "sha256": "…" },
-    "win-arm64":   { "asset": "typst-aarch64-pc-windows-msvc.zip",         "sha256": "…" },
-    "osx-x64":     { "asset": "typst-x86_64-apple-darwin.tar.xz",          "sha256": "…" },
-    "osx-arm64":   { "asset": "typst-aarch64-apple-darwin.tar.xz",         "sha256": "…" },
-    "linux-x64":   { "asset": "typst-x86_64-unknown-linux-musl.tar.xz",    "sha256": "…" },
-    "linux-arm64": { "asset": "typst-aarch64-unknown-linux-musl.tar.xz",   "sha256": "…" },
-    "linux-arm":   { "asset": "typst-armv7-unknown-linux-musleabi.tar.xz", "sha256": "…" }
+  "version": "0.15.1",
+  "assets": {
+    "win-x64":     { "name": "typst-x86_64-pc-windows-msvc.zip",          "sha256": "…" },
+    "win-arm64":   { "name": "typst-aarch64-pc-windows-msvc.zip",         "sha256": "…" },
+    "osx-x64":     { "name": "typst-x86_64-apple-darwin.tar.xz",          "sha256": "…" },
+    "osx-arm64":   { "name": "typst-aarch64-apple-darwin.tar.xz",         "sha256": "…" },
+    "linux-x64":   { "name": "typst-x86_64-unknown-linux-musl.tar.xz",    "sha256": "…" },
+    "linux-arm64": { "name": "typst-aarch64-unknown-linux-musl.tar.xz",   "sha256": "…" },
+    "linux-arm":   { "name": "typst-armv7-unknown-linux-musleabi.tar.xz", "sha256": "…" }
   }
 }
 ```
 
-The download URL is derived, `https://github.com/typst/typst/releases/download/v{typst}/{asset}`, so it
+The download URL is derived, `https://github.com/typst/typst/releases/download/v{version}/{name}`, so it
 can't drift from the version. The RID → Rust target mapping lives in code; the lock file records what was
-reviewed.
+reviewed. The keys are generic so the lock model can live in the Typstium-agnostic build library.
 
 **Tasks** (Typstium specifics in `build/Build`, reusable parts in `Build.Cake.Extensions`):
 
@@ -286,7 +286,7 @@ reviewed.
 - `DownloadTypstRuntimes`: downloads each asset (D18) into
   `artifacts/cache/typst/<version>/`, reusing files whose digest already matches; verifies SHA256 against the
   lock file (mismatch → build fails); extracts the single `typst[.exe]` and Typst's `LICENSE`. Then runs the
-  host RID's binary with `--version` and compares it with the lock file's `typst`.
+  host RID's binary with `--version` and compares it with the lock file's `version`.
 - `PackTypstRuntimes` (depends on `DownloadTypstRuntimes`): packs the template project
   `src/Typstium.Runtime/Typstium.Runtime.csproj` (`IncludeBuildOutput=false`, no code) once per RID with
   `-p:TypstiumRuntimeIdentifier=<rid>`, generating the props from section 3, then packs
