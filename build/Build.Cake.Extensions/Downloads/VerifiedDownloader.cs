@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 
 namespace Build.Cake.Extensions.Downloads;
@@ -8,23 +9,29 @@ public sealed class VerifiedDownloader : IDisposable
 {
     private const int MaxAttempts = 3;
     private const int MaxRedirects = 5;
-    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(30);
 
     private readonly HttpClient _client;
     private readonly Func<TimeSpan, Task> _delay;
+    private readonly TimeSpan _stallTimeout;
 
     // The handler must not follow redirects: they are followed here, so that each hop can be checked for https.
-    public VerifiedDownloader(HttpMessageHandler handler, Func<TimeSpan, Task>? delay = null)
+    public VerifiedDownloader(HttpMessageHandler handler, Func<TimeSpan, Task>? delay = null, TimeSpan? stallTimeout = null)
     {
         _client = new HttpClient(handler, disposeHandler: false) { Timeout = Timeout.InfiniteTimeSpan };
         _delay = delay ?? (wait => Task.Delay(wait));
+        _stallTimeout = stallTimeout ?? TimeSpan.FromSeconds(30);
     }
 
     public static VerifiedDownloader CreateDefault() => new(new SocketsHttpHandler { AllowAutoRedirect = false });
 
     public async Task DownloadAsync(Uri url, string destination, string expectedSha256, CancellationToken cancellationToken = default)
     {
-        if (File.Exists(destination) && await HashFileAsync(destination, cancellationToken) == expectedSha256)
+        if (url.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidOperationException($"{url} isn't https.");
+        }
+
+        if (File.Exists(destination) && SameHash(await HashFileAsync(destination, cancellationToken), expectedSha256))
         {
             return;
         }
@@ -34,7 +41,7 @@ public sealed class VerifiedDownloader : IDisposable
         try
         {
             var actual = await DownloadWithRetriesAsync(url, partial, cancellationToken);
-            if (actual != expectedSha256)
+            if (!SameHash(actual, expectedSha256))
             {
                 throw new InvalidDataException($"{url} has SHA-256 {actual}, but {expectedSha256} is pinned. Find out why it changed before re-pinning.");
             }
@@ -48,6 +55,8 @@ public sealed class VerifiedDownloader : IDisposable
     }
 
     public void Dispose() => _client.Dispose();
+
+    private static bool SameHash(string actual, string expected) => string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
 
     private static async Task<string> HashFileAsync(string path, CancellationToken cancellationToken)
     {
@@ -73,7 +82,7 @@ public sealed class VerifiedDownloader : IDisposable
     private async Task<string> DownloadOnceAsync(Uri url, string path, CancellationToken cancellationToken)
     {
         using var stall = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        using var response = await SendFollowingRedirectsAsync(url, stall);
+        using var response = await SendFollowingRedirectsAsync(url, stall, cancellationToken);
         var status = (int)response.StatusCode;
         if (status is 408 or 429 or >= 500)
         {
@@ -87,11 +96,11 @@ public sealed class VerifiedDownloader : IDisposable
 
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         var buffer = new byte[81920];
-        await using var source = await response.Content.ReadAsStreamAsync(stall.Token);
+        await using var source = await OpenBodyAsync(url, response, stall, cancellationToken);
         await using var target = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
         while (true)
         {
-            stall.CancelAfter(StallTimeout);
+            stall.CancelAfter(_stallTimeout);
             int read;
             try
             {
@@ -99,7 +108,7 @@ public sealed class VerifiedDownloader : IDisposable
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                throw new TimeoutException($"{url}: no data for {StallTimeout.TotalSeconds} s.");
+                throw StalledException(url);
             }
 
             if (read == 0)
@@ -112,15 +121,36 @@ public sealed class VerifiedDownloader : IDisposable
         }
     }
 
-    private async Task<HttpResponseMessage> SendFollowingRedirectsAsync(Uri url, CancellationTokenSource stall)
+    private async Task<Stream> OpenBodyAsync(Uri url, HttpResponseMessage response, CancellationTokenSource stall, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await response.Content.ReadAsStreamAsync(stall.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw StalledException(url);
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendFollowingRedirectsAsync(Uri url, CancellationTokenSource stall, CancellationToken cancellationToken)
     {
         var current = url;
         for (var redirects = 0; ; redirects++)
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, current);
             request.Headers.UserAgent.ParseAdd("Typstium-build");
-            stall.CancelAfter(StallTimeout);
-            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, stall.Token);
+            stall.CancelAfter(_stallTimeout);
+            HttpResponseMessage response;
+            try
+            {
+                response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, stall.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw StalledException(current);
+            }
+
             if ((int)response.StatusCode is not (301 or 302 or 303 or 307 or 308))
             {
                 return response;
@@ -143,4 +173,7 @@ public sealed class VerifiedDownloader : IDisposable
             current = next;
         }
     }
+
+    private TimeoutException StalledException(Uri url) =>
+        new($"{url}: no data for {_stallTimeout.TotalSeconds.ToString(CultureInfo.InvariantCulture)} s.");
 }

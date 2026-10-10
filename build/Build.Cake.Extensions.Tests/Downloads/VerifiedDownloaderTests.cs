@@ -27,6 +27,22 @@ public class VerifiedDownloaderTests
         }
     }
 
+    // The first request never answers until its token is cancelled (a stall); the second one succeeds.
+    private sealed class StallOnceHandler : HttpMessageHandler
+    {
+        public int Requests { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (++Requests == 1)
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+
+            return Ok();
+        }
+    }
+
     private static HttpResponseMessage Ok() => new(HttpStatusCode.OK) { Content = new ByteArrayContent(Content) };
 
     private static VerifiedDownloader Downloader(StubHandler handler) => new(handler, _ => Task.CompletedTask);
@@ -69,14 +85,52 @@ public class VerifiedDownloaderTests
     }
 
     [Test]
-    public async Task Server_errors_are_retried()
+    [Arguments(HttpStatusCode.BadGateway)]
+    [Arguments(HttpStatusCode.TooManyRequests)]
+    public async Task Server_errors_are_retried(HttpStatusCode status)
     {
         using var temp = new TempFolder();
-        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway), _ => Ok());
+        var handler = new StubHandler(_ => new HttpResponseMessage(status), _ => Ok());
 
         await Downloader(handler).DownloadAsync(Url, temp.Combine("asset.zip"), Hash);
 
         await Assert.That(handler.Requests.Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task A_stalled_request_is_retried()
+    {
+        using var temp = new TempFolder();
+        var handler = new StallOnceHandler();
+        using var downloader = new VerifiedDownloader(handler, _ => Task.CompletedTask, TimeSpan.FromMilliseconds(200));
+
+        await downloader.DownloadAsync(Url, temp.Combine("asset.zip"), Hash);
+
+        await Assert.That(handler.Requests).IsEqualTo(2);
+        await Assert.That(File.ReadAllBytes(temp.Combine("asset.zip"))).IsEquivalentTo(Content);
+    }
+
+    [Test]
+    public async Task Plain_http_urls_are_refused_before_any_request()
+    {
+        using var temp = new TempFolder();
+        var handler = new StubHandler(_ => Ok());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Downloader(handler).DownloadAsync(new Uri("http://example.com/asset.zip"), temp.Combine("asset.zip"), Hash));
+
+        await Assert.That(handler.Requests).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_cached_file_matches_an_upper_case_pinned_hash()
+    {
+        using var temp = new TempFolder();
+        File.WriteAllBytes(temp.Combine("asset.zip"), Content);
+        var handler = new StubHandler(_ => throw new InvalidOperationException("no request expected"));
+
+        await Downloader(handler).DownloadAsync(Url, temp.Combine("asset.zip"), Hash.ToUpperInvariant());
+
+        await Assert.That(handler.Requests).IsEmpty();
     }
 
     [Test]
