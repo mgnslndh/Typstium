@@ -37,6 +37,26 @@ internal sealed class SystemLocatorEnvironment : ILocatorEnvironment
 
     public string? GetVariable(string name) => Environment.GetEnvironmentVariable(name);
 
+    public RuntimeManifestResult ReadRuntimeManifest(string directory)
+    {
+        var path = Path.Combine(directory, RuntimeManifest.FileName);
+        string json;
+        try
+        {
+            json = File.ReadAllText(path);
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return new RuntimeManifestResult.Missing(path);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return new RuntimeManifestResult.Invalid(path, "unreadable: " + exception.Message);
+        }
+
+        return RuntimeManifest.Parse(path, json, IsWindows);
+    }
+
     public bool FileExists(string path) => File.Exists(path);
 
     public IEnumerable<string> EnumerateDirectories(string path, string searchPattern)

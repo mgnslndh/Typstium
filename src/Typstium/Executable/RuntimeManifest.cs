@@ -3,7 +3,7 @@ using Typstium.Utilities;
 
 namespace Typstium.Executable;
 
-/// <summary>What <c>ILocatorEnvironment.ReadRuntimeManifest</c> found in a folder.</summary>
+/// <summary>What <see cref="ILocatorEnvironment.ReadRuntimeManifest"/> found in a folder.</summary>
 internal abstract record RuntimeManifestResult
 {
     private RuntimeManifestResult()
