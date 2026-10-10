@@ -210,12 +210,22 @@
       <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
     </ParameterGroup>
     <Task>
+      <!-- Inline tasks compile against netstandard, which lacks File.Get/SetUnixFileMode; MSBuild itself runs on .NET 8+,
+           where they exist, so they're found at run time. 0x49 is the execute bit for user, group and others (0o111). -->
       <Code Type="Fragment" Language="cs"><![CDATA[
-        const System.IO.UnixFileMode execute = System.IO.UnixFileMode.UserExecute | System.IO.UnixFileMode.GroupExecute | System.IO.UnixFileMode.OtherExecute;
+        var get = typeof(System.IO.File).GetMethod("GetUnixFileMode", new[] { typeof(string) });
+        var set = get == null ? null : typeof(System.IO.File).GetMethod("SetUnixFileMode", new[] { typeof(string), get.ReturnType });
+        if (set == null)
+        {
+            Log.LogError("Typstium can't set the execute bit: this MSBuild runs on a runtime without File.SetUnixFileMode (.NET 7 or later is needed). Run chmod +x on the copied Typst binaries yourself.");
+            return false;
+        }
+
         foreach (var file in Files)
         {
             var path = System.IO.Path.Combine(Folder, file.ItemSpec);
-            System.IO.File.SetUnixFileMode(path, System.IO.File.GetUnixFileMode(path) | execute);
+            var mode = System.Convert.ToInt32(get.Invoke(null, new object[] { path }));
+            set.Invoke(null, new object[] { path, System.Enum.ToObject(get.ReturnType, mode | 0x49) });
         }
       ]]></Code>
     </Task>
