@@ -147,17 +147,56 @@ public class CakeToolsLocatorTests
     }
 
     [Test]
-    public async Task A_registered_file_outside_the_tools_folder_is_no_hint()
+    public async Task A_registered_file_outside_a_runtime_package_is_no_hint()
     {
         using var tools = new TemporaryDirectory("cake-tools");
         Install(tools, "Typstium.Runtime.linux-x64.0.15.1", "linux-x64");
         var highest = Install(tools, "Typstium.Runtime.linux-x64.0.16.0", "linux-x64");
         using var elsewhere = new TemporaryDirectory("cake-path");
-        var onPath = elsewhere.CreateFile("Typstium.Runtime.linux-x64.0.15.1/tools/typst/linux-x64/" + Executable, "stub");
+        var onPath = elsewhere.CreateFile("bin/" + Executable, "stub");
 
         var result = await Locator(tools.Path, ["linux-x64"], registered: onPath).LocateAsync(CancellationToken.None);
 
         await Assert.That(result).IsEqualTo(TypstLocatorResult.Found(highest));
+    }
+
+    [Test]
+    public async Task A_registered_package_is_found_in_its_own_tools_folder_when_the_configured_one_differs()
+    {
+        // #tool installed under the original working directory; the script then changed it, so the configured
+        // tools folder now points somewhere else.
+        using var root = new TemporaryDirectory("cake-tools");
+        var pinned = root.CreateFile($"tools/Typstium.Runtime.linux-x64.0.15.1/tools/typst/linux-x64/{Executable}", "stub");
+
+        var result = await Locator(root.Combine("docs", "tools"), ["linux-x64"], registered: pinned).LocateAsync(CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(TypstLocatorResult.Found(pinned));
+    }
+
+    [Test]
+    public async Task The_registered_packages_tools_folder_comes_before_the_configured_one()
+    {
+        using var root = new TemporaryDirectory("cake-tools");
+        var other = root.CreateFile($"tools/Typstium.Runtime.linux-arm64.0.15.1/tools/typst/linux-arm64/{Executable}", "stub");
+        var host = root.CreateFile($"tools/Typstium.Runtime.linux-x64.0.15.1/tools/typst/linux-x64/{Executable}", "stub");
+        root.CreateFile($"docs/tools/Typstium.Runtime.linux-x64.0.16.0/tools/typst/linux-x64/{Executable}", "stub");
+
+        var result = await Locator(root.Combine("docs", "tools"), ["linux-x64"], registered: other).LocateAsync(CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(TypstLocatorResult.Found(host));
+    }
+
+    [Test]
+    public async Task Not_found_lists_both_tools_folders()
+    {
+        using var root = new TemporaryDirectory("cake-tools");
+        var other = root.CreateFile($"tools/Typstium.Runtime.win-x64.0.15.1/tools/typst/win-x64/typst.exe", "stub");
+
+        var result = (TypstLocatorResult.NotFoundResult)await Locator(root.Combine("docs", "tools"), ["linux-x64"], registered: other)
+            .LocateAsync(CancellationToken.None);
+
+        await Assert.That(result.SearchedLocations.Any(location => location.StartsWith(root.Combine("tools") + Path.DirectorySeparatorChar))).IsTrue();
+        await Assert.That(result.SearchedLocations.Any(location => location.StartsWith(root.Combine("docs", "tools")))).IsTrue();
     }
 
     [Test]

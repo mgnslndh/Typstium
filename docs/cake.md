@@ -75,6 +75,11 @@ more than one version is installed, it warns:
 
 Delete the folders you no longer need, or key the CI cache on the script's `#tool` lines, to keep `tools/` tidy.
 
+**Changing the working directory.** A script that changes `Context.Environment.WorkingDirectory` still finds the Typst
+its `#tool` lines installed: the addin looks in the folder `#tool` really used first. Without a `#tool` line, it looks
+in the tools folder under the *current* working directory. To pin it, give Cake an absolute tools folder with
+`--paths_tools=<path>`, the `CAKE_PATHS_TOOLS` environment variable, or `Paths_Tools` in `cake.config`.
+
 Platforms: `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, `linux-arm64`, `linux-arm`.
 
 ### A runtime package in a Cake.Sdk or Frosting project

@@ -4,7 +4,8 @@ namespace Cake.Typstium.Executable;
 
 /// <summary>
 /// The version in a folder <c>#tool</c> installed a package into: <c>&lt;id&gt;</c> or <c>&lt;id&gt;.&lt;version&gt;</c>,
-/// depending on Cake's UseVersionInToolsFolder. Versions parse and order as NuGet's <c>NuGetVersion</c> and
+/// the latter from Cake's default in-process NuGet client, the former from the legacy nuget.exe client, which installs
+/// with -ExcludeVersion. Versions parse and order as NuGet's <c>NuGetVersion</c> and
 /// <c>VersionComparer.Default</c> do (pinned by differential tests): up to four numeric parts, missing ones 0; a
 /// prerelease before its release; prerelease identifiers compared one by one, numbers as numbers and before text, text
 /// ignoring case, more identifiers higher; build metadata ignored. A folder without a version sorts first.

@@ -82,4 +82,20 @@ public class TypstCakeResolverTests
         await Assert.That(context.FakeLog.Entries.Single(entry => entry.Level == Cake.Core.Diagnostics.LogLevel.Warning).Message)
             .Contains("registered by #tool");
     }
+
+    [Test]
+    public async Task A_tool_directive_install_is_found_after_the_script_changes_its_working_directory()
+    {
+        using var work = new TemporaryDirectory("cake-resolver");
+        var rid = HostRuntimeIdentifier.Current;
+        var pinned = work.CreateFile($"tools/Typstium.Runtime.{rid}.0.15.1/tools/typst/{rid}/{Executable}", "stub");
+        var environment = CakeFakes.Environment(work.Path);
+        var context = new TestCakeContext(environment);
+        context.FakeTools.RegisterFile(new FilePath(pinned));
+        environment.WorkingDirectory = new DirectoryPath(work.CreateDirectory("docs"));
+
+        var locator = TypstCakeResolver.Locators(context, toolPath: null)[1];
+
+        await Assert.That(await locator.LocateAsync(CancellationToken.None)).IsEqualTo(TypstLocatorResult.Found(pinned));
+    }
 }

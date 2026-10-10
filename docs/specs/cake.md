@@ -58,7 +58,7 @@ and no network.
 | D17 | Target framework | `net8.0` | `net8.0;net9.0;net10.0` | Cake.Core 6.3.0 ships all three; a `net8.0` addin runs on each, and the core has no `net9.0`/`net10.0` build to match |
 | D18 | Core types in scripts | `[CakeNamespaceImport("Typstium")]` | Re-declare settings types for every core concept | `PdfStandard`, `TypstPageSelection` and `TypstCompileResult` are usable without a `using`, and stay one concept with one name |
 | D19 | `#tool` for Linux and macOS runtime packages | The directive adds `&include=./**/typst` | Change the runtime packages so Cake picks the binary up by default | Cake's `#tool` installer registers only `*.exe` and `*.dll` files and fails with "Failed to install tool" otherwise (found in the end-to-end tests). The runtime packages hold Typst's binary unchanged; one parameter in the directive is cheaper than a marker file in seven packages. Windows packages need nothing |
-| D20 | Several versions of the host's runtime package in `tools/` | The version of the file Cake's tool registry resolves for `typst[.exe]` (what `#tool` registered this run) wins when it lies in a `Typstium.Runtime.<any rid>.<version>` folder and the host's package has that version; otherwise the highest. Either way a warning names the installed versions and the one used. Versions order exactly as NuGet orders them | Highest always wins; take the registered file itself; document only | `#tool` never removes old versions, so with highest-wins a rollback (`&version=` lower than a cached one) silently ran the newer Typst. Only the version is taken from the registry, so several platforms registering the same file name (D6) don't matter. Without a pin Cake's answer comes from its own tools-folder search, and the warning makes the choice visible. NuGet's order is pinned by differential tests against `NuGet.Versioning`, which only the tests reference |
+| D20 | Several versions of the host's runtime package in `tools/`, and a working directory changed after `#tool` | The tools folder and version of the file Cake's tool registry resolves for `typst[.exe]` (what `#tool` registered this run) wins when it lies in a `Typstium.Runtime.<any rid>.<version>` folder and the host's package has that version; otherwise the highest. Either way a warning names the installed versions and the one used. Versions order exactly as NuGet orders them | Highest always wins; take the registered file itself; document only | `#tool` never removes old versions, so with highest-wins a rollback (`&version=` lower than a cached one) silently ran the newer Typst. Only the folder and version are taken from the registry, so several platforms registering the same file name (D6) don't matter; the folder also keeps a script that changes `Context.Environment.WorkingDirectory` after `#tool` working (found in PR review). Without a pin Cake's answer comes from its own tools-folder search, and the warning makes the choice visible. NuGet's order is pinned by differential tests against `NuGet.Versioning`, which only the tests reference |
 
 ## 3. Package
 
@@ -236,7 +236,12 @@ own (D5):
 - **Candidate RIDs:** the host RID from the OS and architecture, then its emulation fallback, as the core's
   bundled-runtime locator does (`win-arm64` → `win-x64`, `osx-arm64` → `osx-x64`). Implemented in the addin (D7).
 - **Search:** for each candidate RID, folders matching `Typstium.Runtime.<rid>` or `Typstium.Runtime.<rid>.<version>`
-  (`UseVersionInToolsFolder` decides which Cake writes), each with `tools/typst/<rid>/typst[.exe]`.
+  (Cake's default in-process NuGet client writes the version; the legacy `nuget.exe` client, `NuGet_UseInProcessClient=false`,
+  installs with `-ExcludeVersion`), each with `tools/typst/<rid>/typst[.exe]`.
+- **Where `#tool` installed:** when Cake's registry resolves `typst[.exe]` to a file inside a runtime package of any
+  RID, that package's tools folder is searched first, then the configured one. The configured folder follows the
+  current working directory, which a script may change after `#tool` ran; Cake offers no API for the folder `#tool`
+  used, but the registered file's path records it (D20).
 - **Choosing a version (D20):** the version `#tool` registered this run wins, taken from the folder of the file
   `context.Tools.Resolve("typst[.exe]")` returns; otherwise the highest. Versions order as NuGet orders them (a folder
   without a version counts as lowest). With more than one version installed, a warning names them all and the one
