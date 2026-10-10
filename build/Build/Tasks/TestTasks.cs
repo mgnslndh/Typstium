@@ -22,7 +22,11 @@ public static partial class Program
 
         Task("IntegrationTests")
             .IsDependentOn("UnitTests")
-            .Does<BuildParameters>(parameters => RunProductTests("tests/Typstium.IntegrationTests", parameters));
+            .Does<BuildParameters>(parameters =>
+            {
+                RunProductTests("tests/Typstium.IntegrationTests", parameters);
+                RunProductTests("tests/Cake.Typstium.IntegrationTests", parameters);
+            });
 
         // Never with coverage: instrumentation would distort the timings.
         Task("TimingTests")
