@@ -47,4 +47,13 @@ internal sealed class FakeLocatorEnvironment : ILocatorEnvironment
     }
 
     public void EnsureExecutable(string path) => MadeExecutable.Add(path);
+
+    /// <summary>Directory → manifest JSON. Parsed through the real parser, so a test can't use a manifest it would reject.</summary>
+    public Dictionary<string, string> Manifests { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public RuntimeManifestResult ReadRuntimeManifest(string directory)
+    {
+        var path = Path.Combine(directory, RuntimeManifest.FileName);
+        return Manifests.TryGetValue(directory, out var json) ? RuntimeManifest.Parse(path, json, IsWindows) : new RuntimeManifestResult.Missing(path);
+    }
 }

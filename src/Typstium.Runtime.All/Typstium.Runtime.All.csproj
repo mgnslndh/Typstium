@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- No content: depends on every Typstium.Runtime.<rid> at exactly its own version (docs/specs/runtime-packages.md §3,
+       D2). Packed after them, restoring from the folder they were packed to (RestoreAdditionalProjectSources). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeSymbols>false</IncludeSymbols>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- NU5128: no lib/ folder for netstandard2.0. Intended: a meta package with dependencies only. -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <!-- The RID packages' versions follow Typst, not the repository, so they can't live in Directory.Packages.props. -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <PackageId>Typstium.Runtime.All</PackageId>
+    <Version>$(TypstVersion)</Version>
+    <Description>The official Typst CLI $(TypstVersion) for every platform Typst ships, through the Typstium.Runtime.&lt;rid&gt; packages.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <!-- PrivateAssets="none": the RID packages' build assets must reach whoever references this package. NuGet writes
+         include="All" for it (and no exclude attribute), which the package layout tests assert. -->
+    <PackageReference Include="Typstium.Runtime.win-x64" Version="[$(TypstVersion)]" PrivateAssets="none" />
+    <PackageReference Include="Typstium.Runtime.win-arm64" Version="[$(TypstVersion)]" PrivateAssets="none" />
+    <PackageReference Include="Typstium.Runtime.osx-x64" Version="[$(TypstVersion)]" PrivateAssets="none" />
+    <PackageReference Include="Typstium.Runtime.osx-arm64" Version="[$(TypstVersion)]" PrivateAssets="none" />
+    <PackageReference Include="Typstium.Runtime.linux-x64" Version="[$(TypstVersion)]" PrivateAssets="none" />
+    <PackageReference Include="Typstium.Runtime.linux-arm64" Version="[$(TypstVersion)]" PrivateAssets="none" />
+    <PackageReference Include="Typstium.Runtime.linux-arm" Version="[$(TypstVersion)]" PrivateAssets="none" />
+  </ItemGroup>
+
+</Project>

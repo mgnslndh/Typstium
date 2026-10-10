@@ -4,6 +4,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Typstium.IntegrationTests/Typstium.IntegrationTests.csproj" />
+    <Project Path="tests/Typstium.Runtime.EndToEndTests/Typstium.Runtime.EndToEndTests.csproj" />
+    <Project Path="tests/Typstium.Runtime.Testing/Typstium.Runtime.Testing.csproj" />
+    <Project Path="tests/Typstium.Runtime.Tests/Typstium.Runtime.Tests.csproj" />
     <Project Path="tests/Typstium.Testing/Typstium.Testing.csproj" />
     <Project Path="tests/Typstium.TimingTests/Typstium.TimingTests.csproj" />
     <Project Path="tests/Typstium.UnitTests/Typstium.UnitTests.csproj" />

@@ -18,6 +18,7 @@
     <Using Include="Build.Cake.Extensions.Coverage" />
     <Using Include="Build.Cake.Extensions.Coverage.Cobertura" />
     <Using Include="Build.Cake.Extensions.Coverage.Comparison" />
+    <Using Include="Build.Cake.Extensions.Downloads" />
     <Using Include="Build.Cake.Extensions.GitHub" />
   </ItemGroup>
 

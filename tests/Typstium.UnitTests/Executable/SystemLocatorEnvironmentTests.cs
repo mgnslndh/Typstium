@@ -76,6 +76,49 @@ public class SystemLocatorEnvironmentTests
             .Because(Environment.RuntimeIdentifier);
     }
 
+    [Test]
+    public async Task A_folder_without_a_manifest_reports_it_missing()
+    {
+        using var temp = new TemporaryDirectory("environment");
+
+        var result = Environment.ReadRuntimeManifest(temp.Path);
+
+        await Assert.That(result).IsEqualTo(new RuntimeManifestResult.Missing(Path.Combine(temp.Path, RuntimeManifest.FileName)));
+    }
+
+    [Test]
+    public async Task A_manifest_file_is_read_and_parsed()
+    {
+        using var temp = new TemporaryDirectory("environment");
+        temp.CreateFile(RuntimeManifest.FileName, """{ "version": 1, "runtimes": { "linux-x64": "tools/typst" } }""");
+
+        var loaded = (RuntimeManifestResult.Loaded)Environment.ReadRuntimeManifest(temp.Path);
+
+        await Assert.That(loaded.Manifest.Executables["linux-x64"]).IsEqualTo(temp.Combine("tools", "typst"));
+    }
+
+    [Test]
+    public async Task An_unreadable_manifest_is_invalid()
+    {
+        using var temp = new TemporaryDirectory("environment");
+        // A folder where the file should be: reading it throws UnauthorizedAccessException (Windows) or IOException (Unix).
+        temp.CreateDirectory(RuntimeManifest.FileName);
+
+        var invalid = (RuntimeManifestResult.Invalid)Environment.ReadRuntimeManifest(temp.Path);
+
+        await Assert.That(invalid.Reason).StartsWith("unreadable: ");
+    }
+
+    [Test]
+    public async Task A_missing_folder_reports_the_manifest_missing()
+    {
+        using var temp = new TemporaryDirectory("environment");
+
+        var result = Environment.ReadRuntimeManifest(temp.Combine("nope"));
+
+        await Assert.That(result is RuntimeManifestResult.Missing).IsTrue();
+    }
+
 #if NET8_0_OR_GREATER
     private const UnixFileMode ReadWrite = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead;
 

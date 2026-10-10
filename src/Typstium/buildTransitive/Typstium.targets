@@ -1,0 +1,257 @@
+<Project>
+  <!--
+    Copies the Typst binaries that referenced Typstium.Runtime.<rid> packages declare (TypstiumRuntime items) next to
+    the app, and writes typstium.runtime.json, which BundledRuntimeLocator reads (docs/specs/runtime-packages.md §4–§6).
+  -->
+  <PropertyGroup>
+    <_TypstiumTargetsImported>true</_TypstiumTargetsImported>
+    <TypstiumCopyRuntime Condition="'$(TypstiumCopyRuntime)' == ''">true</TypstiumCopyRuntime>
+    <TypstiumCopyRuntimeOnBuild Condition="'$(TypstiumCopyRuntimeOnBuild)' == ''">true</TypstiumCopyRuntimeOnBuild>
+    <TypstiumCopyRuntimeOnPublish Condition="'$(TypstiumCopyRuntimeOnPublish)' == ''">true</TypstiumCopyRuntimeOnPublish>
+    <TypstiumRuntimeDirectory Condition="'$(TypstiumRuntimeDirectory)' == ''">typst/{rid}</TypstiumRuntimeDirectory>
+  </PropertyGroup>
+
+  <!-- BeforeTargets, not AssignTargetPathsDependsOn: this file may be imported before Microsoft.Common sets that property. -->
+  <!-- §6. Platforms that can't start a process get no binary. A target's Condition is evaluated before its dependencies
+       run, so _TypstiumAddRuntimeFiles empties TypstiumRuntime itself and every later target finds nothing selected. -->
+  <Target Name="_TypstiumCheckPlatform">
+    <PropertyGroup>
+      <_TypstiumPlatform>$(TargetPlatformIdentifier.ToLowerInvariant())</_TypstiumPlatform>
+      <_TypstiumUnsupportedPlatform Condition="'$(_TypstiumPlatform)' == 'android' or '$(_TypstiumPlatform)' == 'ios' or '$(_TypstiumPlatform)' == 'maccatalyst' or '$(_TypstiumPlatform)' == 'tvos' or '$(_TypstiumPlatform)' == 'browser' or $([System.Text.RegularExpressions.Regex]::IsMatch('$(RuntimeIdentifier.ToLowerInvariant())', '^(browser|wasi)-'))">true</_TypstiumUnsupportedPlatform>
+    </PropertyGroup>
+    <Message Importance="normal" Condition="'$(_TypstiumUnsupportedPlatform)' == 'true' and '@(TypstiumRuntime)' != ''"
+             Text="TYPSTIUM0006: Typst can't run as a process on this platform ($(TargetFramework) $(RuntimeIdentifier)), so no Typst binary is copied." />
+  </Target>
+
+  <Target Name="_TypstiumAddRuntimeFiles" BeforeTargets="AssignTargetPaths" DependsOnTargets="_TypstiumCheckPlatform"
+          Condition="'$(TypstiumCopyRuntime)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+
+    <ItemGroup Condition="'$(_TypstiumUnsupportedPlatform)' == 'true'">
+      <TypstiumRuntime Remove="@(TypstiumRuntime)" />
+    </ItemGroup>
+
+    <!-- build/ and buildTransitive/ of one package can both be imported; keep one item per RID. -->
+    <RemoveDuplicates Inputs="@(TypstiumRuntime)">
+      <Output TaskParameter="Filtered" ItemName="_TypstiumKnown" />
+    </RemoveDuplicates>
+
+    <!-- §5. Contract versions this core understands; newer RID packages may declare items differently. -->
+    <ItemGroup>
+      <_TypstiumUnknownContract Include="@(_TypstiumKnown)" Condition="'%(_TypstiumKnown.ContractVersion)' != '1'" />
+      <_TypstiumKnown Remove="@(_TypstiumUnknownContract)" />
+    </ItemGroup>
+    <Warning Code="TYPSTIUM0005" Condition="'@(_TypstiumUnknownContract)' != ''"
+             Text="The Typst runtime for %(_TypstiumUnknownContract.Identity) declares ContractVersion '%(_TypstiumUnknownContract.ContractVersion)', which this version of Typstium doesn't understand, so it is ignored. Update the Typstium package." />
+
+    <PropertyGroup>
+      <_TypstiumRid>$(RuntimeIdentifier.ToLowerInvariant())</_TypstiumRid>
+      <_TypstiumRidArch Condition="'$(_TypstiumRid)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(_TypstiumRid)', '[^-]+$').Value)</_TypstiumRidArch>
+      <_TypstiumRidOs Condition="'$(_TypstiumRid)' != '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumRid)', '^win'))">win</_TypstiumRidOs>
+      <_TypstiumRidOs Condition="'$(_TypstiumRid)' != '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumRid)', '^(osx|macos)'))">osx</_TypstiumRidOs>
+      <_TypstiumRidOs Condition="'$(_TypstiumRid)' != '' and '$(_TypstiumRidOs)' == '' and !$([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumRid)', '^(freebsd|illumos|solaris|haiku|android|ios|tvos|maccatalyst|browser|wasi)'))">linux</_TypstiumRidOs>
+      <_TypstiumMappedRid Condition="'$(_TypstiumRidOs)' != ''">$(_TypstiumRidOs)-$(_TypstiumRidArch)</_TypstiumMappedRid>
+    </PropertyGroup>
+
+    <!-- 1. An explicit list wins. -->
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' != ''">
+      <!-- Unescape: a list passed as -p:...=a%3Bb stays one escaped string, which Include would not split. -->
+      <_TypstiumRequested Include="$([MSBuild]::Unescape($(TypstiumRuntimeIdentifiers.ToLowerInvariant())))" />
+      <_TypstiumNotRequested Include="@(_TypstiumKnown)" Exclude="@(_TypstiumRequested)" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Exclude="@(_TypstiumNotRequested)" />
+      <_TypstiumUnavailable Include="@(_TypstiumRequested)" Exclude="@(_TypstiumKnown)" />
+    </ItemGroup>
+    <!-- On a platform that can't run Typst, TypstiumRuntime was emptied above, so every listed RID would look unavailable. -->
+    <Warning Code="TYPSTIUM0004" Condition="'@(_TypstiumUnavailable)' != '' and '$(_TypstiumUnsupportedPlatform)' != 'true'"
+             Text="TypstiumRuntimeIdentifiers lists '%(_TypstiumUnavailable.Identity)', but no referenced Typstium.Runtime package provides it. Reference Typstium.Runtime.%(_TypstiumUnavailable.Identity), or remove it from the list." />
+
+    <!-- 2. A RID: its shipped runtime; a 32-bit Windows app may run on x64 or Arm64 Windows, so it gets both (D12). -->
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumMappedRid)' == 'win-x86'">
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('win-'))" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumMappedRid)' != '' and '$(_TypstiumMappedRid)' != 'win-x86'">
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == '$(_TypstiumMappedRid)'" />
+    </ItemGroup>
+
+    <!-- 3. No RID: everything referenced; the locator picks at runtime. -->
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumRid)' == ''">
+      <_TypstiumSelected Include="@(_TypstiumKnown)" />
+    </ItemGroup>
+
+    <Warning Code="TYPSTIUM0001" Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumRid)' != '' and '@(_TypstiumKnown)' != '' and '@(_TypstiumSelected)' == ''"
+             Text="No referenced Typstium.Runtime package matches the runtime identifier '$(RuntimeIdentifier)' (referenced: @(_TypstiumKnown, ', ')), so no Typst binary is copied. Reference the matching Typstium.Runtime package, or ignore this if Typst is installed where the app runs." />
+
+    <PropertyGroup>
+      <_TypstiumDirectory>$([System.Text.RegularExpressions.Regex]::Replace('$(TypstiumRuntimeDirectory.Replace(`\`, `/`))', '/+$', ''))</_TypstiumDirectory>
+    </PropertyGroup>
+
+    <!-- §4. The directory is relative to the output folder; anything that could escape it is rejected. -->
+    <Error Code="TYPSTIUM0003" Condition="'@(_TypstiumSelected)' != '' and ('$(_TypstiumDirectory)' == '' or $([System.IO.Path]::IsPathRooted('$(_TypstiumDirectory)')) or $(_TypstiumDirectory.StartsWith('/')) or $(_TypstiumDirectory.Contains(':')) or $(_TypstiumDirectory.Contains('&quot;')) or $([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumDirectory)', '(^|/)\.\.(/|$)')))"
+           Text="TypstiumRuntimeDirectory '$(TypstiumRuntimeDirectory)' must be a relative folder inside the output folder, without '..', ':' or quotes, e.g. 'typst/{rid}'." />
+    <Error Code="TYPSTIUM0002" Condition="!$(_TypstiumDirectory.Contains('{rid}')) and '@(_TypstiumSelected->Count())' &gt; '1'"
+           Text="TypstiumRuntimeDirectory '$(TypstiumRuntimeDirectory)' has no {rid}, but @(_TypstiumSelected->Count()) runtimes are selected (@(_TypstiumSelected, ', ')), so they would overwrite each other. Add {rid}, or select one runtime with RuntimeIdentifier or TypstiumRuntimeIdentifiers." />
+
+    <ItemGroup>
+      <_TypstiumSelected>
+        <TypstiumTargetDirectory>$([System.String]::Copy('$(_TypstiumDirectory)').Replace('{rid}', '%(Identity)'))</TypstiumTargetDirectory>
+      </_TypstiumSelected>
+      <_TypstiumSelected>
+        <TypstiumTargetPath>%(TypstiumTargetDirectory)/$([System.IO.Path]::GetFileName('%(Executable)'))</TypstiumTargetPath>
+      </_TypstiumSelected>
+      <!-- Typst is Apache-2.0: its LICENSE and NOTICE travel beside every copy of the binary (D18). -->
+      <_TypstiumExecutable Include="@(_TypstiumSelected->'%(Executable)')" />
+      <_TypstiumRuntimeFileToCopy Include="@(_TypstiumExecutable)" />
+      <_TypstiumRuntimeFileToCopy Include="%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)LICENSE"
+                                  Condition="Exists('%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)LICENSE')">
+        <TypstiumTargetPath>%(_TypstiumExecutable.TypstiumTargetDirectory)/LICENSE</TypstiumTargetPath>
+      </_TypstiumRuntimeFileToCopy>
+      <_TypstiumRuntimeFileToCopy Include="%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)NOTICE"
+                                  Condition="Exists('%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)NOTICE')">
+        <TypstiumTargetPath>%(_TypstiumExecutable.TypstiumTargetDirectory)/NOTICE</TypstiumTargetPath>
+      </_TypstiumRuntimeFileToCopy>
+      <ContentWithTargetPath Include="@(_TypstiumRuntimeFileToCopy)">
+        <TargetPath>%(TypstiumTargetPath)</TargetPath>
+        <CopyToOutputDirectory Condition="'$(TypstiumCopyRuntimeOnBuild)' == 'true'">PreserveNewest</CopyToOutputDirectory>
+        <CopyToOutputDirectory Condition="'$(TypstiumCopyRuntimeOnBuild)' != 'true'">Never</CopyToOutputDirectory>
+        <CopyToPublishDirectory Condition="'$(TypstiumCopyRuntimeOnPublish)' == 'true'">PreserveNewest</CopyToPublishDirectory>
+        <CopyToPublishDirectory Condition="'$(TypstiumCopyRuntimeOnPublish)' != 'true'">Never</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        <TypstiumRuntime>true</TypstiumRuntime>
+      </ContentWithTargetPath>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_TypstiumManifestRuntimes>@(_TypstiumSelected->'    &quot;%(Identity)&quot;: &quot;%(TypstiumTargetPath)&quot;', ',%0A')</_TypstiumManifestRuntimes>
+      <_TypstiumManifestJson>{%0A  &quot;version&quot;: 1,%0A  &quot;runtimes&quot;: {%0A$(_TypstiumManifestRuntimes)%0A  }%0A}</_TypstiumManifestJson>
+    </PropertyGroup>
+  </Target>
+
+  <!--
+    §6. A referenced project built without a RID selects every runtime it references, and its copies flow here through
+    ProjectReference. This project's own selection decides what it ships (it gets the same runtime packages
+    transitively), so the references' runtime files are dropped from the output and publish lists. The SDK strips custom
+    metadata from items it gets from references, so each reference is asked which files it selected; the same file can
+    also be one of this project's, so this project's own are added back afterwards.
+  -->
+  <Target Name="_TypstiumGetRuntimeFiles" DependsOnTargets="_TypstiumAddRuntimeFiles" Returns="@(_TypstiumRuntimeFile)">
+    <ItemGroup>
+      <_TypstiumRuntimeFile Include="@(_TypstiumRuntimeFileToCopy)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- The same call as the SDK's for GetCopyToOutputDirectoryItems, so it reuses the references' existing builds. -->
+  <Target Name="_TypstiumGetReferencedRuntimeFiles" Condition="'@(_MSBuildProjectReferenceExistent)' != ''">
+    <MSBuild Projects="@(_MSBuildProjectReferenceExistent)"
+             Targets="_TypstiumGetRuntimeFiles"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration); %(_MSBuildProjectReferenceExistent.SetPlatform); %(_MSBuildProjectReferenceExistent.SetTargetFramework)"
+             SkipNonexistentTargets="true"
+             RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)$(_GlobalPropertiesToRemoveFromProjectReferences)">
+      <Output TaskParameter="TargetOutputs" ItemName="_TypstiumReferencedRuntimeFile" />
+    </MSBuild>
+    <ItemGroup>
+      <_TypstiumOwnRuntimeFile Include="@(ContentWithTargetPath->'%(FullPath)')" Condition="'%(ContentWithTargetPath.TypstiumRuntime)' == 'true'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_TypstiumDropReferencedOutputRuntimes" AfterTargets="GetCopyToOutputDirectoryItems" DependsOnTargets="_TypstiumGetReferencedRuntimeFiles">
+    <ItemGroup Condition="'@(_TypstiumReferencedRuntimeFile)' != ''">
+      <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToOutputDirectory Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <AllItemsFullPathWithTargetPath Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToOutputDirectory Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToOutputDirectory)' == 'PreserveNewest'" />
+      <AllItemsFullPathWithTargetPath Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToOutputDirectory)' == 'PreserveNewest'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_TypstiumDropReferencedPublishRuntimes" AfterTargets="GetCopyToPublishDirectoryItems" DependsOnTargets="_TypstiumGetReferencedRuntimeFiles">
+    <ItemGroup Condition="'@(_TypstiumReferencedRuntimeFile)' != ''">
+      <_SourceItemsToCopyToPublishDirectoryAlways Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToPublishDirectory Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToPublishDirectoryIfDifferent Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <AllPublishItemsFullPathWithTargetPath Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToPublishDirectory Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToPublishDirectory)' == 'PreserveNewest'" />
+      <AllPublishItemsFullPathWithTargetPath Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToPublishDirectory)' == 'PreserveNewest'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- The manifest is written into each folder rather than added as an item: as an item it would flow through
+       ProjectReference, and an app and a library would collide on it at publish (NETSDK1152). -->
+  <Target Name="_TypstiumWriteOutputManifest" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnBuild)' == 'true'">
+    <WriteLinesToFile File="$(OutDir)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <FileWrites Include="$(OutDir)typstium.runtime.json" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_TypstiumWritePublishManifest" AfterTargets="CopyFilesToPublishDirectory"
+          Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
+    <WriteLinesToFile File="$(PublishDir)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <!-- The manifest is also written to obj/, so WebDeploy has a current one even when the build copies nothing to bin/
+       (TypstiumCopyRuntimeOnBuild=false). -->
+  <Target Name="_TypstiumWriteIntermediateManifest" Condition="'@(_TypstiumSelected)' != ''">
+    <WriteLinesToFile File="$(IntermediateOutputPath)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <FileWrites Include="$(IntermediateOutputPath)typstium.runtime.json" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    NuGet drops the execute bit when it extracts a package; Copy keeps the source's mode (docs/specs/runtime-packages.md §6).
+    The mode is set by a task, not by Exec: Exec runs a shell, which would expand $ and backticks in the paths.
+  -->
+  <UsingTask TaskName="_TypstiumSetExecutable" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll"
+             Condition="'$(OS)' != 'Windows_NT'">
+    <ParameterGroup>
+      <Folder ParameterType="System.String" Required="true" />
+      <Files ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <!-- Inline tasks compile against netstandard, which lacks File.Get/SetUnixFileMode; MSBuild itself runs on .NET 8+,
+           where they exist, so they're found at run time. 0x49 is the execute bit for user, group and others (0o111). -->
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var get = typeof(System.IO.File).GetMethod("GetUnixFileMode", new[] { typeof(string) });
+        var set = get == null ? null : typeof(System.IO.File).GetMethod("SetUnixFileMode", new[] { typeof(string), get.ReturnType });
+        if (set == null)
+        {
+            Log.LogError("Typstium can't set the execute bit: this MSBuild runs on a runtime without File.SetUnixFileMode (.NET 7 or later is needed). Run chmod +x on the copied Typst binaries yourself.");
+            return false;
+        }
+
+        foreach (var file in Files)
+        {
+            var path = System.IO.Path.Combine(Folder, file.ItemSpec);
+            var mode = System.Convert.ToInt32(get.Invoke(null, new object[] { path }));
+            set.Invoke(null, new object[] { path, System.Enum.ToObject(get.ReturnType, mode | 0x49) });
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="_TypstiumChmodOutput" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'$(OS)' != 'Windows_NT' and '@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnBuild)' == 'true'">
+    <_TypstiumSetExecutable Folder="$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(OutDir)'))" Files="@(_TypstiumSelected->'%(TypstiumTargetPath)')" />
+  </Target>
+
+  <Target Name="_TypstiumChmodPublish" AfterTargets="CopyFilesToPublishDirectory"
+          Condition="'$(OS)' != 'Windows_NT' and '@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
+    <_TypstiumSetExecutable Folder="$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(PublishDir)'))" Files="@(_TypstiumSelected->'%(TypstiumTargetPath)')" />
+  </Target>
+
+  <!-- Classic ASP.NET web projects publish through the Web Publishing Pipeline, which only packs files it knows about. -->
+  <Target Name="_TypstiumAddWebDeployFiles" BeforeTargets="CopyAllFilesToSingleFolderForPackage;CopyAllFilesToSingleFolderForMsdeploy"
+          DependsOnTargets="_TypstiumWriteIntermediateManifest"
+          Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
+    <ItemGroup>
+      <FilesForPackagingFromProject Include="%(_TypstiumRuntimeFileToCopy.Identity)">
+        <DestinationRelativePath>bin\%(_TypstiumRuntimeFileToCopy.TypstiumTargetPath)</DestinationRelativePath>
+      </FilesForPackagingFromProject>
+      <FilesForPackagingFromProject Include="$(IntermediateOutputPath)typstium.runtime.json">
+        <DestinationRelativePath>bin\typstium.runtime.json</DestinationRelativePath>
+      </FilesForPackagingFromProject>
+    </ItemGroup>
+  </Target>
+</Project>

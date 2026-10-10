@@ -20,5 +20,6 @@
     <PackageVersion Include="ReportGenerator.Core" Version="5.5.11" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.57.2" />
+    <PackageVersion Include="SharpCompress" Version="1.0.0" />
   </ItemGroup>
 </Project>

@@ -35,18 +35,6 @@ public class LocatorTests
     }
 
     [Test]
-    public async Task Bundled_runtime_supports_the_classic_asp_net_bin_folder_and_sets_the_execute_bit()
-    {
-        var environment = new FakeLocatorEnvironment { IsWindows = false, RuntimeIdentifier = "linux-x64" };
-        var typst = environment.AddFile(environment.BaseDirectory, "bin", "typst", "linux-x64", TypstExecutableFileNames.Unix);
-
-        var found = await new BundledRuntimeLocator(environment).LocateAsync(CancellationToken.None);
-
-        await Assert.That(found).IsEqualTo(TypstLocatorResult.Found(typst));
-        await Assert.That(environment.MadeExecutable).Contains(typst);
-    }
-
-    [Test]
     public async Task WinGet_finds_links_and_package_folders()
     {
         var local = Path.Combine(Root, "LocalAppData");

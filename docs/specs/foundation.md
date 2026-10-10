@@ -607,7 +607,7 @@ locations → `PATH`.
 
 | Locator | Looks in |
 | --- | --- |
-| Bundled runtime | `AppContext.BaseDirectory/typst/<rid>/typst[.exe]` and, for classic ASP.NET on IIS, `AppContext.BaseDirectory/bin/typst/<rid>/`. The RID is computed from `RuntimeInformation` OS and architecture. On Unix it makes sure the execute bit is set |
+| Bundled runtime | `typstium.runtime.json` in `AppContext.BaseDirectory` or its `bin/` (authoritative when present), otherwise `typst/<rid>/` and `bin/typst/<rid>/` for the native RID and its emulated fallback; see [runtime packages §7](runtime-packages.md#7-locating-the-binary-at-runtime). On Unix it makes sure the execute bit is set |
 | WinGet | `%LOCALAPPDATA%\Microsoft\WinGet\Links\typst.exe`, `%ProgramFiles%\WinGet\Links\typst.exe`, then `%LOCALAPPDATA%\Microsoft\WinGet\Packages\Typst.Typst_*\typst-*\typst.exe` (newest first). Windows only |
 | Well-known locations | `~/.cargo/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, `%USERPROFILE%\scoop\shims` |
 | `PATH` | Each `PATH` entry, plus `PATHEXT` on Windows. Never the current directory |

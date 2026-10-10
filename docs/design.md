@@ -10,7 +10,7 @@ and this overview disagree, the spec wins.
 | Spec | Covers | Status |
 | --- | --- | --- |
 | [Foundation](specs/foundation.md) | Repo scaffolding, core API, CLI backend, diagnostics, template providers, tests | Draft |
-| Runtime packages (`runtime-packages.md`) | `Typstium.Runtime.<rid>`, packaging CI | Planned |
+| [Runtime packages](specs/runtime-packages.md) | `Typstium.Runtime.<rid>`, `Runtime.All`, MSBuild targets, runtime manifest, packaging CI ([user guide](runtime-packages.md)) | Implemented |
 | Build (`build.md`) | `Typstium.Build` for `dotnet build` and `msbuild.exe` | Planned |
 | Cake (`cake.md`) | `Cake.Typstium` | Planned |
 | ASP.NET Core (`aspnetcore.md`) | `Typstium.AspNetCore`, template lifecycle | Planned |
@@ -140,7 +140,7 @@ Binaries are copied by our own `buildTransitive` targets to a fixed output folde
 
 - One package per platform: win-x64, win-arm64, linux-x64, linux-arm64, osx-x64, osx-arm64. Confirm against the targets of each Typst release.
 - Typst's Linux releases are static musl builds, so one binary should serve both `linux-x64` and `linux-musl-x64`. Verify per release.
-- Each binary is tens of MB because fonts are embedded. `Runtime.All` will be roughly 150–250 MB, so it's offered but not the default.
+- Each binary is tens of MB because fonts are embedded. `Runtime.All` restores about 170 MB (seven packages of 22–26 MB for Typst 0.15.1), so it's offered but not the default.
 
 **Known gotchas**
 
@@ -311,9 +311,9 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 3. **v1.x:** source generators for typed templates, `Typstium.Tool`.
 4. **v2:** Rust sidecar and `ServerTypstCompiler`, if the spike's measurements call for it.
 5. **Later:** `Typstium.Verify`, an in-process native or WASM backend, `Typstium.Extensions.FileProviders`.
-6. **Later, build infrastructure:** orchestrate CI with Cake (Frosting or the Cake SDK), using
-   `Cake.Download.Module` to fetch and checksum-verify Typst release assets for the runtime packages and to
-   vendor Typst packages such as cmarker.
+6. **Later, build infrastructure:** orchestrate CI with Cake (done: the Cake SDK build), fetching and
+   checksum-verifying Typst release assets for the runtime packages (see the runtime packages spec) and
+   vendoring Typst packages such as cmarker.
 
 **Open questions**
 

@@ -21,4 +21,7 @@ internal interface ILocatorEnvironment
 
     /// <summary>Restores the execute bit NuGet extraction drops on Unix. No-op on Windows.</summary>
     void EnsureExecutable(string path);
+
+    /// <summary>Reads typstium.runtime.json in <paramref name="directory"/>; never throws for I/O or format errors.</summary>
+    RuntimeManifestResult ReadRuntimeManifest(string directory);
 }
