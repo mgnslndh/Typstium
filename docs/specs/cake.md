@@ -1,6 +1,7 @@
 # Cake: the `Cake.Typstium` addin
 
-**Status:** Draft · Oct 10, 2026 · Magnus Lindhe
+**Status:** Implemented · Oct 10, 2026 · Magnus Lindhe
+**User guide:** [Typst in Cake builds](../cake.md)
 **Part of:** [Typstium design overview](../design.md)
 **Builds on:** [Foundation](foundation.md) (the core API and the locator chain),
 [Runtime packages](runtime-packages.md) (Typst through NuGet, `tools/typst/<rid>/`)
@@ -56,6 +57,7 @@ and no network.
 | D16 | Compiler lifetime | A new `CliTypstCompiler` per alias call | A cache per context or per process | No static state (foundation principle 2). The cost is a resolver scan and a `typst info` probe per call, tens of milliseconds. Batches keep one compiler from `TypstCompiler()` |
 | D17 | Target framework | `net8.0` | `net8.0;net9.0;net10.0` | Cake.Core 6.3.0 ships all three; a `net8.0` addin runs on each, and the core has no `net9.0`/`net10.0` build to match |
 | D18 | Core types in scripts | `[CakeNamespaceImport("Typstium")]` | Re-declare settings types for every core concept | `PdfStandard`, `TypstPageSelection` and `TypstCompileResult` are usable without a `using`, and stay one concept with one name |
+| D19 | `#tool` for Linux and macOS runtime packages | The directive adds `&include=./**/typst` | Change the runtime packages so Cake picks the binary up by default | Cake's `#tool` installer registers only `*.exe` and `*.dll` files and fails with "Failed to install tool" otherwise (found in the end-to-end tests). The runtime packages hold Typst's binary unchanged; one parameter in the directive is cheaper than a marker file in seven packages. Windows packages need nothing |
 
 ## 3. Package
 
@@ -236,12 +238,12 @@ own (D5):
 
 ## 6. Ways to provide Typst
 
-The user guide (`docs/cake.md`) documents these, in this order:
+The [user guide](../cake.md) documents these, in this order:
 
 | Way | How | Found by |
 |---|---|---|
-| `#tool`, one platform | `#tool nuget:?package=Typstium.Runtime.linux-x64&version=0.15.1` | Cake tools |
-| `#tool`, several platforms | One line per RID the script runs on; the addin picks the host's (D4) | Cake tools |
+| `#tool`, one platform | `#tool nuget:?package=Typstium.Runtime.linux-x64&version=0.15.1&include=./**/typst` (D19) | Cake tools |
+| `#tool`, several platforms | One line per RID the script runs on, `&include=./**/typst` on the non-Windows ones; the addin picks the host's (D4) | Cake tools |
 | Cake.Sdk or Frosting | `<PackageReference Include="Typstium.Runtime.<rid>" />` in the build project; the core's `buildTransitive` targets copy Typst into the build's output | Bundled runtime |
 | Installed on the runner | winget, Homebrew, cargo, a CI setup step, or a container image with Typst | WinGet, well-known locations or `PATH` |
 | An exact binary | `TYPST_PATH` on the runner, or `ToolPath` in the script | `TYPST_PATH` / explicit path |
@@ -295,14 +297,19 @@ packed runtime packages.
 
 ## 9. To verify while planning
 
-1. `#tool` installs no package dependencies (the basis of D4), and the folder layout it writes, with and without
-   `UseVersionInToolsFolder`.
-2. How an addin reads the tools folder: the `Paths_Tools` configuration key and the API that resolves it against
-   the working directory.
-3. That `[CakeNamespaceImport]` reaches Cake.Sdk scripts and Frosting, not only `.cake` scripts.
-4. ~~That a missing `loaddependencies` can be caught at run time.~~ It can't: the script fails to compile (4.4).
-5. Cake.Tool 6.3.0 runs `.cake` scripts on the .NET 10 SDK, and the addin's `net8.0` build loads in it.
-6. `Cake.Testing` 6.3.0 fakes cover what the unit tests need (`FakeEnvironment`, `FakeLog`, `ICakeConfiguration`).
+All verified during implementation:
+
+1. ~~`#tool` installs no package dependencies, and the folder layout it writes.~~ Cake 6.3 installs into
+   `tools/<id>.<version>/` (CK1, CK2); `Runtime.All` through `#tool` was not tried. `#tool` also needs
+   `&include=./**/typst` for extensionless binaries (D19).
+2. ~~How an addin reads the tools folder.~~ `CakeConfigurationExtensions.GetToolPath` with the `Paths_Tools` key, default
+   `./tools` under the working directory (unit tests, CK1).
+3. ~~`[CakeNamespaceImport]` and aliases in Cake.Sdk.~~ Cake.Sdk exposes `TypstCompile` as a global alias (CK4). Core
+   types still need `using Typstium;` there; the user guide says so.
+4. ~~That a missing `loaddependencies` can be caught at run time.~~ It can't: the script fails to compile (4.4, CK3).
+5. ~~Cake.Tool 6.3.0 runs `.cake` scripts on the .NET 10 SDK, and the `net8.0` addin loads in it.~~ Yes (CK1).
+6. ~~`Cake.Testing` 6.3.0 fakes cover the unit tests.~~ `FakeEnvironment`, `FakeLog` and `FakeConfiguration` do; the tests
+   implement `ICakeContext` themselves with those three.
 7. ~~The core's `TypstDocument.Paged.SaveAsync` handles the pattern rules of 4.3.~~ It throws `ArgumentException` for
    more than one page without `{p}` or `{0p}`, before writing; the runner checks first only to name the page count.
 

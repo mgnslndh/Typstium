@@ -12,7 +12,7 @@ and this overview disagree, the spec wins.
 | [Foundation](specs/foundation.md) | Repo scaffolding, core API, CLI backend, diagnostics, template providers, tests | Draft |
 | [Runtime packages](specs/runtime-packages.md) | `Typstium.Runtime.<rid>`, `Runtime.All`, MSBuild targets, runtime manifest, packaging CI ([user guide](runtime-packages.md)) | Implemented |
 | Build (`build.md`) | `Typstium.Build` for `dotnet build` and `msbuild.exe` | Planned |
-| [Cake](specs/cake.md) | `Cake.Typstium`: aliases, Typst from `#tool` and the locator chain | Draft |
+| [Cake](specs/cake.md) | `Cake.Typstium`: aliases, Typst from `#tool` and the locator chain ([user guide](cake.md)) | Implemented |
 | ASP.NET Core (`aspnetcore.md`) | `Typstium.AspNetCore`, template lifecycle | Planned |
 | Markdown (`markdown.md`) | Markdown and Scriban content on `.typ` layouts via cmarker | Planned |
 | Source generators (`source-generators.md`) | Typed templates | Planned |
@@ -334,7 +334,7 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 - [x] Prototype the build targets that copy the binary and set the executable bit (runtime packages, PR #5)
 - [ ] Verify the `buildTransitive` approach in an ASP.NET Core 2.x app on .NET Framework under IIS (RS16 in the
   [runtime packages checklist](runtime-packages-checklist.md))
-- [ ] `Cake.Typstium` ([spec](specs/cake.md))
+- [x] `Cake.Typstium` ([spec](specs/cake.md))
 - [ ] `Typstium.Build`: decide how it gets a binary for the build host (runtime packages spec §11)
 - [ ] `Typstium.AspNetCore`
 - [ ] Markdown through `cmarker` in every integration, including the release-notes PDF in a Cake script (the
