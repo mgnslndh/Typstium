@@ -400,6 +400,9 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
   packages under test get a unique version per session (`0.0.0-t<UTC timestamp>`), so a stale fixture can't be
   served. End-to-end tests use a fresh cache for each session.
 - Assert the output tree golden-file style, the manifest content, and the diagnostic codes.
+- Distro and versioned RIDs (`ubuntu.22.04-x64`, `win10-x64`, `osx.13-arm64`) are built with
+  `UseRidGraph=true` and `UseAppHost=false`, because .NET 8+ rejects non-portable RIDs otherwise and no apphost exists
+  for them.
 - RID mapping (section 5) is exercised through these builds, one case per mapping rule.
 
 **End-to-end CI** (real packages from the `pack` job, compiling a real PDF)

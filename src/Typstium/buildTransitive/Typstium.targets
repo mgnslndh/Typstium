@@ -20,9 +20,49 @@
       <Output TaskParameter="Filtered" ItemName="_TypstiumKnown" />
     </RemoveDuplicates>
 
+    <!-- §5. Contract versions this core understands; newer RID packages may declare items differently. -->
     <ItemGroup>
+      <_TypstiumUnknownContract Include="@(_TypstiumKnown)" Condition="'%(_TypstiumKnown.ContractVersion)' != '1'" />
+      <_TypstiumKnown Remove="@(_TypstiumUnknownContract)" />
+    </ItemGroup>
+    <Warning Code="TYPSTIUM0005" Condition="'@(_TypstiumUnknownContract)' != ''"
+             Text="The Typst runtime for %(_TypstiumUnknownContract.Identity) declares ContractVersion '%(_TypstiumUnknownContract.ContractVersion)', which this version of Typstium doesn't understand, so it is ignored. Update the Typstium package." />
+
+    <PropertyGroup>
+      <_TypstiumRid>$(RuntimeIdentifier.ToLowerInvariant())</_TypstiumRid>
+      <_TypstiumRidArch Condition="'$(_TypstiumRid)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(_TypstiumRid)', '[^-]+$').Value)</_TypstiumRidArch>
+      <_TypstiumRidOs Condition="'$(_TypstiumRid)' != '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumRid)', '^win'))">win</_TypstiumRidOs>
+      <_TypstiumRidOs Condition="'$(_TypstiumRid)' != '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumRid)', '^(osx|macos)'))">osx</_TypstiumRidOs>
+      <_TypstiumRidOs Condition="'$(_TypstiumRid)' != '' and '$(_TypstiumRidOs)' == '' and !$([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumRid)', '^(freebsd|illumos|solaris|haiku|android|ios|tvos|maccatalyst|browser|wasi)'))">linux</_TypstiumRidOs>
+      <_TypstiumMappedRid Condition="'$(_TypstiumRidOs)' != ''">$(_TypstiumRidOs)-$(_TypstiumRidArch)</_TypstiumMappedRid>
+    </PropertyGroup>
+
+    <!-- 1. An explicit list wins. -->
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' != ''">
+      <!-- Unescape: a list passed as -p:...=a%3Bb stays one escaped string, which Include would not split. -->
+      <_TypstiumRequested Include="$([MSBuild]::Unescape($(TypstiumRuntimeIdentifiers.ToLowerInvariant())))" />
+      <_TypstiumNotRequested Include="@(_TypstiumKnown)" Exclude="@(_TypstiumRequested)" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Exclude="@(_TypstiumNotRequested)" />
+      <_TypstiumUnavailable Include="@(_TypstiumRequested)" Exclude="@(_TypstiumKnown)" />
+    </ItemGroup>
+    <Warning Code="TYPSTIUM0004" Condition="'@(_TypstiumUnavailable)' != ''"
+             Text="TypstiumRuntimeIdentifiers lists '%(_TypstiumUnavailable.Identity)', but no referenced Typstium.Runtime package provides it. Reference Typstium.Runtime.%(_TypstiumUnavailable.Identity), or remove it from the list." />
+
+    <!-- 2. A RID: its shipped runtime; a 32-bit Windows app may run on x64 or Arm64 Windows, so it gets both (D12). -->
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumMappedRid)' == 'win-x86'">
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('win-'))" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumMappedRid)' != '' and '$(_TypstiumMappedRid)' != 'win-x86'">
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == '$(_TypstiumMappedRid)'" />
+    </ItemGroup>
+
+    <!-- 3. No RID: everything referenced; the locator picks at runtime. -->
+    <ItemGroup Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumRid)' == ''">
       <_TypstiumSelected Include="@(_TypstiumKnown)" />
     </ItemGroup>
+
+    <Warning Code="TYPSTIUM0001" Condition="'$(TypstiumRuntimeIdentifiers)' == '' and '$(_TypstiumRid)' != '' and '@(_TypstiumKnown)' != '' and '@(_TypstiumSelected)' == ''"
+             Text="No referenced Typstium.Runtime package matches the runtime identifier '$(RuntimeIdentifier)' (referenced: @(_TypstiumKnown, ', ')), so no Typst binary is copied. Reference the matching Typstium.Runtime package, or ignore this if Typst is installed where the app runs." />
 
     <PropertyGroup>
       <_TypstiumDirectory>$([System.Text.RegularExpressions.Regex]::Replace('$(TypstiumRuntimeDirectory.Replace(`\`, `/`))', '/+$', ''))</_TypstiumDirectory>
