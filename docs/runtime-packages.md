@@ -110,4 +110,6 @@ next to the app in `typst/<rid>/`, with the manifest. Ship the whole publish fol
 - **Package sizes**: each RID package is 22–26 MB (Typst 0.15.1), and each binary is about 50 MB once restored; `Typstium.Runtime.All` restores all seven, about 170 MB. On slow
   feeds or CI caches, reference only the platforms you deploy to.
 
-Typst is licensed under Apache-2.0; each runtime package carries Typst's `LICENSE` and `NOTICE` next to the binary.
+Typst is licensed under Apache-2.0. Each runtime package carries Typst's `LICENSE` and `NOTICE`, and the build
+copies both next to the binary in your output and publish folders, so shipping the publish folder ships the notices
+too.

@@ -92,9 +92,23 @@
 
     <ItemGroup>
       <_TypstiumSelected>
-        <TypstiumTargetPath>$([System.String]::Copy('$(_TypstiumDirectory)').Replace('{rid}', '%(Identity)'))/$([System.IO.Path]::GetFileName('%(Executable)'))</TypstiumTargetPath>
+        <TypstiumTargetDirectory>$([System.String]::Copy('$(_TypstiumDirectory)').Replace('{rid}', '%(Identity)'))</TypstiumTargetDirectory>
       </_TypstiumSelected>
-      <ContentWithTargetPath Include="@(_TypstiumSelected->'%(Executable)')">
+      <_TypstiumSelected>
+        <TypstiumTargetPath>%(TypstiumTargetDirectory)/$([System.IO.Path]::GetFileName('%(Executable)'))</TypstiumTargetPath>
+      </_TypstiumSelected>
+      <!-- Typst is Apache-2.0: its LICENSE and NOTICE travel beside every copy of the binary (D18). -->
+      <_TypstiumExecutable Include="@(_TypstiumSelected->'%(Executable)')" />
+      <_TypstiumRuntimeFileToCopy Include="@(_TypstiumExecutable)" />
+      <_TypstiumRuntimeFileToCopy Include="%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)LICENSE"
+                                  Condition="Exists('%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)LICENSE')">
+        <TypstiumTargetPath>%(_TypstiumExecutable.TypstiumTargetDirectory)/LICENSE</TypstiumTargetPath>
+      </_TypstiumRuntimeFileToCopy>
+      <_TypstiumRuntimeFileToCopy Include="%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)NOTICE"
+                                  Condition="Exists('%(_TypstiumExecutable.RootDir)%(_TypstiumExecutable.Directory)NOTICE')">
+        <TypstiumTargetPath>%(_TypstiumExecutable.TypstiumTargetDirectory)/NOTICE</TypstiumTargetPath>
+      </_TypstiumRuntimeFileToCopy>
+      <ContentWithTargetPath Include="@(_TypstiumRuntimeFileToCopy)">
         <TargetPath>%(TypstiumTargetPath)</TargetPath>
         <CopyToOutputDirectory Condition="'$(TypstiumCopyRuntimeOnBuild)' == 'true'">PreserveNewest</CopyToOutputDirectory>
         <CopyToOutputDirectory Condition="'$(TypstiumCopyRuntimeOnBuild)' != 'true'">Never</CopyToOutputDirectory>
@@ -120,7 +134,7 @@
   -->
   <Target Name="_TypstiumGetRuntimeFiles" DependsOnTargets="_TypstiumAddRuntimeFiles" Returns="@(_TypstiumRuntimeFile)">
     <ItemGroup>
-      <_TypstiumRuntimeFile Include="@(_TypstiumSelected->'%(Executable)')" />
+      <_TypstiumRuntimeFile Include="@(_TypstiumRuntimeFileToCopy)" />
     </ItemGroup>
   </Target>
 
@@ -191,8 +205,8 @@
   <Target Name="_TypstiumAddWebDeployFiles" BeforeTargets="CopyAllFilesToSingleFolderForPackage;CopyAllFilesToSingleFolderForMsdeploy"
           Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
     <ItemGroup>
-      <FilesForPackagingFromProject Include="%(_TypstiumSelected.Executable)">
-        <DestinationRelativePath>bin\%(_TypstiumSelected.TypstiumTargetPath)</DestinationRelativePath>
+      <FilesForPackagingFromProject Include="%(_TypstiumRuntimeFileToCopy.Identity)">
+        <DestinationRelativePath>bin\%(_TypstiumRuntimeFileToCopy.TypstiumTargetPath)</DestinationRelativePath>
       </FilesForPackagingFromProject>
       <FilesForPackagingFromProject Include="$(OutDir)typstium.runtime.json" Condition="Exists('$(OutDir)typstium.runtime.json')">
         <DestinationRelativePath>bin\typstium.runtime.json</DestinationRelativePath>

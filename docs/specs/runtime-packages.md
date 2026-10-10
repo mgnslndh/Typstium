@@ -151,10 +151,12 @@ In order:
 
 ## 6. Copying and the manifest
 
-**Items.** A target that runs before `AssignTargetPaths` turns each selected binary into a
-`ContentWithTargetPath` item:
+**Items.** A target that runs before `AssignTargetPaths` turns each selected binary, and the `LICENSE` and
+`NOTICE` files beside it in the package, into `ContentWithTargetPath` items. Typst is Apache-2.0, so its notices
+travel with every copy of the binary (D18):
 
-- `TargetPath`: `TypstiumRuntimeDirectory` with `{rid}` replaced, plus the file name.
+- `TargetPath`: `TypstiumRuntimeDirectory` with `{rid}` replaced, plus the file name; the notices land beside the
+  binary.
 - `CopyToOutputDirectory=PreserveNewest` (or `Never` when `TypstiumCopyRuntimeOnBuild` is false).
 - `CopyToPublishDirectory=PreserveNewest` (or `Never` when `TypstiumCopyRuntimeOnPublish` is false).
 - `ExcludeFromSingleFile=true`.
@@ -199,7 +201,7 @@ runtime `EnsureExecutable` remains the fallback (RS12).
 - Platforms that can't start processes (`TYPSTIUM0006`).
 - `TypstiumCopyRuntime=false`.
 
-**Classic web projects.** The output already goes to `bin/`. A target adds the selected files to
+**Classic web projects.** The output already goes to `bin/`. A target adds the selected files and their notices to
 `FilesForPackagingFromProject`, so WebDeploy/MSDeploy packages include them (RS17).
 
 ## 7. Locating the binary at runtime

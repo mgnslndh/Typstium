@@ -93,6 +93,17 @@ public class ClassicProjectTests
     [Property(Scenario.Key, "RS17")]
     public async Task A_classic_web_application_publishes_its_runtime_under_bin()
     {
+        var (temp, site, published) = await PublishClassicWebAsync("");
+        using var _ = temp;
+
+        await Assert.That(File.Exists(Path.Combine(site, "bin", "typst", "win-x64", "typst.exe"))).IsTrue().Because(published);
+        await Assert.That(File.Exists(Path.Combine(site, "bin", "typst", "win-x64", "LICENSE"))).IsTrue().Because(published);
+        await Assert.That(File.Exists(Path.Combine(site, "bin", "typst", "win-x64", "NOTICE"))).IsTrue().Because(published);
+        await Assert.That(File.Exists(Path.Combine(site, "bin", "typstium.runtime.json"))).IsTrue().Because(published);
+    }
+
+    private static async Task<(TemporaryDirectory Temp, string Site, string Published)> PublishClassicWebAsync(string extraProperties)
+    {
         var msbuild = await RequireMSBuildAsync();
 
         // The web targets live under the same Visual Studio install as MSBuild, in a folder named for its version (v17.0, v18.0, ...).
@@ -107,7 +118,7 @@ public class ClassicProjectTests
 
         var visualStudioVersion = Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(webTargets!))!)[1..];
         var feed = await PackageFeed.GetFixtureAsync();
-        using var temp = new TemporaryDirectory("classic-web");
+        var temp = new TemporaryDirectory("classic-web");
         var v = feed.Version;
         temp.CreateFile("nuget.config", $"""
             <?xml version="1.0" encoding="utf-8"?>
@@ -128,6 +139,7 @@ public class ClassicProjectTests
                 <AssemblyName>Web</AssemblyName>
                 <VisualStudioVersion>{{visualStudioVersion}}</VisualStudioVersion>
                 <VSToolsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+            {{extraProperties}}
               </PropertyGroup>
               <ItemGroup>
                 <Reference Include="System" />
@@ -150,7 +162,6 @@ public class ClassicProjectTests
         var published = "Published files: " + string.Join(", ", Directory.Exists(site) ? Directory.EnumerateFiles(site, "*", SearchOption.AllDirectories).Select(file => Path.GetRelativePath(site, file)) : []);
         await Assert.That(restore.ExitCode).IsEqualTo(0).Because(restore.Output);
         await Assert.That(publish.ExitCode).IsEqualTo(0).Because(publish.Output);
-        await Assert.That(File.Exists(Path.Combine(site, "bin", "typst", "win-x64", "typst.exe"))).IsTrue().Because(published);
-        await Assert.That(File.Exists(Path.Combine(site, "bin", "typstium.runtime.json"))).IsTrue();
+        return (temp, site, published);
     }
 }

@@ -36,6 +36,8 @@ public class LibraryFlowTests
 
         await Assert.That(publish.ExitCode).IsEqualTo(0).Because(publish.Output);
         await Assert.That(app.TypstFiles("pub")).IsEquivalentTo(new[] { "typst/linux-x64/typst", "typstium.runtime.json" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        // The library's other runtime brings no license files either.
+        await Assert.That(Directory.Exists(Path.Combine(app.Directory, "pub", "typst", "win-x64"))).IsFalse();
     }
 
     [Test]
@@ -55,6 +57,8 @@ public class LibraryFlowTests
         await Assert.That(publish.ExitCode).IsEqualTo(0).Because(publish.Output);
         await Assert.That(app.TypstFiles(Output)).IsEmpty();
         await Assert.That(app.TypstFiles("pub")).IsEmpty();
+        await Assert.That(Directory.Exists(Path.Combine(app.Directory, Output, "typst"))).IsFalse();
+        await Assert.That(Directory.Exists(Path.Combine(app.Directory, "pub", "typst"))).IsFalse();
     }
 
     [Test]
@@ -75,5 +79,8 @@ public class LibraryFlowTests
         var expected = new[] { "tools/linux-x64/typst", "tools/win-x64/typst.exe", "typstium.runtime.json" };
         await Assert.That(app.TypstFiles(Output)).IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(app.TypstFiles("pub")).IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        // Nothing lands in the library's default typst/<rid>/ folders, license files included.
+        await Assert.That(Directory.Exists(Path.Combine(app.Directory, Output, "typst"))).IsFalse();
+        await Assert.That(Directory.Exists(Path.Combine(app.Directory, "pub", "typst"))).IsFalse();
     }
 }

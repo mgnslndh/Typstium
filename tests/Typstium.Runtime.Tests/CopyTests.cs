@@ -153,4 +153,33 @@ public class CopyTests
         var runtimes = System.Text.Json.JsonDocument.Parse(built.ReadText("out/typstium.runtime.json")).RootElement.GetProperty("runtimes");
         await Assert.That(runtimes.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal).ToArray()).IsEquivalentTo(new[] { "linux-riscv64", "linux-x64" });
     }
+
+    // Typst is Apache-2.0: its LICENSE and NOTICE travel with every copy of the binary (spec D18).
+    [Test]
+    [Property(Scenario.Key, "RS1")]
+    [Property(Scenario.Key, "RS2")]
+    [Property(Scenario.Key, "RS31")]
+    [Arguments("", "typst/linux-x64")]
+    [Arguments("tools/{rid}", "tools/linux-x64")]
+    public async Task Each_runtime_carries_typsts_license_and_notice(string directory, string expectedFolder)
+    {
+        using var project = await SampleProject.CreateAsync(runtimes: ["linux-x64"]);
+        if (directory.Length > 0)
+        {
+            project.Properties["TypstiumRuntimeDirectory"] = directory;
+        }
+
+        project.Write();
+        var build = await project.RunAsync("build", "-c", "Release", "-o", "out");
+        var publish = await project.RunAsync("publish", "-c", "Release", "-o", "pub");
+
+        await Assert.That(build.ExitCode).IsEqualTo(0).Because(build.Output);
+        await Assert.That(publish.ExitCode).IsEqualTo(0).Because(publish.Output);
+        foreach (var folder in new[] { "out", "pub" })
+        {
+            var runtime = Path.Combine(project.Directory, folder, expectedFolder);
+            await Assert.That(Directory.EnumerateFiles(runtime).Select(file => Path.GetFileName(file)!).Order(StringComparer.Ordinal).ToArray())
+                .IsEquivalentTo(new[] { "LICENSE", "NOTICE", "typst" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        }
+    }
 }
