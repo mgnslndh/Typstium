@@ -68,6 +68,12 @@
       <_TypstiumDirectory>$([System.Text.RegularExpressions.Regex]::Replace('$(TypstiumRuntimeDirectory.Replace(`\`, `/`))', '/+$', ''))</_TypstiumDirectory>
     </PropertyGroup>
 
+    <!-- §4. The directory is relative to the output folder; anything that could escape it is rejected. -->
+    <Error Code="TYPSTIUM0003" Condition="'@(_TypstiumSelected)' != '' and ('$(_TypstiumDirectory)' == '' or $([System.IO.Path]::IsPathRooted('$(_TypstiumDirectory)')) or $(_TypstiumDirectory.StartsWith('/')) or $(_TypstiumDirectory.Contains(':')) or $(_TypstiumDirectory.Contains('&quot;')) or $([System.Text.RegularExpressions.Regex]::IsMatch('$(_TypstiumDirectory)', '(^|/)\.\.(/|$)')))"
+           Text="TypstiumRuntimeDirectory '$(TypstiumRuntimeDirectory)' must be a relative folder inside the output folder, without '..', ':' or quotes, e.g. 'typst/{rid}'." />
+    <Error Code="TYPSTIUM0002" Condition="!$(_TypstiumDirectory.Contains('{rid}')) and '@(_TypstiumSelected->Count())' &gt; '1'"
+           Text="TypstiumRuntimeDirectory '$(TypstiumRuntimeDirectory)' has no {rid}, but @(_TypstiumSelected->Count()) runtimes are selected (@(_TypstiumSelected, ', ')), so they would overwrite each other. Add {rid}, or select one runtime with RuntimeIdentifier or TypstiumRuntimeIdentifiers." />
+
     <ItemGroup>
       <_TypstiumSelected>
         <TypstiumTargetPath>$([System.String]::Copy('$(_TypstiumDirectory)').Replace('{rid}', '%(Identity)'))/$([System.IO.Path]::GetFileName('%(Executable)'))</TypstiumTargetPath>
