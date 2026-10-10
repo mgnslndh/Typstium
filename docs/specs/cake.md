@@ -46,7 +46,7 @@ and no network.
 | D6 | Finding the binary in the tools folder | Own locator: `Typstium.Runtime.*/tools/typst/<rid>/typst[.exe]` for the host RID and its emulation fallback | `context.Tools.Resolve("typst")` | With linux-x64 and linux-arm64 both installed, both files are named `typst` and Cake's registry would pick one arbitrarily |
 | D7 | Host RID logic | Duplicated in the addin (about 20 lines) | Public `RuntimeIdentifierCandidates` in the core; `InternalsVisibleTo` | A public type would be permanent core API for one consumer. `InternalsVisibleTo` across separately versioned packages breaks on version skew. Duplication is cheaper than the wrong abstraction (foundation principle 11) |
 | D8 | Sync or async | Both: `TypstCompile` blocks on `TypstCompileAsync` | Async only; sync only | Most Cake aliases are sync, and `.Does(() => TypstCompileAsync(...))` drops the task silently in a script. Async allows parallel compiles. Blocking is the addin's single exception to foundation principle 9; it is safe because Cake runs with no synchronization context |
-| D9 | Loading the core assembly | A normal NuGet dependency on `Typstium`; scripts use `&loaddependencies=true` | Bundle `Typstium.dll` in the addin's `lib/`; both | One copy of the core per process. Frosting and Cake.Sdk projects get the core's `buildTransitive` targets and may reference `Typstium` themselves without a duplicate. The core's `net8.0` build has no runtime dependencies, so `loaddependencies` adds exactly one assembly. A missing directive gets a message that names the fix (section 4.4) |
+| D9 | Loading the core assembly | A normal NuGet dependency on `Typstium`; scripts use `&loaddependencies=true` | Bundle `Typstium.dll` in the addin's `lib/`; both | One copy of the core per process. Frosting and Cake.Sdk projects get the core's `buildTransitive` targets and may reference `Typstium` themselves without a duplicate. The core's `net8.0` build has no runtime dependencies, so `loaddependencies` adds exactly one assembly. A missing directive can't be caught by the addin (section 4.4), so the docs lead with it |
 | D10 | Failure | `Failed`, `TimedOut` and `OutputLimitExceeded` throw `CakeException` after every diagnostic is logged; core exceptions pass through | Return the result and let the script check it | A failed document fails the task the Cake way, and `ContinueOnError`/`OnError` work as usual. The locator's "searched these places" message reaches the log intact |
 | D11 | Return value | `TypstCompileResult` from both the sync and the async aliases | `void` | Scripts can read `Invocation` (Typst version, duration) or count warnings; most ignore it |
 | D12 | Warnings | Logged; `TreatWarningsAsErrors` (default `false`) makes them fail the task | Always fail; never fail | The MSBuild convention |
@@ -63,7 +63,8 @@ and no network.
 
 - Targets `net8.0` (D17).
 - Depends on `Typstium` at a version range starting at the core version it was built with (`net8.0` build).
-- References `Cake.Core` 6.3.0 with `PrivateAssets="all"`, the standard addin pattern: Cake provides it at run time.
+- References `Cake.Core` 6.0.0, the first Cake 6, with `PrivateAssets="all"`, the standard addin pattern: Cake provides
+  it at run time, and Cake warns about addins built against a newer Cake.Core than the one running.
 - Package tags include `cake-addin` (how Cake's addin discovery finds addins), an icon and a README.
 - Tracks its public API with `PublicApiAnalyzers`, like the core.
 
@@ -195,11 +196,14 @@ The sync alias calls the async path with `GetAwaiter().GetResult()` (D8).
 ### 4.4 A missing `loaddependencies`
 
 A script loaded with `#addin nuget:?package=Cake.Typstium` but without `&loaddependencies=true` has no
-`Typstium.dll`. Each alias reaches core types only through a helper method, so the alias body itself never
-references them. A `FileNotFoundException` for the `Typstium` assembly is turned into a `CakeException`:
+`Typstium.dll`. The aliases' public signatures name core types (`TypstCompileResult`, `ITypstCompiler`), so Cake's
+compilation of the script fails (CS0012, the type "is defined in an assembly that is not referenced", naming
+`Typstium`) before any alias runs. The addin can't intercept that, so:
 
-> Cake.Typstium needs the Typstium assembly. Load the addin with
-> `#addin nuget:?package=Cake.Typstium&loaddependencies=true`.
+- The package README and the user guide show the directive with `&loaddependencies=true` in every script example,
+  and mention Cake's global switch (`NuGet_LoadDependencies=true` in `cake.config`, or the
+  `CAKE_NUGET_LOADDEPENDENCIES=true` environment variable).
+- CK3 pins that the failure names the `Typstium` assembly, so a user searching for the error finds the fix.
 
 ## 5. Finding Typst
 
@@ -216,7 +220,7 @@ own (D5):
 | 6 | Well-known locations | `TypstExecutableLocators.WellKnownLocations()` |
 | 7 | `PATH` | `TypstExecutableLocators.SearchPath()` |
 
-**`CakeToolsLocator`** (`Name` = `"Cake tools"`):
+**`CakeToolsLocator`** (`Name` = `"CakeTools"`, in the style of the core's `BundledRuntime` and `WinGet`):
 
 - The tools folder is the one `#tool` installs into: Cake's `Paths_Tools` configuration value, default `./tools`
   under the working directory.
@@ -248,9 +252,9 @@ Each scenario has a stable ID. End-to-end tests carry `[Property("Scenario", "CK
 
 | ID | Scenario | Expected | Verified by |
 |---|---|---|---|
-| CK1 | `.cake` script with `#addin …&loaddependencies=true` and `#tool` for the host RID | PDF produced; the log names "Cake tools" | End to end |
+| CK1 | `.cake` script with `#addin …&loaddependencies=true` and `#tool` for the host RID | PDF produced; the result's `ExecutableFoundBy` is `CakeTools` | End to end |
 | CK2 | As CK1, with `#tool` lines for several RIDs | The host's binary is chosen | End to end; locator unit tests |
-| CK3 | `#addin` without `loaddependencies` | The task fails with the 4.4 message | End to end |
+| CK3 | `#addin` without `loaddependencies` | Cake fails to compile the script, and the error names the `Typstium` assembly (4.4) | End to end |
 | CK4 | Cake.Sdk project referencing `Cake.Typstium` and `Typstium.Runtime.<rid>`, no `#tool` | PDF produced; found by the bundled runtime | End to end |
 | CK5 | `TYPST_PATH` set and a `#tool` installed | `TYPST_PATH` wins | End to end; resolver unit tests |
 | CK6 | A `.typ` with an error | Cake exits non-zero; the log has the canonical `file(line,col): error TYPST…` line | End to end; integration |
@@ -296,11 +300,11 @@ packed runtime packages.
 2. How an addin reads the tools folder: the `Paths_Tools` configuration key and the API that resolves it against
    the working directory.
 3. That `[CakeNamespaceImport]` reaches Cake.Sdk scripts and Frosting, not only `.cake` scripts.
-4. That a missing `loaddependencies` surfaces as a `FileNotFoundException` at the first call into a helper, not
-   when Cake loads the addin, so 4.4 can catch it.
+4. ~~That a missing `loaddependencies` can be caught at run time.~~ It can't: the script fails to compile (4.4).
 5. Cake.Tool 6.3.0 runs `.cake` scripts on the .NET 10 SDK, and the addin's `net8.0` build loads in it.
 6. `Cake.Testing` 6.3.0 fakes cover what the unit tests need (`FakeEnvironment`, `FakeLog`, `ICakeConfiguration`).
-7. The core's `TypstDocument.Paged.SaveAsync` handles the pattern rules of 4.3, or the runner checks them first.
+7. ~~The core's `TypstDocument.Paged.SaveAsync` handles the pattern rules of 4.3.~~ It throws `ArgumentException` for
+   more than one page without `{p}` or `{0p}`, before writing; the runner checks first only to name the page count.
 
 ## 10. Related work
 
