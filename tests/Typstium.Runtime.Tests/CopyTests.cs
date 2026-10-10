@@ -20,16 +20,10 @@ public class CopyTests
         using var project = await BuiltAsync(await SampleProject.CreateAsync(runtimes: ["linux-x64", "win-x64"]));
 
         await Assert.That(project.TypstFiles("out")).IsEquivalentTo(new[] { "typst/linux-x64/typst", "typst/win-x64/typst.exe", "typstium.runtime.json" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(project.ReadText("out/typstium.runtime.json")).IsEqualTo("""
-            {
-              "version": 1,
-              "runtimes": {
-                "linux-x64": "typst/linux-x64/typst",
-                "win-x64": "typst/win-x64/typst.exe"
-              }
-            }
-
-            """);
+        var manifest = System.Text.Json.JsonDocument.Parse(project.ReadText("out/typstium.runtime.json")).RootElement;
+        await Assert.That(manifest.GetProperty("version").GetInt32()).IsEqualTo(1);
+        await Assert.That(manifest.GetProperty("runtimes").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString())).IsEquivalentTo(
+            new Dictionary<string, string?> { ["linux-x64"] = "typst/linux-x64/typst", ["win-x64"] = "typst/win-x64/typst.exe" });
     }
 
     [Test]
@@ -109,13 +103,15 @@ public class CopyTests
     {
         using var project = await SampleProject.CreateAsync(runtimes: ["linux-x64"]);
         project.Write();
-        await project.RunAsync("build", "-c", "Release");
+        var first = await project.RunAsync("build", "-c", "Release");
+        await Assert.That(first.ExitCode).IsEqualTo(0).Because(first.Output);
         var output = Path.Combine(project.Directory, "bin", "Release", "net10.0");
         var binary = Path.Combine(output, "typst", "linux-x64", "typst");
         File.WriteAllText(binary, "marker");
         File.SetLastWriteTimeUtc(binary, DateTime.UtcNow.AddDays(1));
 
-        await project.RunAsync("build", "-c", "Release");
+        var second = await project.RunAsync("build", "-c", "Release");
+        await Assert.That(second.ExitCode).IsEqualTo(0).Because(second.Output);
         await Assert.That(File.ReadAllText(binary)).IsEqualTo("marker");
 
         var clean = await project.RunAsync("clean", "-c", "Release");
@@ -142,5 +138,19 @@ public class CopyTests
         await Assert.That(publish.ExitCode).IsEqualTo(0).Because(publish.Output);
         await Assert.That(app.TypstFiles("out")).IsEquivalentTo(new[] { "typst/linux-x64/typst", "typstium.runtime.json" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(app.TypstFiles("pub")).IsEquivalentTo(new[] { "typst/linux-x64/typst", "typstium.runtime.json" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Property(Scenario.Key, "RS1")]
+    public async Task A_runtime_identifier_declared_by_a_package_is_copied_and_listed()
+    {
+        var project = await SampleProject.CreateAsync(runtimes: ["linux-x64"]);
+        project.ExtraItems.Add("""<TypstiumRuntime Include="linux-riscv64" Executable="$(MSBuildProjectDirectory)/Program.cs" ContractVersion="1" />""");
+        using var built = await BuiltAsync(project);
+
+        await Assert.That(File.Exists(Path.Combine(built.Directory, "out", "typst", "linux-riscv64", "Program.cs"))).IsTrue();
+        await Assert.That(File.Exists(Path.Combine(built.Directory, "out", "typst", "linux-x64", "typst"))).IsTrue();
+        var runtimes = System.Text.Json.JsonDocument.Parse(built.ReadText("out/typstium.runtime.json")).RootElement.GetProperty("runtimes");
+        await Assert.That(runtimes.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal).ToArray()).IsEquivalentTo(new[] { "linux-riscv64", "linux-x64" });
     }
 }

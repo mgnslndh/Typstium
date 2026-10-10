@@ -60,4 +60,19 @@ public class PackageLayoutTests
             }
         }
     }
+
+    [Test]
+    public async Task The_packed_targets_files_are_well_formed_xml()
+    {
+        var (_, _, archive) = await OpenAsync("Typstium");
+        using (archive)
+        {
+            foreach (var path in new[] { "build/Typstium.targets", "buildTransitive/Typstium.targets" })
+            {
+                using var reader = new StreamReader(archive.GetEntry(path)!.Open());
+                var document = System.Xml.Linq.XDocument.Parse(await reader.ReadToEndAsync());
+                await Assert.That(document.Root!.Name.LocalName).IsEqualTo("Project");
+            }
+        }
+    }
 }

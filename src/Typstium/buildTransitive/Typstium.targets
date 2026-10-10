@@ -20,15 +20,8 @@
       <Output TaskParameter="Filtered" ItemName="_TypstiumKnown" />
     </RemoveDuplicates>
 
-    <!-- Ordinal order by RID, so the manifest doesn't depend on the order NuGet imports the props files in. -->
     <ItemGroup>
-      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'linux-arm'" />
-      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'linux-arm64'" />
-      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'linux-x64'" />
-      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'osx-arm64'" />
-      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'osx-x64'" />
-      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'win-arm64'" />
-      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'win-x64'" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" />
     </ItemGroup>
 
     <PropertyGroup>

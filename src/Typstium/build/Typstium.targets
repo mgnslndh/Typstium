@@ -2,4 +2,3 @@
   <!-- packages.config imports build/ only; the logic lives in buildTransitive/ (docs/specs/runtime-packages.md §3). -->
   <Import Project="$(MSBuildThisFileDirectory)../buildTransitive/Typstium.targets" Condition="'$(_TypstiumTargetsImported)' != 'true'" />
 </Project>
-```
