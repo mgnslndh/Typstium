@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <PackageReference Include="Cake.Common" />
+    <PackageReference Include="SharpCompress" />
     <PackageReference Include="ReportGenerator.Core" />
     <PackageReference Include="Spectre.Console" />
   </ItemGroup>
