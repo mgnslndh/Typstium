@@ -14,11 +14,19 @@ public static partial class Program
 
         Task("UnitTests")
             .IsDependentOn("Build")
-            .Does<BuildParameters>(parameters => RunProductTests("tests/Typstium.UnitTests", parameters));
+            .Does<BuildParameters>(parameters =>
+            {
+                RunProductTests("tests/Typstium.UnitTests", parameters);
+                RunProductTests("tests/Cake.Typstium.UnitTests", parameters);
+            });
 
         Task("IntegrationTests")
             .IsDependentOn("UnitTests")
-            .Does<BuildParameters>(parameters => RunProductTests("tests/Typstium.IntegrationTests", parameters));
+            .Does<BuildParameters>(parameters =>
+            {
+                RunProductTests("tests/Typstium.IntegrationTests", parameters);
+                RunProductTests("tests/Cake.Typstium.IntegrationTests", parameters);
+            });
 
         // Never with coverage: instrumentation would distort the timings.
         Task("TimingTests")

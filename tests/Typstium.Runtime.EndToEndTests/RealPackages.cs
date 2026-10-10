@@ -23,7 +23,8 @@ internal static class RealPackages
         var allProperties = new Dictionary<string, string>(properties ?? []) { ["OutputType"] = "Exe", ["TargetFramework"] = targetFramework, ["LangVersion"] = "latest", ["ImplicitUsings"] = "enable" };
         var propertyLines = string.Concat(allProperties.Select(property => $"    <{property.Key}>{property.Value}</{property.Key}>\n"));
 
-        var app = new App(session.Environment);
+        // Each app gets its own NuGet, CLI and temp folders, so apps restoring and building in parallel share nothing.
+        var app = new App(IsolatedEnvironment.Create(Path.Combine(PackageFeed.ArtifactsRoot, "e2e-iso-" + Guid.NewGuid().ToString("N")), session.Environment));
         app.Write("App.csproj",
             "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n" + propertyLines + "  </PropertyGroup>\n  <ItemGroup>\n" +
             $"    <PackageReference Include=\"Typstium\" Version=\"{session.Version}\" />\n" + references + "  </ItemGroup>\n</Project>\n");

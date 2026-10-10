@@ -2,7 +2,7 @@
 // See docs/specs/cake-sdk-build.md. Arguments: --target=<task> (Default), --configuration=<c> (Release), --coverage,
 // --no-job-summary, --max-line-decrease=<pp> (0.5).
 // Runtime packages (not in Default): --target=UpdateTypstRuntimes --typst-version=<v>, DownloadTypstRuntimes,
-// PackTypstRuntimes, RuntimeTests, RuntimeEndToEndTests.
+// PackTypstRuntimes, RuntimeTests, RuntimeEndToEndTests, CakeEndToEndTests.
 var target = Argument("target", "Default");
 
 Setup(context =>
@@ -22,6 +22,7 @@ RegisterBuildTasks();
 RegisterTestTasks();
 RegisterCoverageTasks();
 RegisterRuntimeTasks();
+RegisterCakeTasks();
 RegisterDefaultTask();
 
 RunTarget(target);
