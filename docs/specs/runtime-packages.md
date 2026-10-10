@@ -453,5 +453,5 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 | R1 | Older .NET versions report the emulated architecture from `OSArchitecture`, so the native RID is wrong under emulation | Harmless for D11 (the emulated binary runs); measured on real hardware in the RS41 jobs |
 | R2 | `tar.xz` extraction in the Cake build: .NET has no xz decoder | SharpCompress in `Build.Cake.Extensions` only (D18) |
 | R3 | A publish folder reused after switching directories keeps stale binaries (publish folders aren't cleaned) | The manifest is always rewritten (D7), so it points at the current binaries; stale ones are unused. Documented: publish to a clean folder |
-| R4 | Seven packages of 14–22 MB each strain restore on slow feeds | Documented; `Runtime.All` is opt-in |
+| R4 | Seven packages of 22–26 MB each (about 170 MB together, measured for Typst 0.15.1) strain restore on slow feeds | Documented; `Runtime.All` is opt-in |
 | R5 | packages.config imports only direct references' `build/` folders | Supported only with direct references (RS18) |

@@ -140,7 +140,7 @@ Binaries are copied by our own `buildTransitive` targets to a fixed output folde
 
 - One package per platform: win-x64, win-arm64, linux-x64, linux-arm64, osx-x64, osx-arm64. Confirm against the targets of each Typst release.
 - Typst's Linux releases are static musl builds, so one binary should serve both `linux-x64` and `linux-musl-x64`. Verify per release.
-- Each binary is tens of MB because fonts are embedded. `Runtime.All` will be roughly 150–250 MB, so it's offered but not the default.
+- Each binary is tens of MB because fonts are embedded. `Runtime.All` restores about 170 MB (seven packages of 22–26 MB for Typst 0.15.1), so it's offered but not the default.
 
 **Known gotchas**
 

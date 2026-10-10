@@ -1,6 +1,6 @@
 # Typstium.Runtime.All
 
-Every `Typstium.Runtime.<rid>` package at the same Typst version: about 110 MB to restore. Prefer referencing only the
+Every `Typstium.Runtime.<rid>` package at the same Typst version: about 170 MB to restore. Prefer referencing only the
 platforms you deploy to.
 
 The official [Typst](https://typst.app) command-line compiler for each platform, repackaged unchanged from

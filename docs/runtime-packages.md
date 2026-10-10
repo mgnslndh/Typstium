@@ -11,7 +11,7 @@ what to reference and how to deploy. The design and its reasoning are in the
 |---|---|
 | An app for one platform | `Typstium` and that platform's package, e.g. `Typstium.Runtime.linux-x64` |
 | An app for a few platforms | `Typstium` and each platform's package |
-| An app for every platform | `Typstium` and `Typstium.Runtime.All` (all seven packages, about 110 MB to restore) |
+| An app for every platform | `Typstium` and `Typstium.Runtime.All` (all seven packages, about 170 MB to restore) |
 | A library or library package | `Typstium` only. The app that uses it chooses the platforms (RS26) |
 
 Platforms: `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, `linux-arm64`, `linux-arm`. The Linux
@@ -107,7 +107,7 @@ next to the app in `typst/<rid>/`, with the manifest. Ship the whole publish fol
 - **Choosing a Typst version** (RS39): a runtime package's version is the Typst version it holds (`0.15.1`).
   `Typstium.Runtime.All` pins its RID packages to its own version exactly, so for another Typst version reference the
   RID packages directly at that version instead. Typstium requires Typst 0.15 or newer.
-- **Package sizes**: each RID package is 14–22 MB; `Typstium.Runtime.All` restores all seven, about 110 MB. On slow
+- **Package sizes**: each RID package is 22–26 MB (Typst 0.15.1), and each binary is about 50 MB once restored; `Typstium.Runtime.All` restores all seven, about 170 MB. On slow
   feeds or CI caches, reference only the platforms you deploy to.
 
 Typst is licensed under Apache-2.0; each runtime package carries Typst's `LICENSE` and `NOTICE` next to the binary.
