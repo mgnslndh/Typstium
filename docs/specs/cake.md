@@ -198,14 +198,15 @@ The sync alias calls the async path with `GetAwaiter().GetResult()` (D8).
 ### 4.4 A missing `loaddependencies`
 
 A script loaded with `#addin nuget:?package=Cake.Typstium` but without `&loaddependencies=true` has no
-`Typstium.dll`. The aliases' public signatures name core types (`TypstCompileResult`, `ITypstCompiler`), so Cake's
-compilation of the script fails (CS0012, the type "is defined in an assembly that is not referenced", naming
-`Typstium`) before any alias runs. The addin can't intercept that, so:
+`Typstium.dll`. The aliases' public signatures name core types (`TypstCompileResult`, `ITypstCompiler`), so Cake can't
+load the addin: it logs `Could not load …/Cake.Typstium.dll (missing Typstium, Version=…)` and the script then fails to
+compile with `CS0103: The name 'TypstCompile' does not exist in the current context` (verified in CK3). No alias runs, so
+the addin can't intercept that, and:
 
 - The package README and the user guide show the directive with `&loaddependencies=true` in every script example,
   and mention Cake's global switch (`NuGet_LoadDependencies=true` in `cake.config`, or the
   `CAKE_NUGET_LOADDEPENDENCIES=true` environment variable).
-- CK3 pins that the failure names the `Typstium` assembly, so a user searching for the error finds the fix.
+- CK3 pins both lines, and the user guide quotes them, so a user searching for either error finds the fix.
 
 ## 5. Finding Typst
 
@@ -256,7 +257,7 @@ Each scenario has a stable ID. End-to-end tests carry `[Property("Scenario", "CK
 |---|---|---|---|
 | CK1 | `.cake` script with `#addin …&loaddependencies=true` and `#tool` for the host RID | PDF produced; the result's `ExecutableFoundBy` is `CakeTools` | End to end |
 | CK2 | As CK1, with `#tool` lines for several RIDs | The host's binary is chosen | End to end; locator unit tests |
-| CK3 | `#addin` without `loaddependencies` | Cake fails to compile the script, and the error names the `Typstium` assembly (4.4) | End to end |
+| CK3 | `#addin` without `loaddependencies` | Cake logs that it couldn't load the addin (missing `Typstium`), then fails to compile the script with CS0103 for `TypstCompile` (4.4) | End to end |
 | CK4 | Cake.Sdk project referencing `Cake.Typstium` and `Typstium.Runtime.<rid>`, no `#tool` | PDF produced; found by the bundled runtime | End to end |
 | CK5 | `TYPST_PATH` set and a `#tool` installed | `TYPST_PATH` wins | End to end; resolver unit tests |
 | CK6 | A `.typ` with an error | Cake exits non-zero; the log has the canonical `file(line,col): error TYPST…` line | End to end; integration |
@@ -306,7 +307,8 @@ All verified during implementation:
    `./tools` under the working directory (unit tests, CK1).
 3. ~~`[CakeNamespaceImport]` and aliases in Cake.Sdk.~~ Cake.Sdk exposes `TypstCompile` as a global alias (CK4). Core
    types still need `using Typstium;` there; the user guide says so.
-4. ~~That a missing `loaddependencies` can be caught at run time.~~ It can't: the script fails to compile (4.4, CK3).
+4. ~~That a missing `loaddependencies` can be caught at run time.~~ It can't: Cake skips the addin and the script fails
+   to compile (4.4, CK3).
 5. ~~Cake.Tool 6.3.0 runs `.cake` scripts on the .NET 10 SDK, and the `net8.0` addin loads in it.~~ Yes (CK1).
 6. ~~`Cake.Testing` 6.3.0 fakes cover the unit tests.~~ `FakeEnvironment`, `FakeLog` and `FakeConfiguration` do; the tests
    implement `ICakeContext` themselves with those three.

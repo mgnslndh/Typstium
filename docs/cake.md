@@ -15,8 +15,14 @@ together with Markdown support in the other Typstium integrations.
 #addin nuget:?package=Cake.Typstium&loaddependencies=true
 ```
 
-`loaddependencies=true` is required. The aliases use types from the `Typstium` package, and without it Cake fails to
-compile the script with an error naming the `Typstium` assembly (CK3). To load dependencies for every addin instead, set
+`loaddependencies=true` is required: the aliases use types from the `Typstium` package. Without it Cake can't load the
+addin, and the script fails with these two errors (CK3):
+
+```
+Could not load …/tools/Addins/Cake.Typstium.1.0.0/lib/net8.0/Cake.Typstium.dll (missing Typstium, Version=…)
+build.cake(5,18): error CS0103: The name 'TypstCompile' does not exist in the current context
+```
+ To load dependencies for every addin instead, set
 `NuGet_LoadDependencies=true` in `cake.config`, or the environment variable `CAKE_NUGET_LOADDEPENDENCIES=true`.
 
 **Cake.Sdk or Frosting** (a project):
@@ -177,11 +183,13 @@ Task("Certificates").Does(async () =>
     foreach (var name in names)
     {
         var result = (await compiler.CompileAsync(
-            TypstCompileRequest.ForFile("certificates/certificate.typ").WithInput("name", name))).EnsureSuccess();
-        await ((TypstDocument.SingleFile)result.Document!).SaveAsync($"artifacts/certificates/{name}.pdf", CancellationToken.None);
+            TypstCompileRequest.ForFile(MakeAbsolute(File("certificates/certificate.typ")).FullPath)
+                .WithInput("name", name))).EnsureSuccess();
+        await ((TypstDocument.SingleFile)result.Document!).SaveAsync(
+            MakeAbsolute(File($"artifacts/certificates/{name}.pdf")).FullPath, CancellationToken.None);
     }
 });
 ```
 
-Paths given to the core API are not made relative to Cake's working directory. Pass full paths, for example with
-`MakeAbsolute(File("certificates/certificate.typ")).FullPath`.
+Paths given to the core API are not made relative to Cake's working directory, so the example passes full paths. The
+output folder must exist; the core API doesn't create it.

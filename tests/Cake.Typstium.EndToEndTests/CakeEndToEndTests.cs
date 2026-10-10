@@ -52,6 +52,11 @@ public partial class CakeEndToEndTests
     // Cake's #tool registers only *.exe and *.dll files; the Linux and macOS binaries have no extension.
     private static string Include(string rid) => rid.StartsWith("win", StringComparison.Ordinal) ? "" : "&include=./**/typst";
 
+    // Cake skips an addin it can't load and says why ("Could not load …Cake.Typstium.dll (missing Typstium, Version=…)");
+    // the script then fails to compile with CS0103 for the alias.
+    [GeneratedRegex(@"Could not load [^\r\n]*Cake\.Typstium\.dll \(missing Typstium, Version=[\s\S]*error CS0103: The name 'TypstCompile' does not exist")]
+    private static partial Regex MissingTypstiumAssembly();
+
     [GeneratedRegex(@"\x1b\[[0-9;]*m")]
     private static partial Regex Ansi();
 
@@ -117,8 +122,9 @@ public partial class CakeEndToEndTests
 
         var run = await RunCakeAsync(session, folder);
 
+        // Cake echoes the #addin directive, so "Typstium" alone would always match: require the compiler's error.
         await Assert.That(run.ExitCode).IsNotEqualTo(0);
-        await Assert.That(run.Output).Contains("Typstium");
+        await Assert.That(MissingTypstiumAssembly().IsMatch(run.Output)).IsTrue().Because(run.Output);
         await Assert.That(run.Output).DoesNotContain("found-by=");
     }
 

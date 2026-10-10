@@ -37,6 +37,11 @@ internal static class TypstCompileRequestMapper
             throw new ArgumentException($"PdfStandards apply to PDF output only, but the output is {format}.", nameof(settings));
         }
 
+        if (settings.Pages is not null && format == TypstOutputFormat.Html)
+        {
+            throw new ArgumentException("Pages applies to PDF, PNG and SVG output only, but the output is Html.", nameof(settings));
+        }
+
         var pages = settings.Pages ?? TypstPageSelection.All;
         return format switch
         {

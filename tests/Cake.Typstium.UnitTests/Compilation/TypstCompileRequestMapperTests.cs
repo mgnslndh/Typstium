@@ -122,6 +122,17 @@ public class TypstCompileRequestMapperTests
     }
 
     [Test]
+    public async Task Pages_for_html_are_refused()
+    {
+        using var work = new TemporaryDirectory("cake-map");
+        var exception = Assert.Throws<ArgumentException>(() =>
+            Map(work, TypstOutputFormat.Html, new TypstCompileSettings().WithPages(TypstPageSelection.Of(TypstPageRange.Single(1)))));
+
+        await Assert.That(exception!.Message).Contains("Pages");
+        await Assert.That(exception.ParamName).IsEqualTo("settings");
+    }
+
+    [Test]
     [Arguments(TypstOutputFormat.Png)]
     [Arguments(TypstOutputFormat.Html)]
     public async Task Pdf_standards_for_anything_but_pdf_are_refused(TypstOutputFormat format)
