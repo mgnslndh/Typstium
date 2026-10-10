@@ -183,6 +183,12 @@ jobs:
       - if: runner.os != 'Windows'
         run: ./build.sh --target=RuntimeEndToEndTests
         shell: bash
+      - if: runner.os == 'Windows'
+        run: ./build.ps1 --target=CakeEndToEndTests
+        shell: pwsh
+      - if: runner.os != 'Windows'
+        run: ./build.sh --target=CakeEndToEndTests
+        shell: bash
 
   # Windows on Arm runners are free for public repositories only (spec runtime-packages §10).
   runtime-e2e-windows-arm:
@@ -203,4 +209,6 @@ jobs:
           name: runtime-packages
           path: artifacts/packages
       - run: ./build.ps1 --target=RuntimeEndToEndTests
+        shell: pwsh
+      - run: ./build.ps1 --target=CakeEndToEndTests
         shell: pwsh
