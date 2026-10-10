@@ -35,30 +35,73 @@ internal sealed class EnvironmentVariableLocator(string variable, ILocatorEnviro
     }
 }
 
-/// <summary>typst/&lt;rid&gt;/ next to the app, as copied by the Typstium runtime packages.</summary>
+/// <summary>
+/// The binaries Typstium's build targets copy next to the app (spec runtime-packages §7): typstium.runtime.json in
+/// the app folder or bin/ when there is one (authoritative), otherwise typst/&lt;rid&gt;/ and bin/typst/&lt;rid&gt;/,
+/// for the native RID and then its emulated fallback.
+/// </summary>
 internal sealed class BundledRuntimeLocator(ILocatorEnvironment environment) : ITypstExecutableLocator
 {
     public string Name => "BundledRuntime";
 
     public ValueTask<TypstLocatorResult> LocateAsync(CancellationToken cancellationToken)
     {
-        var executable = environment.ExecutableFileName;
-        var candidates = new[]
+        var rids = RuntimeIdentifierCandidates.For(environment.RuntimeIdentifier);
+        foreach (var directory in new[] { environment.BaseDirectory, Path.Combine(environment.BaseDirectory, "bin") })
         {
-            Path.Combine(environment.BaseDirectory, "typst", environment.RuntimeIdentifier, executable),
-            Path.Combine(environment.BaseDirectory, "bin", "typst", environment.RuntimeIdentifier, executable),
-        };
+            switch (environment.ReadRuntimeManifest(directory))
+            {
+                case RuntimeManifestResult.Invalid invalid:
+                    return new(TypstLocatorResult.NotFound(new[] { $"{invalid.Path} ({invalid.Reason})" }));
+
+                case RuntimeManifestResult.Loaded loaded:
+                    return new(FromManifest(loaded, rids));
+            }
+        }
+
+        return new(FromConventionalFolders(rids));
+    }
+
+    private TypstLocatorResult FromManifest(RuntimeManifestResult.Loaded loaded, IReadOnlyList<string> rids)
+    {
+        var searched = new List<string> { loaded.Path };
+        foreach (var rid in rids)
+        {
+            if (loaded.Manifest.Executables.TryGetValue(rid, out var executable))
+            {
+                searched.Add(executable);
+                if (environment.FileExists(executable))
+                {
+                    environment.EnsureExecutable(executable);
+                    return TypstLocatorResult.Found(executable);
+                }
+            }
+        }
+
+        return TypstLocatorResult.NotFound(searched);
+    }
+
+    private TypstLocatorResult FromConventionalFolders(IReadOnlyList<string> rids)
+    {
+        var executable = environment.ExecutableFileName;
+        var candidates = rids
+            .SelectMany(rid => new[]
+            {
+                Path.Combine(environment.BaseDirectory, "typst", rid, executable),
+                Path.Combine(environment.BaseDirectory, "bin", "typst", rid, executable),
+            })
+            .ToArray();
 
         foreach (var candidate in candidates)
         {
             if (environment.FileExists(candidate))
             {
                 environment.EnsureExecutable(candidate);
-                return new(TypstLocatorResult.Found(candidate));
+                return TypstLocatorResult.Found(candidate);
             }
         }
 
-        return new(TypstLocatorResult.NotFound(candidates));
+        return TypstLocatorResult.NotFound(candidates);
     }
 }
 
