@@ -56,7 +56,17 @@ internal static class CakeSession
             }
         }
 
-        return new Session(feed, version, packages!, runtimeVersion, environment);
+        // Once per session, into a folder of its own: a local tool (manifest + dotnet tool install) per scenario shares
+        // the per-user ~/.dotnet/toolResolverCache, which parallel installs and runs collide on (Windows locks it).
+        var cakeTool = Path.Combine(PackageFeed.ArtifactsRoot, "cake-tool-" + version);
+        var install = await DotNet.RunAsync(RepositoryPaths.Root, environment, "tool", "install", "Cake.Tool", "--version", "6.3.0", "--tool-path", cakeTool);
+        if (install.ExitCode != 0)
+        {
+            throw new InvalidOperationException("dotnet tool install Cake.Tool failed:" + Environment.NewLine + install.Output);
+        }
+
+        var cake = Path.Combine(cakeTool, OperatingSystem.IsWindows() ? "dotnet-cake.exe" : "dotnet-cake");
+        return new Session(feed, version, packages!, runtimeVersion, environment, cake);
     }
 
     /// <summary>Extracts the host's typst from its runtime package, for CK5's TYPST_PATH.</summary>
@@ -80,7 +90,7 @@ internal static class CakeSession
     }
 }
 
-internal sealed record Session(string Feed, string Version, string RuntimePackages, string RuntimeVersion, IReadOnlyDictionary<string, string?> Environment)
+internal sealed record Session(string Feed, string Version, string RuntimePackages, string RuntimeVersion, IReadOnlyDictionary<string, string?> Environment, string CakeExecutable)
 {
     /// <summary>
     /// The session's environment with a NuGet cache of the scenario's own: scenarios run in parallel, and restores or

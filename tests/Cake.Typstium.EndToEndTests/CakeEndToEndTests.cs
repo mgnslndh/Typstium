@@ -10,31 +10,15 @@ public partial class CakeEndToEndTests
     private const string Document = "= Hello from Cake\n\nCompiled by Cake.Typstium.\n";
     private const string BrokenDocument = "= Broken\n\n#let x = (1, 2\n";
 
-    private static readonly SemaphoreSlim ToolInstall = new(1, 1);
-
     private static string OtherRid => CakeSession.HostRid.StartsWith("win", StringComparison.Ordinal) ? "linux-x64" : "win-x64";
 
-    /// <summary>A folder with nuget.config, global.json, doc.typ and a local Cake.Tool 6.3.0.</summary>
-    private static async Task<TemporaryDirectory> ScriptFolderAsync(Session session, string document = Document)
+    /// <summary>A folder with nuget.config, global.json and doc.typ; scripts run with the session's Cake.Tool.</summary>
+    private static TemporaryDirectory ScriptFolder(Session session, string document = Document)
     {
         var folder = new TemporaryDirectory("cake-e2e");
         folder.CreateFile("nuget.config", session.NuGetConfig);
         folder.CreateFile("doc.typ", document);
         File.Copy(Path.Combine(RepositoryPaths.Root, "global.json"), folder.Combine("global.json"));
-        var environment = session.EnvironmentFor(folder);
-        Expect(await DotNet.RunAsync(folder.Path, environment, "new", "tool-manifest"), "dotnet new tool-manifest");
-        // dotnet tool install writes a per-user resolver cache (~/.dotnet/toolResolverCache) whatever NUGET_PACKAGES is,
-        // and on Windows two installs at once collide on its file.
-        await ToolInstall.WaitAsync();
-        try
-        {
-            Expect(await DotNet.RunAsync(folder.Path, environment, "tool", "install", "Cake.Tool", "--version", "6.3.0"), "dotnet tool install Cake.Tool");
-        }
-        finally
-        {
-            ToolInstall.Release();
-        }
-
         return folder;
     }
 
@@ -73,7 +57,7 @@ public partial class CakeEndToEndTests
             environment[name] = value;
         }
 
-        return Plain(await DotNet.RunAsync(folder.Path, environment, "cake", "build.cake"));
+        return Plain(await DotNet.RunToolAsync(session.CakeExecutable, folder.Path, environment, "build.cake"));
     }
 
     private static void Expect(DotNetRun run, string what)
@@ -89,7 +73,7 @@ public partial class CakeEndToEndTests
     public async Task A_script_compiles_with_typst_from_its_tool_directive()
     {
         var session = await CakeSession.GetAsync();
-        using var folder = await ScriptFolderAsync(session);
+        using var folder = ScriptFolder(session);
         folder.CreateFile("build.cake", Script(session, loadDependencies: true, CakeSession.HostRid));
 
         var run = await RunCakeAsync(session, folder);
@@ -104,7 +88,7 @@ public partial class CakeEndToEndTests
     public async Task A_script_with_several_tool_directives_picks_the_hosts_binary()
     {
         var session = await CakeSession.GetAsync();
-        using var folder = await ScriptFolderAsync(session);
+        using var folder = ScriptFolder(session);
         folder.CreateFile("build.cake", Script(session, loadDependencies: true, OtherRid, CakeSession.HostRid));
 
         var run = await RunCakeAsync(session, folder);
@@ -119,7 +103,7 @@ public partial class CakeEndToEndTests
     public async Task A_script_without_loaddependencies_fails_naming_the_typstium_assembly()
     {
         var session = await CakeSession.GetAsync();
-        using var folder = await ScriptFolderAsync(session);
+        using var folder = ScriptFolder(session);
         folder.CreateFile("build.cake", Script(session, loadDependencies: false, CakeSession.HostRid));
 
         var run = await RunCakeAsync(session, folder);
@@ -173,7 +157,7 @@ public partial class CakeEndToEndTests
     public async Task TYPST_PATH_wins_over_a_tool_directive()
     {
         var session = await CakeSession.GetAsync();
-        using var folder = await ScriptFolderAsync(session);
+        using var folder = ScriptFolder(session);
         folder.CreateFile("build.cake", Script(session, loadDependencies: true, CakeSession.HostRid));
         var typst = CakeSession.ExtractHostTypst(session, folder);
 
@@ -188,7 +172,7 @@ public partial class CakeEndToEndTests
     public async Task A_document_with_an_error_fails_the_build_with_a_canonical_error_line()
     {
         var session = await CakeSession.GetAsync();
-        using var folder = await ScriptFolderAsync(session, BrokenDocument);
+        using var folder = ScriptFolder(session, BrokenDocument);
         folder.CreateFile("build.cake", Script(session, loadDependencies: true, CakeSession.HostRid));
 
         var run = await RunCakeAsync(session, folder);
@@ -203,7 +187,7 @@ public partial class CakeEndToEndTests
     public async Task A_pinned_rollback_wins_over_a_higher_version_left_in_the_tools_folder()
     {
         var session = await CakeSession.GetAsync();
-        using var folder = await ScriptFolderAsync(session);
+        using var folder = ScriptFolder(session);
         folder.CreateFile("build.cake", Script(session, loadDependencies: true, CakeSession.HostRid));
         var executable = OperatingSystem.IsWindows() ? "typst.exe" : "typst";
         folder.CreateFile($"tools/Typstium.Runtime.{CakeSession.HostRid}.99.0.0/tools/typst/{CakeSession.HostRid}/{executable}", "stale");
