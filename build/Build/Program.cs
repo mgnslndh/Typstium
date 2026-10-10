@@ -1,6 +1,8 @@
 // Builds and tests Typstium exactly as CI does; CI runs this build, so the two can't drift apart.
 // See docs/specs/cake-sdk-build.md. Arguments: --target=<task> (Default), --configuration=<c> (Release), --coverage,
 // --no-job-summary, --max-line-decrease=<pp> (0.5).
+// Runtime packages (not in Default): --target=UpdateTypstRuntimes --typst-version=<v>, DownloadTypstRuntimes,
+// PackTypstRuntimes, RuntimeTests, RuntimeEndToEndTests.
 var target = Argument("target", "Default");
 
 Setup(context =>
@@ -19,6 +21,7 @@ Setup(context =>
 RegisterBuildTasks();
 RegisterTestTasks();
 RegisterCoverageTasks();
+RegisterRuntimeTasks();
 RegisterDefaultTask();
 
 RunTarget(target);
