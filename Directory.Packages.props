@@ -17,6 +17,8 @@
          the tests use the fakes of the Cake version the repository's build runs. -->
     <PackageVersion Include="Cake.Core" Version="6.0.0" />
     <PackageVersion Include="Cake.Testing" Version="6.3.0" />
+    <!-- Test-only: Cake.Typstium's unit tests check that tool folder versions order exactly as NuGet orders them. -->
+    <PackageVersion Include="NuGet.Versioning" Version="7.9.0" />
     <!-- The build under build/ (docs/specs/cake-sdk-build.md). Cake.Common matches Cake.Sdk in global.json;
          Spectre.Console matches the version Cake.Cli ships (build/Build fails if Cake needs a newer one). -->
     <PackageVersion Include="Cake.Common" Version="6.3.0" />

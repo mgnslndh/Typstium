@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="TUnit" />
     <PackageReference Include="Cake.Testing" />
+    <PackageReference Include="NuGet.Versioning" />
     <ProjectReference Include="..\..\src\Cake.Typstium\Cake.Typstium.csproj" />
     <ProjectReference Include="..\Typstium.Testing\Typstium.Testing.csproj" />
   </ItemGroup>
