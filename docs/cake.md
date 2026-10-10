@@ -62,6 +62,19 @@ When nothing is found, the error lists every place it searched.
 - `Typstium.Runtime.All` doesn't work with `#tool`, because `#tool` doesn't install a package's dependencies.
 - Each package is 22–26 MB. Cache the `tools/` folder on CI.
 
+**Changing the version.** `#tool` installs each version into its own folder (`tools/Typstium.Runtime.linux-x64.0.15.1/`)
+and never removes old ones, so a cached `tools/` can hold several. The addin uses the version your `#tool` line
+registered in this run, so a rollback to an older version works even with a newer one still in `tools/` (CK7). Without
+a `#tool` line for the platform it takes the version Cake finds in `tools/`, the highest if Cake finds none. Whenever
+more than one version is installed, it warns:
+
+```
+…/tools has several versions of Typstium.Runtime.linux-x64: 0.15.1, 0.16.0; using 0.15.1, registered by #tool.
+#tool doesn't remove old versions; delete the folders you don't need.
+```
+
+Delete the folders you no longer need, or key the CI cache on the script's `#tool` lines, to keep `tools/` tidy.
+
 Platforms: `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64`, `linux-x64`, `linux-arm64`, `linux-arm`.
 
 ### A runtime package in a Cake.Sdk or Frosting project
@@ -95,7 +108,8 @@ Task("Docs").Does(() =>
 - **The output's extension picks the format**: `.pdf`, `.png`, `.svg`, or `.html` (Typst's experimental HTML export).
   Set `Format` in the settings to choose the format some other way.
 - **PNG and SVG** produce one file per page. With more than one page, the output path needs `{p}` (the page number) or
-  `{0p}` (the page number, zero-padded); `{t}` is the page count.
+  `{0p}` (the page number, zero-padded); `{t}` is the page count. The placeholders work in the file name only, not in
+  a folder (`pages/page-{0p}.png`, not `page-{p}/image.png`).
 - **Async:** each alias has a `TypstCompileAsync` twin, with and without a `CancellationToken`, for async tasks and
   parallel compiles:
 
@@ -148,10 +162,20 @@ put the fonts it needs in a folder and add it with `WithFontPath`. When Typst ca
 The network is off too, so `#import "@preview/..."` works only for packages in `PackagePath` or Typst's cache. Vendor
 them into a folder, or use `WithNetwork()`.
 
-A setting that doesn't fit the format, such as `Ppi` for a PDF or `PdfStandards` for a PNG, is an error rather than
-being ignored.
+A setting that doesn't fit the format, such as `Ppi` for a PDF, `PdfStandards` for a PNG or `Pages` for HTML, is an
+error rather than being ignored.
 
 ## Failures and diagnostics
+
+Each successful compile logs which Typst ran and where it came from, which is the first thing to check when output
+differs between machines:
+
+```
+Typst 0.15.1 (CakeTools: …/tools/Typstium.Runtime.linux-x64.0.15.1/tools/typst/linux-x64/typst) compiled …/docs/spec.typ to …/artifacts/spec.pdf in 412 ms.
+```
+
+The part in parentheses names where Typst was found: `ExplicitPath` (from `ToolPath`), `TYPST_PATH`, `CakeTools`
+(`#tool`), `BundledRuntime` (a runtime package referenced by the project), `WinGet`, `WellKnownLocations` or `PATH`.
 
 Every diagnostic goes to the log, errors as errors and warnings as warnings, in the form IDEs and CI problem matchers
 understand:

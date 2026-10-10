@@ -58,6 +58,7 @@ and no network.
 | D17 | Target framework | `net8.0` | `net8.0;net9.0;net10.0` | Cake.Core 6.3.0 ships all three; a `net8.0` addin runs on each, and the core has no `net9.0`/`net10.0` build to match |
 | D18 | Core types in scripts | `[CakeNamespaceImport("Typstium")]` | Re-declare settings types for every core concept | `PdfStandard`, `TypstPageSelection` and `TypstCompileResult` are usable without a `using`, and stay one concept with one name |
 | D19 | `#tool` for Linux and macOS runtime packages | The directive adds `&include=./**/typst` | Change the runtime packages so Cake picks the binary up by default | Cake's `#tool` installer registers only `*.exe` and `*.dll` files and fails with "Failed to install tool" otherwise (found in the end-to-end tests). The runtime packages hold Typst's binary unchanged; one parameter in the directive is cheaper than a marker file in seven packages. Windows packages need nothing |
+| D20 | Several versions of the host's runtime package in `tools/` | The version of the file Cake's tool registry resolves for `typst[.exe]` (what `#tool` registered this run) wins when it lies in a `Typstium.Runtime.<any rid>.<version>` folder and the host's package has that version; otherwise the highest. Either way a warning names the installed versions and the one used. Versions order exactly as NuGet orders them | Highest always wins; take the registered file itself; document only | `#tool` never removes old versions, so with highest-wins a rollback (`&version=` lower than a cached one) silently ran the newer Typst. Only the version is taken from the registry, so several platforms registering the same file name (D6) don't matter. Without a pin Cake's answer comes from its own tools-folder search, and the warning makes the choice visible. NuGet's order is pinned by differential tests against `NuGet.Versioning`, which only the tests reference |
 
 ## 3. Package
 
@@ -127,7 +128,7 @@ public sealed class TypstCompileSettings
     public TypstOutputFormat? Format { get; set; }                  // null = inferred from the output extension
     public IList<PdfStandard> PdfStandards { get; }                 // empty = plain PDF
     public int? Ppi { get; set; }                                   // PNG; null = 144
-    public TypstPageSelection? Pages { get; set; }                  // PNG and SVG; null = all pages
+    public TypstPageSelection? Pages { get; set; }                  // PDF, PNG and SVG; null = all pages
     public IDictionary<string, string> Inputs { get; }              // --input key=value (sys.inputs)
     public IList<DirectoryPath> FontPaths { get; }
     public bool IncludeSystemFonts { get; set; }                    // default false
@@ -137,7 +138,7 @@ public sealed class TypstCompileSettings
     public DateTimeOffset? CreationTimestamp { get; set; }          // null = inherit SOURCE_DATE_EPOCH
     public TimeSpan? Timeout { get; set; }                          // null = the core default (60 s)
     public bool TreatWarningsAsErrors { get; set; }                 // default false
-    public TypstArguments ExtraArguments { get; set; }              // after the generated arguments
+    public TypstArguments ExtraArguments { get; set; }              // after the generated arguments; null is refused
     public Func<TypstArguments, TypstArguments>? ArgumentCustomization { get; set; }
 }
 ```
@@ -175,6 +176,10 @@ tests):
    - `input` and `output` are made absolute.
    - The format comes from `Format`, or from the output's extension: `.pdf`, `.png`, `.svg`, `.html`
      (case-insensitive). An unknown extension with no `Format` throws `ArgumentException`.
+   - Page placeholders (`{p}`, `{0p}`, `{t}`) in the output's folder throw `ArgumentException`: they only work in the
+     file name.
+   - A setting that doesn't fit the format throws `ArgumentException` naming it: `Ppi` other than for PNG,
+     `PdfStandards` other than for PDF, `Pages` for HTML.
 2. **Map** the settings to a `TypstCompileRequest` (4.2).
 3. **Compile** with a new compiler (D16).
 4. **Report.** Each diagnostic goes to `Log.Error` or `Log.Warning` as its `ToString()`, the canonical
@@ -187,8 +192,9 @@ tests):
    - A paged document is saved with `output` as the page pattern (`{p}`, `{0p}`, `{t}`). A paged document with more
      than one page and no `{p}` or `{0p}` in the path throws `ArgumentException` naming the page count; nothing is
      written.
-7. **Log** one `Information` line: the output path, the page count for paged output, and the duration. **Return**
-   the result.
+7. **Log** one `Information` line naming the Typst version, the locator that found it and its path, the input, the
+   output, the page count for PNG and SVG (`1 page`, `3 pages`) and the duration:
+   `Typst 0.15.1 (CakeTools: …/typst) compiled …/spec.typ to …/spec.pdf in 412 ms.` **Return** the result.
 
 `TypstException`s (for example `TypstExecutableNotFoundException`), `ArgumentException` and
 `OperationCanceledException` pass through unwrapped (D10).
@@ -230,8 +236,11 @@ own (D5):
 - **Candidate RIDs:** the host RID from the OS and architecture, then its emulation fallback, as the core's
   bundled-runtime locator does (`win-arm64` → `win-x64`, `osx-arm64` → `osx-x64`). Implemented in the addin (D7).
 - **Search:** for each candidate RID, folders matching `Typstium.Runtime.<rid>` or `Typstium.Runtime.<rid>.<version>`
-  (`UseVersionInToolsFolder` decides which Cake writes), each with `tools/typst/<rid>/typst[.exe]`. When several
-  versions are installed, the highest version wins (a folder without a version counts as lowest).
+  (`UseVersionInToolsFolder` decides which Cake writes), each with `tools/typst/<rid>/typst[.exe]`.
+- **Choosing a version (D20):** the version `#tool` registered this run wins, taken from the folder of the file
+  `context.Tools.Resolve("typst[.exe]")` returns; otherwise the highest. Versions order as NuGet orders them (a folder
+  without a version counts as lowest). With more than one version installed, a warning names them all and the one
+  used, and says whether `#tool` chose it.
 - **Execute bit:** on Unix the found file gets its execute bits set if they're missing, because NuGet extraction
   drops them.
 - **Not found** lists the tools folder and each pattern tried, so `TypstExecutableNotFoundException` shows them
