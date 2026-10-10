@@ -34,6 +34,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- MSBuild logic for the runtime packages (docs/specs/runtime-packages.md §3–§6). -->
+    <None Include="build/Typstium.targets" Pack="true" PackagePath="build/" />
+    <None Include="buildTransitive/Typstium.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Typstium.UnitTests" />
   </ItemGroup>
 

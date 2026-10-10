@@ -1,0 +1,72 @@
+<Project>
+  <!--
+    Copies the Typst binaries that referenced Typstium.Runtime.<rid> packages declare (TypstiumRuntime items) next to
+    the app, and writes typstium.runtime.json, which BundledRuntimeLocator reads (docs/specs/runtime-packages.md §4–§6).
+  -->
+  <PropertyGroup>
+    <_TypstiumTargetsImported>true</_TypstiumTargetsImported>
+    <TypstiumCopyRuntime Condition="'$(TypstiumCopyRuntime)' == ''">true</TypstiumCopyRuntime>
+    <TypstiumCopyRuntimeOnBuild Condition="'$(TypstiumCopyRuntimeOnBuild)' == ''">true</TypstiumCopyRuntimeOnBuild>
+    <TypstiumCopyRuntimeOnPublish Condition="'$(TypstiumCopyRuntimeOnPublish)' == ''">true</TypstiumCopyRuntimeOnPublish>
+    <TypstiumRuntimeDirectory Condition="'$(TypstiumRuntimeDirectory)' == ''">typst/{rid}</TypstiumRuntimeDirectory>
+  </PropertyGroup>
+
+  <!-- BeforeTargets, not AssignTargetPathsDependsOn: this file may be imported before Microsoft.Common sets that property. -->
+  <Target Name="_TypstiumAddRuntimeFiles" BeforeTargets="AssignTargetPaths"
+          Condition="'$(TypstiumCopyRuntime)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+
+    <!-- build/ and buildTransitive/ of one package can both be imported; keep one item per RID. -->
+    <RemoveDuplicates Inputs="@(TypstiumRuntime)">
+      <Output TaskParameter="Filtered" ItemName="_TypstiumKnown" />
+    </RemoveDuplicates>
+
+    <!-- Ordinal order by RID, so the manifest doesn't depend on the order NuGet imports the props files in. -->
+    <ItemGroup>
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'linux-arm'" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'linux-arm64'" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'linux-x64'" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'osx-arm64'" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'osx-x64'" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'win-arm64'" />
+      <_TypstiumSelected Include="@(_TypstiumKnown)" Condition="'%(Identity)' == 'win-x64'" />
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_TypstiumDirectory>$([System.Text.RegularExpressions.Regex]::Replace('$(TypstiumRuntimeDirectory.Replace(`\`, `/`))', '/+$', ''))</_TypstiumDirectory>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_TypstiumSelected>
+        <TypstiumTargetPath>$([System.String]::Copy('$(_TypstiumDirectory)').Replace('{rid}', '%(Identity)'))/$([System.IO.Path]::GetFileName('%(Executable)'))</TypstiumTargetPath>
+      </_TypstiumSelected>
+      <ContentWithTargetPath Include="@(_TypstiumSelected->'%(Executable)')">
+        <TargetPath>%(TypstiumTargetPath)</TargetPath>
+        <CopyToOutputDirectory Condition="'$(TypstiumCopyRuntimeOnBuild)' == 'true'">PreserveNewest</CopyToOutputDirectory>
+        <CopyToOutputDirectory Condition="'$(TypstiumCopyRuntimeOnBuild)' != 'true'">Never</CopyToOutputDirectory>
+        <CopyToPublishDirectory Condition="'$(TypstiumCopyRuntimeOnPublish)' == 'true'">PreserveNewest</CopyToPublishDirectory>
+        <CopyToPublishDirectory Condition="'$(TypstiumCopyRuntimeOnPublish)' != 'true'">Never</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ContentWithTargetPath>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_TypstiumManifestRuntimes>@(_TypstiumSelected->'    &quot;%(Identity)&quot;: &quot;%(TypstiumTargetPath)&quot;', ',%0A')</_TypstiumManifestRuntimes>
+      <_TypstiumManifestJson>{%0A  &quot;version&quot;: 1,%0A  &quot;runtimes&quot;: {%0A$(_TypstiumManifestRuntimes)%0A  }%0A}</_TypstiumManifestJson>
+    </PropertyGroup>
+  </Target>
+
+  <!-- The manifest is written into each folder rather than added as an item: as an item it would flow through
+       ProjectReference, and an app and a library would collide on it at publish (NETSDK1152). -->
+  <Target Name="_TypstiumWriteOutputManifest" AfterTargets="CopyFilesToOutputDirectory"
+          Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnBuild)' == 'true'">
+    <WriteLinesToFile File="$(OutDir)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <FileWrites Include="$(OutDir)typstium.runtime.json" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_TypstiumWritePublishManifest" AfterTargets="CopyFilesToPublishDirectory"
+          Condition="'@(_TypstiumSelected)' != '' and '$(TypstiumCopyRuntimeOnPublish)' == 'true'">
+    <WriteLinesToFile File="$(PublishDir)typstium.runtime.json" Lines="$(_TypstiumManifestJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+</Project>

@@ -159,8 +159,10 @@ Libraries and test projects copy too. That's what lets packages.config apps get 
 library, and test projects are libraries.
 
 **Manifest.** Whenever at least one runtime is selected, a target writes
-`$(IntermediateOutputPath)typstium.runtime.json` (only when its content changes) and adds it as a content
-item with the same copy and single-file settings:
+`typstium.runtime.json` (runtimes in ordinal RID order) straight into `$(OutDir)` after `CopyFilesToOutputDirectory`
+and into `$(PublishDir)` after `CopyFilesToPublishDirectory` (`WriteOnlyWhenDifferent`, registered in `FileWrites`).
+As a content item it would flow through `ProjectReference`, and an app and a library would collide on it at
+publish (`NETSDK1152`):
 
 ```json
 {
