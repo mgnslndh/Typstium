@@ -1,5 +1,5 @@
 using Cake.Core;
-using Cake.Core.Configuration;
+using Cake.Core.Diagnostics;
 using Cake.Core.IO;
 using Cake.Typstium.Utilities;
 using Typstium;
@@ -12,11 +12,11 @@ namespace Cake.Typstium.Executable;
 /// </summary>
 internal static class TypstCakeResolver
 {
-    public static TypstExecutableResolver Create(ICakeEnvironment environment, ICakeConfiguration configuration, FilePath? toolPath) =>
-        new(Locators(environment, configuration, toolPath));
+    public static TypstExecutableResolver Create(ICakeContext context, FilePath? toolPath) => new(Locators(context, toolPath));
 
-    public static IReadOnlyList<ITypstExecutableLocator> Locators(ICakeEnvironment environment, ICakeConfiguration configuration, FilePath? toolPath)
+    public static IReadOnlyList<ITypstExecutableLocator> Locators(ICakeContext context, FilePath? toolPath)
     {
+        var environment = context.Environment;
         var locators = new List<ITypstExecutableLocator>();
         if (toolPath is not null)
         {
@@ -24,9 +24,14 @@ internal static class TypstCakeResolver
         }
 
         // The folder #tool installs into: Paths_Tools when configured, otherwise ./tools.
-        var tools = configuration.GetToolPath(environment.WorkingDirectory, environment);
+        var tools = context.Configuration.GetToolPath(environment.WorkingDirectory, environment);
         locators.Add(TypstExecutableLocators.EnvironmentVariable());
-        locators.Add(new CakeToolsLocator(CakePaths.Native(tools, environment), HostRuntimeIdentifier.Candidates(HostRuntimeIdentifier.Current)));
+        locators.Add(new CakeToolsLocator(
+            CakePaths.Native(tools, environment),
+            HostRuntimeIdentifier.Candidates(HostRuntimeIdentifier.Current),
+            // What #tool registered this run, read only when the chain gets here.
+            executable => context.Tools.Resolve(executable) is { } registered ? CakePaths.Native(registered, environment) : null,
+            message => context.Log.Warning("{0}", message)));
         locators.Add(TypstExecutableLocators.BundledRuntime());
         locators.Add(TypstExecutableLocators.WinGet());
         locators.Add(TypstExecutableLocators.WellKnownLocations());

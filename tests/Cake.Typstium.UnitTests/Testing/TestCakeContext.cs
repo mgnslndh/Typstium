@@ -7,11 +7,12 @@ using Cake.Testing;
 
 namespace Cake.Typstium.UnitTests.Testing;
 
-/// <summary>The members the aliases use (environment, configuration, log); everything else throws.</summary>
+/// <summary>The members the aliases use (environment, configuration, log, tools); everything else throws.</summary>
 internal sealed class TestCakeContext(FakeEnvironment environment) : ICakeContext
 {
     public FakeLog FakeLog { get; } = new() { Verbosity = Verbosity.Diagnostic };
     public FakeConfiguration FakeConfiguration { get; } = new();
+    public FakeToolLocator FakeTools { get; } = new();
 
     public ICakeEnvironment Environment => environment;
     public ICakeLog Log => FakeLog;
@@ -21,6 +22,6 @@ internal sealed class TestCakeContext(FakeEnvironment environment) : ICakeContex
     public ICakeArguments Arguments => throw new NotSupportedException();
     public IProcessRunner ProcessRunner => throw new NotSupportedException();
     public IRegistry Registry => throw new NotSupportedException();
-    public IToolLocator Tools => throw new NotSupportedException();
+    public IToolLocator Tools => FakeTools;
     public ICakeDataResolver Data => throw new NotSupportedException();
 }

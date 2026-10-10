@@ -9,5 +9,5 @@ namespace Cake.Typstium.Compilation;
 internal static class TypstCakeCompilers
 {
     public static ITypstCompiler Create(ICakeContext context, FilePath? toolPath) =>
-        new CliTypstCompiler(TypstCakeResolver.Create(context.Environment, context.Configuration, toolPath), new CliTypstCompilerSettings());
+        new CliTypstCompiler(TypstCakeResolver.Create(context, toolPath), new CliTypstCompilerSettings());
 }

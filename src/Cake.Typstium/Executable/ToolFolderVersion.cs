@@ -13,11 +13,15 @@ internal sealed class ToolFolderVersion : IComparable<ToolFolderVersion>
 {
     private static readonly string[] NoLabels = [];
 
-    private ToolFolderVersion(int[]? numbers, string[] labels)
+    private ToolFolderVersion(int[]? numbers, string[] labels, string text)
     {
         Numbers = numbers;
         Labels = labels;
+        Text = text;
     }
+
+    /// <summary>The version as the folder name spells it; empty for a folder without a version.</summary>
+    public string Text { get; }
 
     /// <summary>Major, minor, patch and revision; null for a folder without a version.</summary>
     private int[]? Numbers { get; }
@@ -30,7 +34,7 @@ internal sealed class ToolFolderVersion : IComparable<ToolFolderVersion>
     {
         if (string.Equals(folderName, packageId, StringComparison.OrdinalIgnoreCase))
         {
-            return new ToolFolderVersion(null, NoLabels);
+            return new ToolFolderVersion(null, NoLabels, "");
         }
 
         return folderName.StartsWith(packageId + ".", StringComparison.OrdinalIgnoreCase)
@@ -76,7 +80,7 @@ internal sealed class ToolFolderVersion : IComparable<ToolFolderVersion>
             }
         }
 
-        return new ToolFolderVersion(numbers, labels);
+        return new ToolFolderVersion(numbers, labels, text);
     }
 
     /// <summary>Dot-separated, non-empty identifiers of ASCII letters, digits and '-'.</summary>

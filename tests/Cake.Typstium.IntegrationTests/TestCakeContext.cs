@@ -28,6 +28,17 @@ internal sealed class TestCakeContext(FakeEnvironment environment) : ICakeContex
     public ICakeArguments Arguments => throw new NotSupportedException();
     public IProcessRunner ProcessRunner => throw new NotSupportedException();
     public IRegistry Registry => throw new NotSupportedException();
-    public IToolLocator Tools => throw new NotSupportedException();
+    public IToolLocator Tools { get; } = new ToolLocatorWithNothingRegistered();
     public ICakeDataResolver Data => throw new NotSupportedException();
+
+    private sealed class ToolLocatorWithNothingRegistered : IToolLocator
+    {
+        public void RegisterFile(FilePath path)
+        {
+        }
+
+        public FilePath? Resolve(string tool) => null;
+
+        public FilePath? Resolve(IEnumerable<string> toolExeNames) => null;
+    }
 }
