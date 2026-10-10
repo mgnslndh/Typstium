@@ -100,6 +100,7 @@
         <CopyToPublishDirectory Condition="'$(TypstiumCopyRuntimeOnPublish)' == 'true'">PreserveNewest</CopyToPublishDirectory>
         <CopyToPublishDirectory Condition="'$(TypstiumCopyRuntimeOnPublish)' != 'true'">Never</CopyToPublishDirectory>
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+        <TypstiumRuntime>true</TypstiumRuntime>
       </ContentWithTargetPath>
     </ItemGroup>
 
@@ -107,6 +108,56 @@
       <_TypstiumManifestRuntimes>@(_TypstiumSelected->'    &quot;%(Identity)&quot;: &quot;%(TypstiumTargetPath)&quot;', ',%0A')</_TypstiumManifestRuntimes>
       <_TypstiumManifestJson>{%0A  &quot;version&quot;: 1,%0A  &quot;runtimes&quot;: {%0A$(_TypstiumManifestRuntimes)%0A  }%0A}</_TypstiumManifestJson>
     </PropertyGroup>
+  </Target>
+
+  <!--
+    §6. A referenced project built without a RID selects every runtime it references, and its copies flow here through
+    ProjectReference. This project's own selection decides what it ships (it gets the same runtime packages
+    transitively), so the references' runtime files are dropped from the output and publish lists. The SDK strips custom
+    metadata from items it gets from references, so each reference is asked which files it selected; the same file can
+    also be one of this project's, so this project's own are added back afterwards.
+  -->
+  <Target Name="_TypstiumGetRuntimeFiles" DependsOnTargets="_TypstiumAddRuntimeFiles" Returns="@(_TypstiumRuntimeFile)">
+    <ItemGroup>
+      <_TypstiumRuntimeFile Include="@(_TypstiumSelected->'%(Executable)')" />
+    </ItemGroup>
+  </Target>
+
+  <!-- The same call as the SDK's for GetCopyToOutputDirectoryItems, so it reuses the references' existing builds. -->
+  <Target Name="_TypstiumGetReferencedRuntimeFiles" Condition="'@(_MSBuildProjectReferenceExistent)' != ''">
+    <MSBuild Projects="@(_MSBuildProjectReferenceExistent)"
+             Targets="_TypstiumGetRuntimeFiles"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration); %(_MSBuildProjectReferenceExistent.SetPlatform); %(_MSBuildProjectReferenceExistent.SetTargetFramework)"
+             SkipNonexistentTargets="true"
+             RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)$(_GlobalPropertiesToRemoveFromProjectReferences)">
+      <Output TaskParameter="TargetOutputs" ItemName="_TypstiumReferencedRuntimeFile" />
+    </MSBuild>
+    <ItemGroup>
+      <_TypstiumOwnRuntimeFile Include="@(ContentWithTargetPath->'%(FullPath)')" Condition="'%(ContentWithTargetPath.TypstiumRuntime)' == 'true'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_TypstiumDropReferencedOutputRuntimes" AfterTargets="GetCopyToOutputDirectoryItems" DependsOnTargets="_TypstiumGetReferencedRuntimeFiles">
+    <ItemGroup Condition="'@(_TypstiumReferencedRuntimeFile)' != ''">
+      <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToOutputDirectory Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <AllItemsFullPathWithTargetPath Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToOutputDirectory Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToOutputDirectory)' == 'PreserveNewest'" />
+      <AllItemsFullPathWithTargetPath Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToOutputDirectory)' == 'PreserveNewest'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_TypstiumDropReferencedPublishRuntimes" AfterTargets="GetCopyToPublishDirectoryItems" DependsOnTargets="_TypstiumGetReferencedRuntimeFiles">
+    <ItemGroup Condition="'@(_TypstiumReferencedRuntimeFile)' != ''">
+      <_SourceItemsToCopyToPublishDirectoryAlways Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToPublishDirectory Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToPublishDirectoryIfDifferent Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <AllPublishItemsFullPathWithTargetPath Remove="@(_TypstiumReferencedRuntimeFile);@(_TypstiumOwnRuntimeFile)" />
+      <_SourceItemsToCopyToPublishDirectory Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToPublishDirectory)' == 'PreserveNewest'" />
+      <AllPublishItemsFullPathWithTargetPath Include="@(_TypstiumOwnRuntimeFile)" Condition="'%(_TypstiumOwnRuntimeFile.CopyToPublishDirectory)' == 'PreserveNewest'" />
+    </ItemGroup>
   </Target>
 
   <!-- The manifest is written into each folder rather than added as an item: as an item it would flow through

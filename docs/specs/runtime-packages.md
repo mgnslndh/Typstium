@@ -160,6 +160,14 @@ the publish copy, single-file exclusion, and flow to referencing projects throug
 Libraries and test projects copy too. That's what lets packages.config apps get the binary through a
 library, and test projects are libraries.
 
+**Through a library.** The SDK builds a referenced library without a RID, so the library selects every runtime it
+references. A project that imports Typstium's targets (it gets the runtime packages transitively) makes its own
+selection instead: it drops the runtime files that arrive from its `ProjectReference`s from both the output and the
+publish copy, so only its own selection, `TypstiumCopyRuntime*` switches and `TypstiumRuntimeDirectory` apply (RS25).
+The SDK strips custom metadata from items it gets from references, so it asks each reference which files it selected
+(a private `_TypstiumGetRuntimeFiles` target). A project without Typstium's targets, such as a packages.config app,
+receives the library's files unchanged.
+
 **Manifest.** Whenever at least one runtime is selected, a target writes
 `typstium.runtime.json` straight into `$(OutDir)` after `CopyFilesToOutputDirectory`
 and into `$(PublishDir)` after `CopyFilesToPublishDirectory` (`WriteOnlyWhenDifferent`, registered in `FileWrites`).
@@ -355,7 +363,7 @@ end-to-end CI with real packages, M = manual checklist (section 10), D = documen
 
 | ID | Scenario | Expected | Tier | Verified |
 |---|---|---|---|---|
-| RS25 | App → class library → runtime package (transitive) | App output has the binary; the library's output has it too | v1 | T |
+| RS25 | App → class library → runtime package (transitive) | The library's output has every runtime it references; the app ships only its own selection (its RID, `TypstiumCopyRuntime*`, `TypstiumRuntimeDirectory`), never the library's copies | v1 | T |
 | RS26 | A library package that leaves the binary choice to the app | Documented: reference `Typstium`, not a runtime package | v1 | D |
 | RS27 | Test projects run on CI across OSes | As RS1 | v1 | T, E |
 | RS28 | Central Package Management, private feeds, offline restore | Nothing special | v1 | D |
