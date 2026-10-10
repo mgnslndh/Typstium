@@ -80,4 +80,23 @@ public class RuntimeManifestTests
 
         await Assert.That(invalid.Reason).IsEqualTo($"path '{path.Replace(@"\\", @"\")}' for linux-x64 contains '..'");
     }
+
+    [Test]
+    public async Task An_entry_with_an_embedded_NUL_is_invalid_and_does_not_throw()
+    {
+        // JSON escape \u0000 decodes to a NUL character, which the file system rejects with ArgumentException.
+        var invalid = (RuntimeManifestResult.Invalid)Parse(Runtimes("linux-x64", @"a\u0000b"));
+
+        await Assert.That(invalid.Reason).EndsWith("is not a valid path");
+    }
+
+    [Test]
+    public async Task A_colon_inside_a_windows_entry_does_not_throw()
+    {
+        // .NET Framework's GetFullPath throws NotSupportedException here, which Parse reports as invalid. Newer runtimes may
+        // accept the colon during path normalization and return Loaded. Either outcome is fine; the point is that Parse does not throw.
+        var result = Parse(Runtimes("linux-x64", "tools/a:b"), isWindows: true);
+
+        await Assert.That(result is RuntimeManifestResult.Invalid or RuntimeManifestResult.Loaded).IsTrue();
+    }
 }

@@ -39,7 +39,7 @@ internal sealed class RuntimeManifest
         JsonDocument document;
         try
         {
-            document = JsonDocument.Parse(json.TrimStart('﻿'));
+            document = JsonDocument.Parse(json.TrimStart('\uFEFF'));
         }
         catch (JsonException exception)
         {
@@ -125,7 +125,17 @@ internal sealed class RuntimeManifest
             }
 
             // Defense in depth: relative paths without ".." can't leave the folder, so no test reaches this.
-            var full = Path.GetFullPath(Path.Combine(directory, normalized));
+            string full;
+            try
+            {
+                full = Path.GetFullPath(Path.Combine(directory, normalized));
+            }
+            catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                // The entry comes from the manifest, so the file system's path rules can reject it (NUL, a colon, length).
+                return Invalid($"path '{entry}' for {rid} is not a valid path");
+            }
+
             if (!full.StartsWith(prefix, isWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
             {
                 return Invalid($"path '{entry}' for {rid} leaves the manifest's folder");
