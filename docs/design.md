@@ -344,9 +344,8 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 
 - [ ] The logos bake in the name "Typstium". If the naming decision goes another way, the wordmark and the icon's
   title need redoing too.
-- [ ] Package icon for every package (`PackageIcon`, spec cake.md §3): NuGet accepts PNG or JPEG only, not SVG.
-  Export `typstium-icon.svg` to PNG, 128 × 128 or larger, pack it at the package root, and set it in
-  `Directory.Build.props` so every package gets it.
+- [x] Package icon for every package (`PackageIcon`, spec cake.md §3): `Directory.Build.targets` packs
+  `assets/typstium-icon-204.png` as `icon.png` into every packable project (NuGet takes PNG or JPEG only)
 - [ ] Package READMEs (`PackageReadmeFile`): nuget.org renders on a light background, supports neither `<picture>` nor
   relative image paths, and only shows images from trusted hosts. Use one absolute URL to the dark-text logo, such as
   `https://raw.githubusercontent.com/mgnslndh/Typstium/main/assets/typstium-logo-dark-text.svg`, which only works once

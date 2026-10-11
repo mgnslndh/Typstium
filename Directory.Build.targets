@@ -1,0 +1,13 @@
+<Project>
+  <!-- Every package carries the Typstium icon (assets/README.md): NuGet takes PNG or JPEG, and 204 px is sharp at the
+       64 px nuget.org and 32 px Visual Studio sizes. In targets rather than props because projects set IsPackable in
+       their own body, after the props are imported. A project that sets its own PackageIcon keeps it. -->
+  <PropertyGroup Condition="'$(IsPackable)' != 'false' and '$(PackageIcon)' == ''">
+    <PackageIcon>icon.png</PackageIcon>
+    <TypstiumPackIcon>true</TypstiumPackIcon>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TypstiumPackIcon)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)assets/typstium-icon-204.png" Pack="true" PackagePath="icon.png" Visible="false" />
+  </ItemGroup>
+</Project>

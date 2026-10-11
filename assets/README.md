@@ -5,6 +5,10 @@
 | `typstium-icon.svg` | Anywhere: the square mark on its own gradient tile, so it works on light and dark backgrounds | 200 × 200 |
 | `typstium-logo-dark-text.svg` | Light backgrounds: the mark plus the wordmark in dark text (`#2A0F2E`) | 774 × 200 |
 | `typstium-logo-white-text.svg` | Dark backgrounds: the same with white text | 774 × 200 |
+| `typstium-icon-204.png` | The icon as PNG: the NuGet package icon (packed as `icon.png` by `Directory.Build.targets`) | 204 × 204 |
+| `typstium-icon-612.png` | The icon as PNG at high resolution, for anything larger (a docs site, social images, an avatar) | 612 × 612 |
+
+The PNGs have transparent rounded corners, so the tile looks right on light and dark backgrounds.
 
 The two logos differ only in the wordmark's color (and their internal SVG IDs, so both can sit in one page).
 
