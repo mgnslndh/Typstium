@@ -329,7 +329,7 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 **Next steps**
 
 - [ ] Pick the name and reserve the NuGet ID prefix
-- [ ] Ask the Typst team for a nod on using the name
+- [ ] Ask the Typst team for a nod on using the name and the logo
 - [x] Spike: measure CLI compile time for the license template (spike 0: about 35 ms per PDF without system fonts)
 - [x] Prototype the build targets that copy the binary and set the executable bit (runtime packages, PR #5)
 - [ ] Verify the `buildTransitive` approach in an ASP.NET Core 2.x app on .NET Framework under IIS (RS16 in the
@@ -339,3 +339,17 @@ The first milestone is a spike that proves both use cases on the CLI backend. Se
 - [ ] `Typstium.AspNetCore`
 - [ ] Markdown through `cmarker` in every integration, including the release-notes PDF in a Cake script (the
   Markdown half of spike 0 proved the Typst side)
+
+**Brand and publishing** (before the first public release; the assets are in [`assets/`](../assets/README.md))
+
+- [ ] The logos bake in the name "Typstium". If the naming decision goes another way, the wordmark and the icon's
+  title need redoing too.
+- [ ] Package icon for every package (`PackageIcon`, spec cake.md §3): NuGet accepts PNG or JPEG only, not SVG.
+  Export `typstium-icon.svg` to PNG, 128 × 128 or larger, pack it at the package root, and set it in
+  `Directory.Build.props` so every package gets it.
+- [ ] Package READMEs (`PackageReadmeFile`): nuget.org renders on a light background, supports neither `<picture>` nor
+  relative image paths, and only shows images from trusted hosts. Use one absolute URL to the dark-text logo, such as
+  `https://raw.githubusercontent.com/mgnslndh/Typstium/main/assets/typstium-logo-dark-text.svg`, which only works once
+  the repository is public. Check SVG rendering on nuget.org first, and export a PNG if it doesn't render.
+- [ ] Don't use GitHub "user-attachments" image URLs (drag-and-drop into an issue) for anything shown outside GitHub
+  while the repository is private: they only load for signed-in users with access.

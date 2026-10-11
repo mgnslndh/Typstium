@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <title>Typstium</title>
+  <defs>
+    <linearGradient id="ti-bg" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2B0A33"/>
+      <stop offset="0.5" stop-color="#6E1650"/>
+      <stop offset="1" stop-color="#D2265F"/>
+    </linearGradient>
+    <linearGradient id="ti-side" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="0" y2="175">
+      <stop offset="0" stop-color="#FFC15E"/>
+      <stop offset="1" stop-color="#F0506A"/>
+    </linearGradient>
+    <linearGradient id="ti-face" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="0" y2="170">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FBE9E4"/>
+    </linearGradient>
+    <clipPath id="ti-clip"><rect width="200" height="200" rx="44"/></clipPath>
+    <g id="ti-glyph" fill="none" stroke-linecap="butt">
+    <path d="M86 40 V128 Q86 154 112 154 H136" stroke-width="30" stroke-linejoin="round"/>
+    <path d="M48 82 H126" stroke-width="28"/>
+    <path d="M147 36 L141 76 M165 36 L159 76 M135 50 H173 M133 63 H171" stroke-width="8"/>
+    </g>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#ti-bg)"/>
+  <path d="M0 96 L118 200 H0 Z" fill="#1A0420" opacity="0.28" clip-path="url(#ti-clip)"/>
+  <g transform="translate(-16 -8)">
+  <g stroke="url(#ti-side)">
+  <use href="#ti-glyph" transform="translate(10.50 10.50)"/>
+  <use href="#ti-glyph" transform="translate(9.75 9.75)"/>
+  <use href="#ti-glyph" transform="translate(9.00 9.00)"/>
+  <use href="#ti-glyph" transform="translate(8.25 8.25)"/>
+  <use href="#ti-glyph" transform="translate(7.50 7.50)"/>
+  <use href="#ti-glyph" transform="translate(6.75 6.75)"/>
+  <use href="#ti-glyph" transform="translate(6.00 6.00)"/>
+  <use href="#ti-glyph" transform="translate(5.25 5.25)"/>
+  <use href="#ti-glyph" transform="translate(4.50 4.50)"/>
+  <use href="#ti-glyph" transform="translate(3.75 3.75)"/>
+  <use href="#ti-glyph" transform="translate(3.00 3.00)"/>
+  <use href="#ti-glyph" transform="translate(2.25 2.25)"/>
+  <use href="#ti-glyph" transform="translate(1.50 1.50)"/>
+  <use href="#ti-glyph" transform="translate(0.75 0.75)"/>
+  </g>
+  <use href="#ti-glyph" stroke="url(#ti-face)"/>
+  </g>
+</svg>
