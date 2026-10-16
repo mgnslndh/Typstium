@@ -15,7 +15,7 @@
     <PackageVersion Include="TUnit.Assertions" Version="1.73.19" />
     <!-- Cake.Typstium (docs/specs/cake.md): the addin builds against the first Cake 6 so every Cake 6.x loads it;
          the tests use the fakes of the Cake version the repository's build runs. -->
-    <PackageVersion Include="Cake.Core" Version="6.0.0" />
+    <PackageVersion Include="Cake.Core" Version="6.3.0" />
     <PackageVersion Include="Cake.Testing" Version="6.3.0" />
     <!-- Test-only: Cake.Typstium's unit tests check that tool folder versions order exactly as NuGet orders them. -->
     <PackageVersion Include="NuGet.Versioning" Version="7.9.0" />
