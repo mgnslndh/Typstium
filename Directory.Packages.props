@@ -27,5 +27,9 @@
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Testing" Version="0.57.2" />
     <PackageVersion Include="SharpCompress" Version="1.0.0" />
+    <!-- Not used directly: build/Build pins it above the version Cake.Sdk brings through Cake.NuGet and NuGet.Packaging
+         (10.0.12), which has CVE-2026-70162 and CVE-2026-84008 (fixed in 10.0.13). Drop the pin once Cake.Sdk brings a
+         patched version. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 </Project>

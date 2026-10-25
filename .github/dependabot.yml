@@ -30,6 +30,9 @@ updates:
       cake:
         patterns: ['Cake.*', 'Spectre.Console*']
     ignore:
+      # Cake.Typstium builds against the first Cake 6 on purpose, so every Cake 6.x can load it (docs/specs/cake.md §3);
+      # moving it is a decision. Cake.Common and Cake.Testing still follow Cake.Sdk.
+      - dependency-name: 'Cake.Core'
       - dependency-name: 'System.*'
         update-types: ['version-update:semver-major']
       - dependency-name: 'Microsoft.Bcl.*'
