@@ -1,4 +1,10 @@
-# Typstium
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/typstium-logo-white-text.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/typstium-logo-dark-text.svg">
+    <img alt="Typstium" src="assets/typstium-logo-dark-text.svg" width="400">
+  </picture>
+</h1>
 
 Typst for .NET: an idiomatic C# API over the official [Typst](https://typst.app) CLI. Typst does the
 typesetting; Typstium finds it, runs it safely and turns its output into .NET types.

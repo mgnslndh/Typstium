@@ -30,12 +30,14 @@ public class PackageLayoutTests
                 $"README.md",
                 $"build/Typstium.Runtime.{rid}.props",
                 $"buildTransitive/Typstium.Runtime.{rid}.props",
+                $"icon.png",
                 $"tools/typst/{rid}/LICENSE",
                 $"tools/typst/{rid}/NOTICE",
                 $"tools/typst/{rid}/{executable}",
             }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
             await Assert.That(nuspec).Contains("<license type=\"expression\">Apache-2.0</license>");
             await Assert.That(nuspec).DoesNotContain("<dependency ");
+            await Assert.That(nuspec).Contains("<icon>icon.png</icon>");
 
             using var props = new StreamReader(archive.GetEntry($"buildTransitive/Typstium.Runtime.{rid}.props")!.Open());
             var text = await props.ReadToEndAsync();
@@ -52,7 +54,7 @@ public class PackageLayoutTests
         var (entries, nuspec, archive) = await OpenAsync("Typstium.Runtime.All");
         using (archive)
         {
-            await Assert.That(entries).IsEquivalentTo(new[] { "README.md" });
+            await Assert.That(entries).IsEquivalentTo(new[] { "README.md", "icon.png" });
             foreach (var rid in PackageFeed.AllRuntimeIdentifiers)
             {
                 // PrivateAssets="none" makes NuGet write include="All" (no exclude="Build..."), so build assets flow on.
@@ -74,6 +76,20 @@ public class PackageLayoutTests
                 var document = System.Xml.Linq.XDocument.Parse(await reader.ReadToEndAsync());
                 await Assert.That(document.Root!.Name.LocalName).IsEqualTo("Project");
             }
+        }
+    }
+
+    [Test]
+    [Arguments("Typstium")]
+    [Arguments("Typstium.Runtime.All")]
+    public async Task Every_package_carries_the_typstium_icon(string id)
+    {
+        var (entries, nuspec, archive) = await OpenAsync(id);
+        using (archive)
+        {
+            await Assert.That(entries).Contains("icon.png");
+            await Assert.That(nuspec).Contains("<icon>icon.png</icon>");
+            await Assert.That(archive.GetEntry("icon.png")!.Length).IsEqualTo(new FileInfo(Path.Combine(Typstium.Testing.RepositoryPaths.Root, "assets", "typstium-icon-204.png")).Length);
         }
     }
 }
