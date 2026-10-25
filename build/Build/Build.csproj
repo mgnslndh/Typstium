@@ -11,6 +11,8 @@
          Directory.Packages.props. Referencing it here makes NuGet fail the build (NU1605, a downgrade) when a Cake
          update needs a newer Spectre.Console than the one pinned, instead of silently running a different version. -->
     <PackageReference Include="Spectre.Console" />
+    <!-- Lifts a vulnerable transitive version (see Directory.Packages.props); NuGet audit fails the restore otherwise. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <ProjectReference Include="../Build.Cake.Extensions/Build.Cake.Extensions.csproj" />
   </ItemGroup>
 
