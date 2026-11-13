@@ -4,7 +4,7 @@
     "rollForward": "latestFeature"
   },
   "msbuild-sdks": {
-    "Cake.Sdk": "6.3.0"
+    "Cake.Sdk": "7.0.0"
   },
   "test": {
     "runner": "Microsoft.Testing.Platform"
